@@ -15,3 +15,7 @@ Items live here until a written decision moves them into a milestone (see docs/D
 | Sound design (subtle success sounds, mutable) | v2 | Haptics carry v1 feedback. |
 | Play Integrity / App Attest on payment endpoints; certificate pinning | post-launch | S2 items — deliberately deferred (solo-maintainer outage risk). |
 | Light theme | v2 decision | Kit is dark-native (product PRD 6.9). |
+
+## Open blocker
+
+**Razorpay SDK does not support the New Architecture.** Dev PRD §2.2 specifies `react-native-razorpay`; React Native Directory flags it unsupported on New Arch, and Expo SDK 57 / RN 0.86 is bridgeless-only. It was removed from the M0 install rather than shipped broken. **M6 cannot start until this is decided** — options: Razorpay's newer official RN SDK, an interop-layer shim, or the Razorpay checkout web view. Needs a written decision in DECISIONS.md.
