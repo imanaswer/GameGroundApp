@@ -27,7 +27,6 @@ const config: ExpoConfig = {
   ios: {
     bundleIdentifier: variant.id,
     supportsTablet: false,
-    associatedDomains: ["applinks:www.gameground.net"],
   },
   android: {
     package: variant.id,
@@ -36,15 +35,8 @@ const config: ExpoConfig = {
       foregroundImage: "./assets/images/android-icon-foreground.png",
       monochromeImage: "./assets/images/android-icon-monochrome.png",
     },
-    intentFilters: [
-      {
-        action: "VIEW",
-        autoVerify: true,
-        data: [{ scheme: "https", host: "www.gameground.net" }],
-        category: ["BROWSABLE", "DEFAULT"],
-      },
-    ],
   },
+  // Universal links (associatedDomains / intentFilters) land in M13 with the .well-known files.
   plugins: [
     "expo-router",
     "expo-secure-store",
