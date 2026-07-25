@@ -1,9 +1,13 @@
 import { Redirect } from "expo-router";
 
+import { useAuth } from "@/hooks/useAuth";
+
 /**
- * Entry route. M2 replaces this with the real decision: restore session from SecureStore,
- * then onboarding (first run) | (tabs) (signed in) | (auth)/login.
+ * Entry route (§5.1): wait for the session restore, then route.
+ * Onboarding (first-run) slots in ahead of login in M4.
  */
 export default function Index() {
-  return <Redirect href="/home" />;
+  const { status } = useAuth();
+  if (status === "restoring") return null; // splash is still up
+  return <Redirect href={status === "signedIn" ? "/home" : "/login"} />;
 }

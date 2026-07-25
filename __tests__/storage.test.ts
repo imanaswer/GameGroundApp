@@ -24,7 +24,14 @@ test("round-trips a string value", async () => {
 });
 
 test("round-trips an object value", async () => {
-  const user = { id: "u1", name: "Anaswer", email: "a@example.com" };
+  const user = {
+    id: "u1",
+    name: "Anaswer",
+    email: "a@example.com",
+    username: "anaswer",
+    role: "USER",
+    avatarUrl: null,
+  };
   await set("gg.user", user);
   expect(await get("gg.user")).toEqual(user);
 });
@@ -42,7 +49,14 @@ test("drops a corrupt value instead of throwing", async () => {
 test("clearAuth wipes auth keys but keeps the device id", async () => {
   await set("gg.access", "a");
   await set("gg.refresh", "r");
-  await set("gg.user", { id: "u1", name: "A", email: "a@example.com" });
+  await set("gg.user", {
+    id: "u1",
+    name: "A",
+    email: "a@example.com",
+    username: "a",
+    role: "USER",
+    avatarUrl: null,
+  });
   await set("gg.device", "device-1");
 
   await clearAuth();

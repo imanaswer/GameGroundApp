@@ -5,11 +5,13 @@
 import * as Crypto from "expo-crypto";
 import * as SecureStore from "expo-secure-store";
 
+import type { SessionUser } from "@/api/types";
+
 /** Keys per Developer PRD §5.2. Values are stored JSON-encoded. */
 type Schema = {
   "gg.access": string;
   "gg.refresh": string;
-  "gg.user": { id: string; name: string; email: string };
+  "gg.user": SessionUser;
   /** Stable per-install id; refresh-token families are keyed on it (§5.3). */
   "gg.device": string;
 };

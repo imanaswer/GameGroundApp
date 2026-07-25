@@ -1,17 +1,32 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useFonts } from "expo-font";
-import { Stack } from "expo-router";
+import { Stack, useRouter } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
 import { useEffect } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 
+import { setClientHandlers } from "@/api/client";
+import { AuthProvider } from "@/hooks/useAuth";
 import { color } from "@/lib/tokens";
 
 SplashScreen.preventAutoHideAsync();
 
-// ponytail: single client, default options tuned in M2 when the api layer lands.
+// ponytail: single client; per-domain staleTimes land with the query hooks (M5, §6.1).
 const queryClient = new QueryClient();
+
+/** Routes the api client's global outcomes (§4.1): dead session → login, 426 → upgrade wall. */
+function ClientHandlerBridge() {
+  const router = useRouter();
+  useEffect(() => {
+    setClientHandlers({
+      onSessionExpired: () => router.replace("/login"),
+      onUpgradeRequired: () => router.replace("/upgrade-required"),
+    });
+    return () => setClientHandlers({});
+  }, [router]);
+  return null;
+}
 
 export default function RootLayout() {
   // Vendored rather than pulled from @expo-google-fonts — those packages ship every
@@ -35,12 +50,15 @@ export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <QueryClientProvider client={queryClient}>
-        <StatusBar style="light" />
-        <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: color.bg } }}>
-          <Stack.Screen name="(tabs)" />
-          <Stack.Screen name="game/create" options={{ presentation: "modal" }} />
-          <Stack.Screen name="upgrade-required" options={{ gestureEnabled: false }} />
-        </Stack>
+        <AuthProvider>
+          <ClientHandlerBridge />
+          <StatusBar style="light" />
+          <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: color.bg } }}>
+            <Stack.Screen name="(tabs)" />
+            <Stack.Screen name="game/create" options={{ presentation: "modal" }} />
+            <Stack.Screen name="upgrade-required" options={{ gestureEnabled: false }} />
+          </Stack>
+        </AuthProvider>
       </QueryClientProvider>
     </GestureHandlerRootView>
   );

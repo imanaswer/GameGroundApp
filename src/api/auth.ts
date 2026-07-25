@@ -1,2 +1,58 @@
-// Developer PRD §5 — M2
-export {};
+/** Auth endpoints (Developer PRD §3.2, §5). All 401s here are verdicts, not expiry — no retry. */
+import * as storage from "@/lib/storage";
+
+import { api } from "./client";
+import type { AuthPayload, SessionUser } from "./types";
+
+const NO_RETRY = { retry401: false } as const;
+
+export async function login(email: string, password: string): Promise<AuthPayload> {
+  return persist(await api.post<AuthPayload>("/auth/login", { email, password }, NO_RETRY));
+}
+
+export async function register(input: {
+  name: string;
+  username: string;
+  email: string;
+  password: string;
+}): Promise<AuthPayload> {
+  return persist(await api.post<AuthPayload>("/auth/register", input, NO_RETRY));
+}
+
+/** §5.2 — native Google flow hands the verified idToken to the mobile-only route. */
+export async function loginWithGoogle(idToken: string): Promise<AuthPayload> {
+  return persist(await api.post<AuthPayload>("/auth/google/mobile", { idToken }, NO_RETRY));
+}
+
+/** Apple sends name/email on FIRST authorization only — forward them so the server persists. */
+export async function loginWithApple(
+  identityToken: string,
+  fullName?: string | null,
+): Promise<AuthPayload> {
+  return persist(
+    await api.post<AuthPayload>("/auth/apple/mobile", { identityToken, fullName }, NO_RETRY),
+  );
+}
+
+/** Session-validity probe on cold start (§5.1). Client handles 401→refresh→replay itself. */
+export function me(): Promise<SessionUser> {
+  return api.get<SessionUser>("/auth/me");
+}
+
+export function forgotPassword(email: string): Promise<unknown> {
+  return api.post("/auth/forgot-password", { email }, NO_RETRY);
+}
+
+/** Best-effort server revoke; callers still clear local state when this throws. */
+export function revoke(all = false): Promise<unknown> {
+  return storage
+    .deviceId()
+    .then((deviceId) => api.post("/auth/revoke", { deviceId, all }, NO_RETRY));
+}
+
+async function persist(payload: AuthPayload): Promise<AuthPayload> {
+  await storage.set("gg.access", payload.token);
+  await storage.set("gg.user", payload.user);
+  if (payload.refreshToken) await storage.set("gg.refresh", payload.refreshToken);
+  return payload;
+}

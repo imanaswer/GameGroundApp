@@ -19,6 +19,8 @@ export const color = {
   red: "#e63946",
   redLight: "#ff6b74",
   redDeep: "#b91c2d",
+  /** DS §4 Input — focus ring: red at 40% alpha. */
+  redFocus: "rgba(230,57,70,0.4)",
   gold: "#eab308",
   goldLight: "#fbbf24",
   goldDeep: "#a16207",
