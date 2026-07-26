@@ -2,6 +2,14 @@
 
 Items live here until a written decision moves them into a milestone (see docs/DECISIONS.md). Nothing on this list enters a branch without that.
 
+## Backend dependencies surfaced by M12 (client push) — web repo work
+
+The client-side push infra is complete and degrades gracefully, but end-to-end delivery needs the web-repo server half (dev PRD §10.1), none of which exists yet:
+- `POST /api/push/register` (upsert DeviceToken, refresh lastSeenAt) · `DELETE /api/push/register` · `PATCH /api/push/prefs`.
+- `DeviceToken` Prisma model + `src/lib/push.ts` dispatcher; call sites: reminders cron, waitlist promotion, event announcement, payment webhook, tier change, game cancel.
+- An EAS project id / credentials so `getExpoPushTokenAsync` yields a real token (dev/simulator returns none — the client no-ops gracefully until then).
+Until these land, registration/prefs calls fail silently (logged to Sentry), the app never crashes, and it retries on each app open.
+
 | Item | Target | Notes |
 |---|---|---|
 | Streaks + named achievements (Weekend Warrior, Night Owl, 100 Matches, Captain/Legend) + XP framing | v1.1 | Decision 6. Server: achievement definitions, award engine hooked into existing mutation paths, user_achievements table. Client: AchievementsRail unlock states + celebration per MOTION.md §5. |

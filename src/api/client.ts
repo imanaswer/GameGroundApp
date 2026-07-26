@@ -172,5 +172,7 @@ export const api = {
     rawRequest<T>("POST", path, { ...opts, body }),
   put: <T>(path: string, body?: unknown, opts: Options = {}) =>
     rawRequest<T>("PUT", path, { ...opts, body }),
+  patch: <T>(path: string, body?: unknown, opts: Options = {}) =>
+    rawRequest<T>("PATCH", path, { ...opts, body }),
   del: <T>(path: string, opts: Options = {}) => rawRequest<T>("DELETE", path, opts),
 };

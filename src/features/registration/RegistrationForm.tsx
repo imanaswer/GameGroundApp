@@ -3,13 +3,14 @@
  * with the spec-derived zod, then drives the M6 checkout — every entity, zero new payment
  * code (§9). Free entities register through the same path with a ₹0 confirm.
  */
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 
 import type { EntityType } from "@/api/types";
 import { CheckoutSheet } from "@/components/checkout";
 import { Button, Chip, Input, Press } from "@/components/ds";
 import { useCheckout } from "@/hooks/useCheckout";
+import { usePush } from "@/hooks/usePush";
 import { formatAmount } from "@/lib/format";
 import { color, layout, space, type } from "@/lib/tokens";
 
@@ -31,6 +32,12 @@ export function RegistrationForm({
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [registration, setRegistration] = useState<Record<string, unknown> | null>(null);
   const checkout = useCheckout(config.entityType as EntityType, entityId, registration ?? {});
+  const { promptForPush } = usePush();
+
+  // First successful registration → offer reminders (shown once, §10.2).
+  useEffect(() => {
+    if (checkout.state === "success") promptForPush();
+  }, [checkout.state, promptForPush]);
 
   const set = (k: string) => (v: string) => setValues((s) => ({ ...s, [k]: v }));
 

@@ -37,6 +37,8 @@ export const color = {
   overflowChip: "rgba(255,255,255,0.16)",
   countdownTile: "rgba(255,255,255,0.09)",
   imagePlaceholder: "#141414",
+  /** Modal/sheet backdrop scrim (DS §10 permitted overlay). */
+  scrim: "rgba(0,0,0,0.6)",
 } as const;
 
 /** Avatar identity ring + own-avatar gradient stops (DS §1.3). */

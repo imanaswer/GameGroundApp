@@ -3,33 +3,22 @@
  * link, logout, and GDPR account deletion (server rotates identifiers → hard logout).
  */
 import { useRouter } from "expo-router";
-import { useState } from "react";
 import { Alert, ScrollView, StyleSheet, Switch, Text, View } from "react-native";
 
 import { HeroNav, Screen } from "@/components/chrome";
 import { CardIcon, ChevronRightIcon, LogOutIcon, Press, TrashIcon } from "@/components/ds";
 import { useDeleteAccount } from "@/hooks/queries";
 import { useAuth } from "@/hooks/useAuth";
+import { usePushPrefs } from "@/hooks/usePushPrefs";
 import * as haptics from "@/lib/haptics";
+import { PUSH_CATEGORIES } from "@/lib/pushCategories";
 import { color, layout, radius, space, type } from "@/lib/tokens";
-
-// §10.3 categories — toggles are local UI here; M12 mirrors them to server `prefs`.
-const CATEGORIES = [
-  { key: "reminders", label: "Game reminders" },
-  { key: "waitlist", label: "Waitlist updates" },
-  { key: "event_updates", label: "Event announcements" },
-  { key: "payments", label: "Payment updates" },
-  { key: "tier", label: "Tier changes" },
-  { key: "game_changes", label: "Game changes" },
-];
 
 export default function Settings() {
   const router = useRouter();
   const { logout } = useAuth();
   const del = useDeleteAccount();
-  const [prefs, setPrefs] = useState<Record<string, boolean>>(
-    Object.fromEntries(CATEGORIES.map((c) => [c.key, true])),
-  );
+  const { prefs, setPref } = usePushPrefs();
 
   const confirmDelete = () => {
     haptics.warning();
@@ -65,14 +54,14 @@ export default function Settings() {
 
         <Text style={styles.section}>Notifications</Text>
         <View style={styles.card}>
-          {CATEGORIES.map((c, i) => (
+          {PUSH_CATEGORIES.map((c, i) => (
             <View key={c.key} style={[styles.toggleRow, i > 0 && styles.rowDivider]}>
               <Text style={styles.toggleLabel}>{c.label}</Text>
               <Switch
                 value={prefs[c.key]}
                 onValueChange={(v) => {
                   haptics.selection();
-                  setPrefs((p) => ({ ...p, [c.key]: v }));
+                  setPref(c.key, v);
                 }}
                 trackColor={{ true: color.red, false: color.border2 }}
                 thumbColor={color.text}

@@ -42,6 +42,9 @@ const config: ExpoConfig = {
     "expo-secure-store",
     "expo-apple-authentication",
     ["expo-splash-screen", { backgroundColor: "#050505", image: "./assets/images/splash-icon.png", imageWidth: 76 }],
+    // Push (M12): brand-red accent + monochrome icon; the plugin adds the iOS APNs entitlement
+    // and Android POST_NOTIFICATIONS permission at build time.
+    ["expo-notifications", { color: "#e63946", icon: "./assets/images/android-icon-monochrome.png" }],
   ],
   experiments: { typedRoutes: true, reactCompiler: true },
   extra: {

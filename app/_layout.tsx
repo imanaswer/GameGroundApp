@@ -9,7 +9,9 @@ import { InteractionManager } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 
 import { setClientHandlers } from "@/api/client";
+import { ToastProvider } from "@/components/chrome";
 import { AuthProvider } from "@/hooks/useAuth";
+import { PushProvider } from "@/hooks/usePush";
 import { initAnalytics } from "@/lib/analytics";
 import { RazorpayHost } from "@/lib/razorpay";
 import { initSentry } from "@/lib/sentry";
@@ -70,15 +72,19 @@ export default function RootLayout() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <QueryClientProvider client={queryClient}>
         <AuthProvider>
-          <ClientHandlerBridge />
-          <RazorpayHost />
-          <StatusBar style="light" />
-          <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: color.bg } }}>
-            <Stack.Screen name="(tabs)" />
-            <Stack.Screen name="game/create" options={{ presentation: "modal" }} />
-            <Stack.Screen name="search" options={{ presentation: "modal" }} />
-            <Stack.Screen name="upgrade-required" options={{ gestureEnabled: false }} />
-          </Stack>
+          <ToastProvider>
+            <PushProvider>
+              <ClientHandlerBridge />
+              <RazorpayHost />
+              <StatusBar style="light" />
+              <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: color.bg } }}>
+                <Stack.Screen name="(tabs)" />
+                <Stack.Screen name="game/create" options={{ presentation: "modal" }} />
+                <Stack.Screen name="search" options={{ presentation: "modal" }} />
+                <Stack.Screen name="upgrade-required" options={{ gestureEnabled: false }} />
+              </Stack>
+            </PushProvider>
+          </ToastProvider>
         </AuthProvider>
       </QueryClientProvider>
     </GestureHandlerRootView>

@@ -20,6 +20,12 @@ type Schema = {
   "gg.pendingOrder": { orderId: string; entityType: string; entityId: string };
   /** Local recent search terms (M10) — non-secret, but this KV is our only storage seam. */
   "gg.recentSearches": string[];
+  /** Push (M12): whether the contextual pre-prompt has been shown (never re-ask on denial). */
+  "gg.pushPromptSeen": boolean;
+  /** Push (M12): per-category prefs, mirrored to the server; local is the offline source. */
+  "gg.pushPrefs": Record<string, boolean>;
+  /** Push (M12): last Expo token we registered — detects refresh + lets logout unregister. */
+  "gg.pushToken": string;
 };
 
 type Key = keyof Schema;

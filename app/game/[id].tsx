@@ -6,7 +6,7 @@
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Alert, ScrollView, StyleSheet, Text, View } from "react-native";
 
 import { ErrorState, HeroNav, Screen, StickyCTA } from "@/components/chrome";
@@ -25,6 +25,7 @@ import {
 } from "@/components/ds";
 import { useGame, useGameAction } from "@/hooks/queries";
 import { useCheckout } from "@/hooks/useCheckout";
+import { usePush } from "@/hooks/usePush";
 import { formatAmount, formatPrice, formatWhen } from "@/lib/format";
 import * as haptics from "@/lib/haptics";
 import { color, gradient, layout, space, type } from "@/lib/tokens";
@@ -47,6 +48,12 @@ export default function GameDetail() {
 
   const paid = !!game && game.pricePaise !== null && game.pricePaise > 0;
   const checkout = useCheckout("game", id);
+  const { promptForPush } = usePush();
+
+  // A paid join confirming is a "first booking" moment — offer reminders (shown once).
+  useEffect(() => {
+    if (checkout.state === "success") promptForPush();
+  }, [checkout.state, promptForPush]);
 
   if (isError) {
     return (
@@ -62,7 +69,10 @@ export default function GameDetail() {
 
   const runFreeJoin = () => {
     action.mutate("join", {
-      onSuccess: () => haptics.success(), // join-success feedback (full burst is M14)
+      onSuccess: () => {
+        haptics.success(); // join-success feedback (full burst is M14)
+        promptForPush(); // first successful join → offer reminders (§10.2)
+      },
       onError: (e) => Alert.alert("Couldn’t join", (e as Error).message),
     });
   };

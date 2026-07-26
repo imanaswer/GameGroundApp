@@ -6,7 +6,7 @@
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Linking, ScrollView, StyleSheet, Text, View } from "react-native";
 
 import type { CoachBatch } from "@/api/types";
@@ -15,6 +15,7 @@ import { CheckoutSheet } from "@/components/checkout";
 import { Avatar, Button, MessageIcon, Press, Skeleton, Stars } from "@/components/ds";
 import { useCoach } from "@/hooks/queries";
 import { useCheckout } from "@/hooks/useCheckout";
+import { usePush } from "@/hooks/usePush";
 import { formatAmount, formatPrice } from "@/lib/format";
 import { color, gradient, layout, radius, space, type } from "@/lib/tokens";
 
@@ -38,6 +39,12 @@ export default function CoachDetail() {
   const [booking, setBooking] = useState<CoachBatch | null>(null);
 
   const checkout = useCheckout("coach", id, booking ? { batchId: booking.id } : {});
+  const { promptForPush } = usePush();
+
+  // First successful booking → offer reminders (shown once, §10.2).
+  useEffect(() => {
+    if (checkout.state === "success") promptForPush();
+  }, [checkout.state, promptForPush]);
 
   if (isError) {
     return (

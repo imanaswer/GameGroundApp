@@ -22,6 +22,7 @@ import { isNoResponse } from "@/api/client";
 import type { AuthPayload, SessionUser } from "@/api/types";
 import * as analytics from "@/lib/analytics";
 import { env } from "@/lib/env";
+import { unregisterForPush } from "@/lib/notifications";
 import { setSentryUser } from "@/lib/sentry";
 import * as storage from "@/lib/storage";
 
@@ -113,8 +114,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     adopt(await authApi.loginWithApple(credential.identityToken, fullName || null));
   }, [adopt]);
 
-  // Logout (§5.1): revoke best-effort → clear SecureStore → clear query cache → reset identity.
+  // Logout (§5.1): unregister push → revoke → clear SecureStore → clear cache → reset identity.
   const logout = useCallback(async () => {
+    await unregisterForPush().catch(() => {});
     await authApi.revoke().catch(() => {});
     await storage.clearAuth();
     queryClient.clear();
