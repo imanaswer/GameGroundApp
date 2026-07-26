@@ -68,7 +68,11 @@ const config: ExpoConfig = {
   extra: {
     appEnv: profile,
     sentryDsn: process.env.SENTRY_DSN ?? null,
-    eas: { projectId: process.env.EAS_PROJECT_ID ?? null },
+    // Only include the EAS block once a project id exists — EAS rejects a null projectId and
+    // will populate it on `eas init`. Set EAS_PROJECT_ID (or hardcode the string) after linking.
+    ...(process.env.EAS_PROJECT_ID
+      ? { eas: { projectId: process.env.EAS_PROJECT_ID } }
+      : {}),
   },
 };
 
