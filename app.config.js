@@ -1,13 +1,11 @@
-import type { ExpoConfig } from "expo/config";
-
 /**
- * Env-driven config (Developer PRD §2.4). Only EXPO_PUBLIC_* values reach the bundle;
- * SENTRY_DSN is read at build time and lands in `extra`, never in source.
+ * Env-driven Expo config (Developer PRD §2.4). Plain JS (not .ts) so every toolchain —
+ * including the global eas-cli on newer Node versions — reads it without a TypeScript transpile
+ * step. Only EXPO_PUBLIC_* values reach the bundle; SENTRY_DSN lands in `extra`, never in source.
  *
- * Before every release cut:
- *   npx expo export && grep -r "rzp_live\|AUTH_SECRET\|key_secret" dist/   # must be empty
+ * Before every release cut: scripts/release-check.sh (export + secret grep).
  */
-const profile = (process.env.APP_ENV ?? "development") as "development" | "preview" | "production";
+const profile = process.env.APP_ENV ?? "development";
 
 const variant = {
   development: { name: "Game Ground (Dev)", id: "net.gameground.app.dev" },
@@ -15,9 +13,10 @@ const variant = {
   production: { name: "Game Ground", id: "net.gameground.app" },
 }[profile];
 
-const config: ExpoConfig = {
+module.exports = {
   name: variant.name,
   slug: "gameground-mobile",
+  owner: "imanaswer",
   version: "1.0.0",
   orientation: "portrait",
   icon: "./assets/images/icon.png",
@@ -68,12 +67,7 @@ const config: ExpoConfig = {
   extra: {
     appEnv: profile,
     sentryDsn: process.env.SENTRY_DSN ?? null,
-    // Only include the EAS block once a project id exists — EAS rejects a null projectId and
-    // will populate it on `eas init`. Set EAS_PROJECT_ID (or hardcode the string) after linking.
-    ...(process.env.EAS_PROJECT_ID
-      ? { eas: { projectId: process.env.EAS_PROJECT_ID } }
-      : {}),
+    // Linked EAS project (eas init). Env override kept for CI / alternate accounts.
+    eas: { projectId: process.env.EAS_PROJECT_ID ?? "c51e7b53-2f3f-4556-b1c7-4e539836f90a" },
   },
 };
-
-export default config;
