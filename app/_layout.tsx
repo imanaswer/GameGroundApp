@@ -76,6 +76,7 @@ export default function RootLayout() {
           <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: color.bg } }}>
             <Stack.Screen name="(tabs)" />
             <Stack.Screen name="game/create" options={{ presentation: "modal" }} />
+            <Stack.Screen name="search" options={{ presentation: "modal" }} />
             <Stack.Screen name="upgrade-required" options={{ gestureEnabled: false }} />
           </Stack>
         </AuthProvider>

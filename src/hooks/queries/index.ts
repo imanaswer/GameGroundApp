@@ -10,3 +10,4 @@ export {
   toGameCard,
 } from "./games";
 export { useCoaches, useCoach, useSubmitReview, toCoachCard } from "./coaches";
+export { useLeaderboard, useSearch } from "./social";

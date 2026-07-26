@@ -18,6 +18,8 @@ type Schema = {
   "gg.onboarded": boolean;
   /** §9.4 reconciliation — a debited-but-unconfirmed order resumed on next cold start (M6). */
   "gg.pendingOrder": { orderId: string; entityType: string; entityId: string };
+  /** Local recent search terms (M10) — non-secret, but this KV is our only storage seam. */
+  "gg.recentSearches": string[];
 };
 
 type Key = keyof Schema;

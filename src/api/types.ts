@@ -130,6 +130,43 @@ export interface CoachDetail extends CoachSummary {
   viewerCanReview: boolean;
 }
 
+/* ── Leaderboard (§3.3) ────────────────────────────────────────────────────*/
+
+export type LeaderScope = "players" | "organizers";
+export type LeaderWindow = "all" | "30d";
+
+export interface LeaderRow {
+  rank: number;
+  user: PlayerRef & { tier: Tier | null };
+  score: number;
+  /** Rank movement since the previous period: +up / −down / 0 flat. */
+  delta: number;
+}
+
+export interface Leaderboard {
+  rows: LeaderRow[];
+  /** The signed-in user's row, present when they're outside the returned top-N (§ pinned rank). */
+  viewerRank: LeaderRow | null;
+}
+
+/* ── Search (§3.3) ─────────────────────────────────────────────────────────*/
+
+export interface SearchHit {
+  id: string;
+  title: string;
+  subtitle: string | null;
+}
+
+/** Grouped results — each group renders under its own header (web ⌘K parity). */
+export interface SearchResults {
+  games: SearchHit[];
+  coaches: SearchHit[];
+  camps: SearchHit[];
+  workshops: SearchHit[];
+  events: SearchHit[];
+  players: SearchHit[];
+}
+
 /* ── Venues (§3.3 — create-game picker) ────────────────────────────────────*/
 
 export interface Venue {

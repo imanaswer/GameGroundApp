@@ -9,7 +9,7 @@ import { RefreshControl, StyleSheet, View } from "react-native";
 
 import { GameCard } from "@/components/cards";
 import { EmptyState, ErrorState, Header, OfflineBanner, Screen } from "@/components/chrome";
-import { CardSkeleton, ChipRow, GamesIcon, SearchBar } from "@/components/ds";
+import { CardSkeleton, ChipRow, GamesIcon, SearchBar, SearchIcon } from "@/components/ds";
 import { toGameCard, useGames } from "@/hooks/queries";
 import { useDebounce } from "@/hooks/useDebounce";
 import * as haptics from "@/lib/haptics";
@@ -45,7 +45,17 @@ export default function GamesTab() {
 
   return (
     <Screen padded={false}>
-      <Header title="Games" />
+      <Header
+        title="Games"
+        actions={[
+          {
+            key: "search",
+            label: "Search",
+            icon: <SearchIcon color={color.text} />,
+            onPress: () => router.push("/search"),
+          },
+        ]}
+      />
       {isPaused && <OfflineBanner />}
       <View style={styles.controls}>
         <SearchBar value={rawQuery} onChangeText={setRawQuery} placeholder="Search games or venues" />
