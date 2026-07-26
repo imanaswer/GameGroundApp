@@ -4,7 +4,7 @@
  */
 import { ApiClientError } from "@/api/client";
 import type { CreatedOrder, PaymentStatus, RazorpayResult } from "@/api/types";
-import { RazorpayCancelledError } from "@/lib/razorpay";
+import { RazorpayCancelledError } from "@/lib/razorpay-errors";
 import { reconcile, runCheckout, type CheckoutDeps } from "@/lib/checkout-machine";
 
 jest.mock("@/lib/env", () => ({ env: { apiUrl: "https://api.test" } }));

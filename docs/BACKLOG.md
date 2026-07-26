@@ -16,6 +16,10 @@ Items live here until a written decision moves them into a milestone (see docs/D
 | Play Integrity / App Attest on payment endpoints; certificate pinning | post-launch | S2 items — deliberately deferred (solo-maintainer outage risk). |
 | Light theme | v2 decision | Kit is dark-native (product PRD 6.9). |
 
-## Open blocker
+## Resolved blockers
 
-**Razorpay SDK does not support the New Architecture.** Dev PRD §2.2 specifies `react-native-razorpay`; React Native Directory flags it unsupported on New Arch, and Expo SDK 57 / RN 0.86 is bridgeless-only. It was removed from the M0 install rather than shipped broken. **M6 cannot start until this is decided** — options: Razorpay's newer official RN SDK, an interop-layer shim, or the Razorpay checkout web view. Needs a written decision in DECISIONS.md.
+**Razorpay SDK / New Architecture — RESOLVED (Decision 10, 26 Jul 2026).** `react-native-razorpay`
+is unsupported on RN 0.86 New Arch (bridgeless-only), so v1 uses the **hosted Razorpay Standard
+Checkout in a WebView** (`react-native-webview`, New-Arch-safe), wired behind the unchanged
+`openCheckout` seam (`src/lib/razorpay.tsx`). Remaining work is device verification only
+(test-mode payment, Android UPI intent, one live ₹1) — the same gate any payment integration has.

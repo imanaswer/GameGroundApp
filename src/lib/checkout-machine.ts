@@ -5,7 +5,7 @@
  */
 import { ApiClientError, isNoResponse } from "@/api/client";
 import type { CreatedOrder, PaymentStatus, RazorpayResult } from "@/api/types";
-import { RazorpayCancelledError } from "@/lib/razorpay";
+import { RazorpayCancelledError } from "@/lib/razorpay-errors";
 
 export type CheckoutPhase = "creating" | "gateway" | "verifying";
 

@@ -11,6 +11,7 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { setClientHandlers } from "@/api/client";
 import { AuthProvider } from "@/hooks/useAuth";
 import { initAnalytics } from "@/lib/analytics";
+import { RazorpayHost } from "@/lib/razorpay";
 import { initSentry } from "@/lib/sentry";
 import { color } from "@/lib/tokens";
 
@@ -70,6 +71,7 @@ export default function RootLayout() {
       <QueryClientProvider client={queryClient}>
         <AuthProvider>
           <ClientHandlerBridge />
+          <RazorpayHost />
           <StatusBar style="light" />
           <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: color.bg } }}>
             <Stack.Screen name="(tabs)" />
