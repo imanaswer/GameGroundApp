@@ -3,8 +3,9 @@ import { useState } from "react";
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from "react-native";
 
 import { LoginSchema } from "@/api/schemas";
-import { Field, FormButton, FormError, fieldErrorsFrom } from "@/components/auth/fields";
+import { FormError, fieldErrorsFrom } from "@/components/auth/fields";
 import { Screen } from "@/components/chrome/Screen";
+import { Button, Input } from "@/components/ds";
 import { useAppleAvailable, useAuth, useGoogleLogin } from "@/hooks/useAuth";
 import { color, space, type } from "@/lib/tokens";
 
@@ -53,7 +54,7 @@ export default function Login() {
           <Text style={styles.sub}>Log in to find your next game.</Text>
 
           <FormError error={formError} />
-          <Field
+          <Input
             label="Email"
             value={email}
             onChangeText={setEmail}
@@ -63,7 +64,7 @@ export default function Login() {
             keyboardType="email-address"
             placeholder="you@example.com"
           />
-          <Field
+          <Input
             label="Password"
             value={password}
             onChangeText={setPassword}
@@ -72,7 +73,7 @@ export default function Login() {
             autoComplete="password"
             placeholder="Your password"
           />
-          <FormButton title="Log in" onPress={submit} loading={busy} />
+          <Button title="Log in" onPress={submit} loading={busy} />
 
           <Link href="/forgot-password" style={styles.link}>
             Forgot password?
@@ -81,10 +82,10 @@ export default function Login() {
           {(google.available || appleAvailable) && (
             <View style={styles.social}>
               {google.available && (
-                <FormButton title="Continue with Google" variant="secondary" onPress={google.prompt} />
+                <Button title="Continue with Google" variant="secondary" onPress={google.prompt} />
               )}
               {appleAvailable && (
-                <FormButton
+                <Button
                   title="Continue with Apple"
                   variant="secondary"
                   onPress={() => {

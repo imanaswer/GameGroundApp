@@ -4,8 +4,9 @@ import { StyleSheet, Text } from "react-native";
 
 import * as authApi from "@/api/auth";
 import { LoginSchema } from "@/api/schemas";
-import { Field, FormButton, FormError } from "@/components/auth/fields";
+import { FormError } from "@/components/auth/fields";
 import { Screen } from "@/components/chrome/Screen";
+import { Button, Input } from "@/components/ds";
 import { color, space, type } from "@/lib/tokens";
 
 export default function ForgotPassword() {
@@ -47,7 +48,7 @@ export default function ForgotPassword() {
         <>
           <Text style={styles.sub}>Enter your email and we’ll send you a reset link.</Text>
           <FormError error={formError} />
-          <Field
+          <Input
             label="Email"
             value={email}
             onChangeText={setEmail}
@@ -57,7 +58,7 @@ export default function ForgotPassword() {
             keyboardType="email-address"
             placeholder="you@example.com"
           />
-          <FormButton title="Send reset link" onPress={submit} loading={busy} />
+          <Button title="Send reset link" onPress={submit} loading={busy} />
           <Link href="/login" style={styles.link}>
             Back to log in
           </Link>

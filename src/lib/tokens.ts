@@ -26,6 +26,26 @@ export const color = {
   goldDeep: "#a16207",
   success: "#4ade80",
   infoSurface: "#1a2230",
+
+  // semantic surfaces (DS §1.2/§4 — tinted chip/wash backgrounds)
+  successSurface: "rgba(74,222,128,0.16)",
+  redSurface: "rgba(230,57,70,0.16)",
+  redWash: "rgba(230,57,70,0.06)",
+  liveRed: "rgba(230,57,70,0.92)",
+  // SlotBar/Skeleton tracks (DS §4)
+  track: "rgba(255,255,255,0.08)",
+  overflowChip: "rgba(255,255,255,0.16)",
+  countdownTile: "rgba(255,255,255,0.09)",
+  imagePlaceholder: "#141414",
+} as const;
+
+/** Avatar identity ring + own-avatar gradient stops (DS §1.3). */
+export const avatarIdentity = {
+  blue: "#6c8cff",
+  violet: "#a78bfa",
+  pink: "#f472b6",
+  sky: "#38bdf8",
+  orange: "#fb923c",
 } as const;
 
 /** DS §1.3 — tier accent + chip background. */

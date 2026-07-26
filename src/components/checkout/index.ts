@@ -1,2 +1,2 @@
-// Design-system components land in M3 (DESIGN_SYSTEM.md §4–8).
-export {};
+// Checkout components — visual states in M3, wired in M6 (DESIGN_SYSTEM.md §7).
+export { CheckoutSheet, type CheckoutState } from "./CheckoutSheet";

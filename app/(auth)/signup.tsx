@@ -3,8 +3,9 @@ import { useState } from "react";
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text } from "react-native";
 
 import { RegisterSchema } from "@/api/schemas";
-import { Field, FormButton, FormError, fieldErrorsFrom } from "@/components/auth/fields";
+import { FormError, fieldErrorsFrom } from "@/components/auth/fields";
 import { Screen } from "@/components/chrome/Screen";
+import { Button, Input } from "@/components/ds";
 import { useAuth } from "@/hooks/useAuth";
 import { color, space, type } from "@/lib/tokens";
 
@@ -57,7 +58,7 @@ export default function Signup() {
           <Text style={styles.sub}>Find games, coaches and courts near you.</Text>
 
           <FormError error={formError} />
-          <Field
+          <Input
             label="Name"
             value={form.name}
             onChangeText={update("name")}
@@ -65,7 +66,7 @@ export default function Signup() {
             autoComplete="name"
             placeholder="Your name"
           />
-          <Field
+          <Input
             label="Username"
             value={form.username}
             onChangeText={update("username")}
@@ -74,7 +75,7 @@ export default function Signup() {
             autoCorrect={false}
             placeholder="lowercase_letters_only"
           />
-          <Field
+          <Input
             label="Email"
             value={form.email}
             onChangeText={update("email")}
@@ -84,7 +85,7 @@ export default function Signup() {
             keyboardType="email-address"
             placeholder="you@example.com"
           />
-          <Field
+          <Input
             label="Password"
             value={form.password}
             onChangeText={update("password")}
@@ -93,7 +94,7 @@ export default function Signup() {
             autoComplete="new-password"
             placeholder="At least 8 characters"
           />
-          <FormButton title="Create account" onPress={submit} loading={busy} />
+          <Button title="Create account" onPress={submit} loading={busy} />
 
           <Text style={styles.footer}>
             Already playing?{" "}

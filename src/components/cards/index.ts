@@ -1,2 +1,4 @@
-// Design-system components land in M3 (DESIGN_SYSTEM.md §4–8).
-export {};
+// Content cards (DESIGN_SYSTEM.md §6).
+export { GameCard, type GameCardData } from "./GameCard";
+export { CoachCard, type CoachCardData } from "./CoachCard";
+export { RegistrationCard, type RegistrationCardData } from "./RegistrationCard";
