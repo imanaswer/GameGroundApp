@@ -10,6 +10,17 @@ The client-side push infra is complete and degrades gracefully, but end-to-end d
 - An EAS project id / credentials so `getExpoPushTokenAsync` yields a real token (dev/simulator returns none — the client no-ops gracefully until then).
 Until these land, registration/prefs calls fail silently (logged to Sentry), the app never crashes, and it retries on each app open.
 
+## M9A Home — client-half shipped; server-half + hero flourish remain
+
+The launch-tab ship-blocker (Home was an M9A placeholder) is **resolved**: `app/(tabs)/home.tsx`
+now renders a real client-composed feed (greeting, Up-Next feature, Starting-soon list, coaches
+rail, "set your sports" setup card, full loading/empty/offline states) from the live `/games` +
+`/coaches` endpoints via `useHome`. No fabricated backend. Remaining (web-repo / polish):
+- **`GET /api/home`** server-half (authed, per-user sections, p95 < 300ms). When it ships, swap
+  the body of `src/hooks/queries/home.ts` to the single request — consumers are unchanged.
+- Full **UpNextHeroCard** + live **ticker** flourish (DS §6 / Design-Excellence-v3) — a delight
+  pass on top of the working screen, not a blocker.
+
 ## M15 perf — device-gated measurements (see docs/PERF.md)
 
 Code changes are complete (persistence, offline gating, memoization, lazy lightbox, release-check.sh — all bundle-verified). The pass/fail *measurements* need the reference Android: cold-start < 2.5s, 60fps scroll / no blank cells, Android download < 40 MB, and the airplane-mode tour. Method for each is in `docs/PERF.md`; fill the table before M16.
