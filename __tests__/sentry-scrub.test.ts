@@ -4,7 +4,6 @@
  */
 import { scrubEvent } from "@/lib/sentry";
 
-jest.mock("@sentry/react-native", () => ({ init: jest.fn(), captureException: jest.fn(), setUser: jest.fn() }));
 jest.mock("@/lib/env", () => ({ env: { appEnv: "test", sentryDsn: null } }));
 
 test("redacts Authorization headers by key", () => {

@@ -1,14 +1,19 @@
 /**
  * Sentry wrapper (Developer PRD §13 deferred init, §S1.3 scrubbing).
- * init() is a no-op without a DSN, so dev/preview without Sentry configured just skips it.
+ *
+ * ⚠️ `@sentry/react-native` 7.11 crashes the app at LAUNCH on this stack (RN 0.86 / New Arch /
+ * iOS 26): its native Expo AppDelegate auto-init runs `SentrySDKWrapper setupWithDictionary` and
+ * throws `NSInvalidArgumentException` — even though we never call `Sentry.init` (no DSN). The
+ * native package was removed to unblock the app; re-add it with a version that supports this
+ * runtime (or the `@sentry/react-native/expo` plugin with valid options) before shipping.
+ * Tracked in BACKLOG. Until then these are no-ops; `scrubEvent` (the tested S1.3 logic) stays.
  */
-import * as Sentry from "@sentry/react-native";
-
 import { env } from "@/lib/env";
 
 /**
  * S1.3 — strip auth headers, bearer/token strings, and payment signatures before any
  * event leaves the device. Exported so it can be unit-tested against the exit criterion.
+ * Kept live so it's ready the moment Sentry is re-enabled.
  */
 export function scrubEvent<T extends Record<string, unknown>>(event: T): T {
   const REDACT = "[redacted]";
@@ -29,31 +34,21 @@ export function scrubEvent<T extends Record<string, unknown>>(event: T): T {
   return walk(event) as T;
 }
 
-let started = false;
+// Referenced so the env import isn't dead while Sentry is disabled (re-used on re-enable).
+void env;
 
-/** Deferred to post-first-frame by the root layout (§13). Safe to call more than once. */
 export function initSentry() {
-  if (started || !env.sentryDsn) return;
-  started = true;
-  Sentry.init({
-    dsn: env.sentryDsn,
-    environment: env.appEnv,
-    beforeSend: (event) => scrubEvent(event as unknown as Record<string, unknown>) as never,
-  });
+  /* disabled — see file header */
 }
 
-export function captureException(error: unknown, context?: Record<string, unknown>) {
-  if (!started) return;
-  Sentry.captureException(error, context ? { extra: context } : undefined);
+export function captureException(_error: unknown, _context?: Record<string, unknown>) {
+  /* disabled — see file header */
 }
 
-export function setSentryUser(user: { id: string } | null) {
-  if (!started) return;
-  Sentry.setUser(user ? { id: user.id } : null);
+export function setSentryUser(_user: { id: string } | null) {
+  /* disabled — see file header */
 }
 
-/** Lightweight trail marker (e.g. an unresolved deep link). No-op until Sentry inits. */
-export function breadcrumb(message: string, data?: Record<string, unknown>) {
-  if (!started) return;
-  Sentry.addBreadcrumb({ message, data, level: "info" });
+export function breadcrumb(_message: string, _data?: Record<string, unknown>) {
+  /* disabled — see file header */
 }

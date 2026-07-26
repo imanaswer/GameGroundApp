@@ -10,6 +10,18 @@ The client-side push infra is complete and degrades gracefully, but end-to-end d
 - An EAS project id / credentials so `getExpoPushTokenAsync` yields a real token (dev/simulator returns none — the client no-ops gracefully until then).
 Until these land, registration/prefs calls fail silently (logged to Sentry), the app never crashes, and it retries on each app open.
 
+## Sentry native launch-crash — disabled, needs a runtime-compatible re-add
+
+Running a debug simulator build (iOS 26 sim / RN 0.86 / New Arch) surfaced a **launch crash**:
+`@sentry/react-native` 7.11's native Expo AppDelegate auto-init runs
+`SentrySDKWrapper setupWithDictionary` and throws `NSInvalidArgumentException`
+(`-[__NSDictionaryM length]`) at startup — even though JS never calls `Sentry.init` (no DSN).
+The package was removed and `src/lib/sentry.ts` stubbed (all no-ops; the tested S1.3 `scrubEvent`
+stays) to unblock the app. **Before ship:** re-add Sentry with a version that supports this stack
+(or the `@sentry/react-native/expo` plugin with valid options), and re-verify no launch crash on
+a physical device. Whether the crash is universal or specific to this iOS-26-sim/toolchain combo
+is unconfirmed — verify on a clean build.
+
 ## M9A Home — client-half shipped; server-half + hero flourish remain
 
 The launch-tab ship-blocker (Home was an M9A placeholder) is **resolved**: `app/(tabs)/home.tsx`
