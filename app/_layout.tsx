@@ -1,4 +1,5 @@
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import NetInfo from "@react-native-community/netinfo";
+import { QueryClient, QueryClientProvider, onlineManager } from "@tanstack/react-query";
 import { useFonts } from "expo-font";
 import { Stack, useRouter } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
@@ -15,8 +16,13 @@ import { color } from "@/lib/tokens";
 
 SplashScreen.preventAutoHideAsync();
 
-// ponytail: single client; per-domain staleTimes land with the query hooks (M5, §6.1).
+// ponytail: single client; per-domain staleTimes live on each query hook (§6.1).
 const queryClient = new QueryClient();
+
+// §6.2 — online state from NetInfo drives React Query's refetch-on-reconnect + the offline UI.
+onlineManager.setEventListener((setOnline) =>
+  NetInfo.addEventListener((state) => setOnline(!!state.isConnected)),
+);
 
 /** Routes the api client's global outcomes (§4.1): dead session → login, 426 → upgrade wall. */
 function ClientHandlerBridge() {
