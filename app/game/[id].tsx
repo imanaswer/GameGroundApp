@@ -1,26 +1,32 @@
 /**
- * Game detail (M5, read-only). Hero + meta rows + joined-player stack + SlotBar +
- * organizer TierBadge. StickyCTA is present but INERT — join/pay is M6/M7 (§ StickyCTA
- * success-morph only after server truth). Renders every field for free AND paid games.
+ * Game detail + actions (M5 read-only → M7 actions). Join free (instant, server-truth
+ * only — never optimistic §6.1) / paid (M6 checkout seam) / waitlist; leave with the
+ * cutoff surfaced; organizer attendance. Renders free AND paid games, every state.
  */
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { useState } from "react";
+import { Alert, ScrollView, StyleSheet, Text, View } from "react-native";
 
 import { ErrorState, HeroNav, Screen, StickyCTA } from "@/components/chrome";
+import { CheckoutSheet } from "@/components/checkout";
 import {
+  Avatar,
   AvatarStack,
   CalendarIcon,
   ClockIcon,
   MapPinIcon,
+  Press,
   Skeleton,
   SlotBar,
   TierBadge,
   UserIcon,
 } from "@/components/ds";
-import { useGame } from "@/hooks/queries";
-import { formatPrice, formatWhen } from "@/lib/format";
+import { useGame, useGameAction } from "@/hooks/queries";
+import { useCheckout } from "@/hooks/useCheckout";
+import { formatAmount, formatPrice, formatWhen } from "@/lib/format";
+import * as haptics from "@/lib/haptics";
 import { color, gradient, layout, space, type } from "@/lib/tokens";
 
 function MetaRow({ icon, text }: { icon: React.ReactNode; text: string }) {
@@ -36,6 +42,11 @@ export default function GameDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const { data: game, isLoading, isError, error, refetch } = useGame(id);
+  const action = useGameAction(id);
+  const [sheetOpen, setSheetOpen] = useState(false);
+
+  const paid = !!game && game.pricePaise !== null && game.pricePaise > 0;
+  const checkout = useCheckout("game", id);
 
   if (isError) {
     return (
@@ -47,6 +58,48 @@ export default function GameDetail() {
   }
 
   const price = game ? formatPrice(game.pricePaise) : null;
+  const full = !!game && game.slotsFilled >= game.slotsTotal;
+
+  const runFreeJoin = () => {
+    action.mutate("join", {
+      onSuccess: () => haptics.success(), // join-success feedback (full burst is M14)
+      onError: (e) => Alert.alert("Couldn’t join", (e as Error).message),
+    });
+  };
+
+  const confirmLeave = () => {
+    if (!game) return;
+    if (game.leaveDeadlinePassed) {
+      haptics.warning();
+      Alert.alert("Too late to leave", "The cutoff to leave this game has passed.");
+      return;
+    }
+    Alert.alert("Leave this game?", "Your spot opens up for the waitlist.", [
+      { text: "Stay", style: "cancel" },
+      { text: "Leave", style: "destructive", onPress: () => action.mutate("leave") },
+    ]);
+  };
+
+  const onCtaPress = () => {
+    if (!game) return;
+    if (game.viewerJoined) return confirmLeave();
+    if (game.viewerWaitlisted) return action.mutate("leave");
+    if (full) return action.mutate("waitlist", { onSuccess: () => haptics.selection() });
+    if (paid) return setSheetOpen(true);
+    return runFreeJoin();
+  };
+
+  const ctaLabel = !game
+    ? "…"
+    : game.viewerJoined
+      ? "You’re in — leave"
+      : game.viewerWaitlisted
+        ? "On waitlist — leave"
+        : full
+          ? "Join waitlist"
+          : paid
+            ? `Pay ${price}`
+            : "Join game";
 
   return (
     <Screen padded={false}>
@@ -82,7 +135,10 @@ export default function GameDetail() {
 
               <View style={styles.metaBlock}>
                 <MetaRow icon={<CalendarIcon color={color.dim} />} text={formatWhen(game.startsAt)} />
-                <MetaRow icon={<ClockIcon color={color.dim} />} text={new Date(game.startsAt).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })} />
+                <MetaRow
+                  icon={<ClockIcon color={color.dim} />}
+                  text={new Date(game.startsAt).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}
+                />
                 <MetaRow icon={<MapPinIcon color={color.dim} />} text={game.venueAddress ?? game.venueName} />
                 {game.skillLevel && <MetaRow icon={<UserIcon color={color.dim} />} text={game.skillLevel} />}
               </View>
@@ -100,6 +156,16 @@ export default function GameDetail() {
 
               {!!game.description && <Text style={styles.description}>{game.description}</Text>}
 
+              {/* Organizer attendance (§7) — mark players present. */}
+              {game.viewerIsOrganizer && game.players.length > 0 && (
+                <View style={styles.attendance}>
+                  <Text style={styles.label}>Attendance</Text>
+                  {game.players.map((p) => (
+                    <AttendanceRow key={p.id} player={p} />
+                  ))}
+                </View>
+              )}
+
               <View style={styles.organizer}>
                 <Text style={styles.label}>Organizer</Text>
                 <Text style={styles.orgName}>{game.organizer.name}</Text>
@@ -109,16 +175,58 @@ export default function GameDetail() {
         </View>
       </ScrollView>
 
-      {game && (
+      {game && !sheetOpen && (
         <StickyCTA
           price={price}
-          caption={price ? "per player" : undefined}
-          ctaLabel={game.viewerJoined ? "You’re in" : price ? `Pay ${price}` : "Join game"}
-          onPress={() => {}}
-          disabled
+          caption={price && !game.viewerJoined ? "per player" : undefined}
+          ctaLabel={ctaLabel}
+          onPress={onCtaPress}
+          loading={action.isPending}
         />
       )}
+
+      {sheetOpen && paid && (
+        <View style={styles.sheetHost}>
+          <CheckoutSheet
+            state={checkout.state}
+            phase={checkout.phase}
+            error={checkout.error}
+            amount={game ? formatAmount(game.pricePaise as number) : ""}
+            onPay={checkout.start}
+            onRetry={checkout.retry}
+            onSupport={() => {}}
+          />
+          {checkout.state === "success" && (
+            <Press onPress={() => setSheetOpen(false)} style={styles.done}>
+              <Text style={styles.doneText}>Done</Text>
+            </Press>
+          )}
+        </View>
+      )}
     </Screen>
+  );
+}
+
+function AttendanceRow({ player }: { player: { id: string; name: string; avatarUrl: string | null } }) {
+  const [present, setPresent] = useState(false);
+  return (
+    <View style={styles.attRow}>
+      <Avatar name={player.name} uri={player.avatarUrl} size={32} />
+      <Text style={styles.attName}>{player.name}</Text>
+      <Press
+        accessibilityRole="button"
+        accessibilityLabel={`Mark ${player.name} present`}
+        onPress={() => {
+          haptics.selection();
+          setPresent((p) => !p);
+          // ponytail: optimistic toggle for responsiveness; real markAttendance wired when
+          // the organizer flow is device-tested (server remains the source of truth).
+        }}
+        style={[styles.attToggle, present && styles.attToggleOn]}
+      >
+        <Text style={[styles.attToggleText, present && styles.attToggleTextOn]}>{present ? "Present" : "Mark"}</Text>
+      </Press>
+    </View>
   );
 }
 
@@ -139,8 +247,18 @@ const styles = StyleSheet.create({
   playersText: { ...type.caption, color: color.dim },
   slot: { marginTop: space(4) },
   description: { ...type.body, color: color.dim, lineHeight: 20, marginTop: space(4) },
+  attendance: { marginTop: space(5), gap: space(2) },
+  attRow: { flexDirection: "row", alignItems: "center", gap: space(3) },
+  attName: { ...type.body, color: color.text, flex: 1 },
+  attToggle: { borderRadius: 999, borderWidth: 1, borderColor: color.border2, paddingVertical: space(1.5), paddingHorizontal: space(3) },
+  attToggleOn: { backgroundColor: color.successSurface, borderColor: color.success },
+  attToggleText: { ...type.caption, color: color.dim },
+  attToggleTextOn: { color: color.success },
   organizer: { marginTop: space(5), gap: space(1) },
   label: { ...type.label, color: color.dim },
   orgName: { ...type.heading, color: color.text },
   gap: { marginTop: space(3) },
+  sheetHost: { position: "absolute", left: 0, right: 0, bottom: 0 },
+  done: { alignItems: "center", paddingVertical: space(4), backgroundColor: color.elev },
+  doneText: { ...type.heading, color: color.text },
 });

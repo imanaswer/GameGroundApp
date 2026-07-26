@@ -24,5 +24,33 @@ export const RegisterSchema = z.object({
   password: z.string().min(8, "At least 8 characters"),
 });
 
+/**
+ * web src/lib/api.ts CreateGameSchema (§3.3). Split per stepper step so each step
+ * validates independently before advancing (§7). Server is still the referee on slots.
+ */
+export const CreateGameStep = {
+  basics: z.object({
+    title: z.string().min(3, "Give it a title").max(80, "Keep it under 80 characters"),
+    sport: z.string().min(1, "Pick a sport"),
+  }),
+  venue: z.object({
+    venueId: z.string().min(1, "Pick a venue"),
+    slotId: z.string().min(1, "Pick a time slot"),
+  }),
+  size: z.object({
+    slotsTotal: z.coerce.number().int().min(2, "At least 2 players").max(50, "At most 50"),
+    skillLevel: z.string().optional(),
+  }),
+  details: z.object({
+    description: z.string().max(500, "Keep it under 500 characters").optional(),
+  }),
+} as const;
+
+export const CreateGameSchema = CreateGameStep.basics
+  .and(CreateGameStep.venue)
+  .and(CreateGameStep.size)
+  .and(CreateGameStep.details);
+
 export type LoginInput = z.infer<typeof LoginSchema>;
 export type RegisterInput = z.infer<typeof RegisterSchema>;
+export type CreateGameInput = z.infer<typeof CreateGameSchema>;

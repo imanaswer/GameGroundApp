@@ -57,6 +57,22 @@ export interface GameSummary {
   organizerTier: Tier | null;
 }
 
+/* ── Venues (§3.3 — create-game picker) ────────────────────────────────────*/
+
+export interface Venue {
+  id: string;
+  name: string;
+  area: string | null;
+}
+
+export interface VenueSlot {
+  id: string;
+  /** ISO 8601. */
+  startsAt: string;
+  endsAt: string;
+  available: boolean;
+}
+
 /* ── Payments (§9) ─────────────────────────────────────────────────────────
  * The client NEVER sends an amount. create-order derives paise server-side;
  * verify re-asserts the order↔user↔entity↔amount binding. */
@@ -101,4 +117,7 @@ export interface GameDetail extends GameSummary {
   /** Server truth for the current user's relationship to this game. */
   viewerJoined: boolean;
   viewerWaitlisted: boolean;
+  viewerIsOrganizer: boolean;
+  /** Leave cutoff has passed — the client surfaces this; the server enforces it (§7). */
+  leaveDeadlinePassed: boolean;
 }

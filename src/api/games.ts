@@ -27,3 +27,32 @@ export function list(params: GameListParams = {}): Promise<GameSummary[]> {
 export function detail(id: string): Promise<GameDetail> {
   return api.get<GameDetail>(`/games/${id}`);
 }
+
+/**
+ * Join/leave/waitlist all POST /games/:id with an action (§3.3). Free join is instant;
+ * the server returns the new truth — the client never marks joined optimistically (§6.1).
+ */
+export type GameAction = "join" | "leave" | "waitlist";
+
+export function act(id: string, action: GameAction): Promise<GameDetail> {
+  return api.post<GameDetail>(`/games/${id}`, { action });
+}
+
+export type CreateGamePayload = {
+  title: string;
+  sport: string;
+  venueId: string;
+  slotId: string;
+  slotsTotal: number;
+  skillLevel?: string;
+  description?: string;
+};
+
+export function create(payload: CreateGamePayload): Promise<GameDetail> {
+  return api.post<GameDetail>("/games", payload);
+}
+
+/** Organizer marks a player present/absent (§7). */
+export function markAttendance(id: string, userId: string, present: boolean): Promise<GameDetail> {
+  return api.post<GameDetail>(`/games/${id}/attendance`, { userId, present });
+}

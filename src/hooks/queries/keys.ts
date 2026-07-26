@@ -15,4 +15,8 @@ export const keys = {
     list: (filters: GameFilters) => ["games", "list", filters] as const,
     detail: (id: string) => ["games", "detail", id] as const,
   },
+  venues: {
+    all: ["venues"] as const,
+    slots: (venueId: string) => ["venues", venueId, "slots"] as const,
+  },
 } as const;
