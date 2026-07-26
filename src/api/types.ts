@@ -57,6 +57,38 @@ export interface GameSummary {
   organizerTier: Tier | null;
 }
 
+/* ── Registerable entities: camps / workshops / events (§3.3, §9.1) ─────────
+ * One shared shape so the directory card, detail screen, and registration engine
+ * are entity-agnostic. Adding a 4th entity is a config entry, not new screens. */
+
+export type RegisterableKind = "camp" | "workshop" | "event";
+
+export interface RegisterableSummary {
+  id: string;
+  kind: RegisterableKind;
+  title: string;
+  /** ISO 8601. */
+  startsAt: string;
+  pricePaise: number | null;
+  imageUrl: string | null;
+  registered: number;
+  capacity: number;
+}
+
+export interface Announcement {
+  id: string;
+  title: string;
+  body: string;
+  createdAt: string;
+}
+
+export interface RegisterableDetail extends RegisterableSummary {
+  description: string;
+  location: string | null;
+  /** Events carry an announcements feed (§9); camps/workshops omit it. */
+  announcements?: Announcement[];
+}
+
 /* ── Coaches (§3.3) ────────────────────────────────────────────────────────*/
 
 export interface CoachSummary {

@@ -1,5 +1,8 @@
-import { Placeholder } from "@/components/chrome/Placeholder";
+import { useLocalSearchParams } from "expo-router";
+
+import { ENTITIES, RegisterableDetailScreen } from "@/features/registration";
 
 export default function EventDetail() {
-  return <Placeholder route="Event detail" milestone="M9" />;
+  const { id } = useLocalSearchParams<{ id: string }>();
+  return <RegisterableDetailScreen config={ENTITIES.event} id={id} />;
 }

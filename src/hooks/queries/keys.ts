@@ -24,4 +24,8 @@ export const keys = {
     list: (filters: { sport?: string; q?: string }) => ["coaches", "list", filters] as const,
     detail: (id: string) => ["coaches", "detail", id] as const,
   },
+  registerables: {
+    list: (kind: string, q: string) => ["registerables", kind, "list", q] as const,
+    detail: (kind: string, id: string) => ["registerables", kind, "detail", id] as const,
+  },
 } as const;
