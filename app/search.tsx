@@ -45,7 +45,8 @@ export default function SearchModal() {
   const openHit = (route: string, hit: SearchHit) => {
     remember(q || hit.title);
     router.dismiss();
-    router.push(route === "profile" ? `/profile?userId=${hit.id}` : `/${route}/${hit.id}`);
+    // Route is composed at runtime from the result group; typed-routes can't narrow it.
+    router.push((route === "profile" ? `/profile?userId=${hit.id}` : `/${route}/${hit.id}`) as never);
   };
 
   const hasResults = data && GROUPS.some((g) => data[g.key]?.length);

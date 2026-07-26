@@ -21,10 +21,12 @@ import { formatAmount, formatPrice } from "@/lib/format";
 import { shareEntity } from "@/lib/share";
 import { color, gradient, layout, radius, space, type } from "@/lib/tokens";
 
-import { ReviewForm } from "./_review-form";
+import { ReviewForm } from "@/components/coach/ReviewForm";
 
 // Lazy: the pinch-zoom lightbox module loads only when a photo is first tapped (M15).
-const Lightbox = lazy(() => import("./_lightbox").then((m) => ({ default: m.Lightbox })));
+const Lightbox = lazy(() =>
+  import("@/components/coach/Lightbox").then((m) => ({ default: m.Lightbox })),
+);
 
 type Tab = "overview" | "batches" | "photos" | "reviews";
 const TABS: { key: Tab; label: string }[] = [
