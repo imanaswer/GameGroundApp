@@ -1,14 +1,23 @@
 /**
- * DESIGN_SYSTEM.md §7 CheckoutSheet — VISUAL STATES ONLY (M3). The payment logic,
- * sheet physics, and verification wiring land in M6. This renders the four internal
- * states so they can be reviewed against the kit in the catalog.
+ * DESIGN_SYSTEM.md §7 CheckoutSheet. Visual states shipped in M3; in M6 the timeline is
+ * driven by the real machine phase (creating/gateway/verifying) and the reconciling /
+ * unresolved states (§9.4) are added. The sheet never fabricates progress on a timer.
  */
 import { StyleSheet, Text, View } from "react-native";
 
 import { Button, CheckIcon } from "@/components/ds";
 import { color, radius, space, type } from "@/lib/tokens";
 
-export type CheckoutState = "methods" | "processing" | "success" | "failure";
+export type CheckoutState =
+  | "methods"
+  | "processing"
+  | "success"
+  | "failure"
+  | "reconciling"
+  | "unresolved";
+
+/** Machine phase → which timeline step is active (§9.1 VerificationTimeline). */
+export type TimelinePhase = "creating" | "gateway" | "verifying" | null;
 
 const METHODS = [
   { key: "upi", name: "UPI", caption: "GPay, PhonePe, any UPI app" },
@@ -20,21 +29,29 @@ const STEPS = ["Creating order", "Payment received", "Verifying with server"] as
 export function CheckoutSheet({
   state,
   amount,
+  phase = null,
+  error,
   onPay,
   onRetry,
+  onSupport,
 }: {
   state: CheckoutState;
   amount: string;
+  phase?: TimelinePhase;
+  error?: string | null;
   onPay?: () => void;
   onRetry?: () => void;
+  onSupport?: () => void;
 }) {
   return (
     <View style={styles.sheet}>
       <View style={styles.handle} />
       {state === "methods" && <Methods amount={amount} onPay={onPay} />}
-      {state === "processing" && <Processing />}
+      {state === "processing" && <Processing phase={phase} />}
+      {state === "reconciling" && <Reconciling />}
       {state === "success" && <Success amount={amount} />}
-      {state === "failure" && <Failure onRetry={onRetry} />}
+      {state === "failure" && <Failure message={error} onRetry={onRetry} />}
+      {state === "unresolved" && <Unresolved onSupport={onSupport} />}
     </View>
   );
 }
@@ -61,22 +78,50 @@ function Methods({ amount, onPay }: { amount: string; onPay?: () => void }) {
   );
 }
 
-/** VerificationTimeline (§7): steps flip on real state in production — static preview here. */
-function Processing() {
+/** VerificationTimeline (§7/§9.1): steps flip on the REAL machine phase, never on timers. */
+function Processing({ phase }: { phase: TimelinePhase }) {
+  // How many steps are done: creating→0 done, gateway→1 done, verifying→2 done.
+  const done = phase === "gateway" ? 1 : phase === "verifying" ? 2 : 0;
   return (
     <>
       <Text style={styles.header}>Confirming your payment</Text>
       <View style={styles.timeline}>
         {STEPS.map((label, i) => (
           <View key={label} style={styles.step}>
-            <View style={[styles.stepDot, i === 0 && styles.stepDone, i === 1 && styles.stepActive]}>
-              {i === 0 && <CheckIcon size={12} color={color.bg} />}
+            <View style={[styles.stepDot, i < done && styles.stepDone, i === done && styles.stepActive]}>
+              {i < done && <CheckIcon size={12} color={color.bg} />}
             </View>
-            <Text style={[styles.stepLabel, i <= 1 && styles.stepLabelOn]}>{label}</Text>
+            <Text style={[styles.stepLabel, i <= done && styles.stepLabelOn]}>{label}</Text>
           </View>
         ))}
       </View>
     </>
+  );
+}
+
+/** §9.4 — debited but not yet confirmed. Non-blocking, no spinner-as-failure. */
+function Reconciling() {
+  return (
+    <View style={styles.centered}>
+      <Text style={styles.header}>Payment received — confirming…</Text>
+      <Text style={styles.footnote}>
+        We’ve got your payment and are confirming your spot. This usually takes a moment.
+      </Text>
+    </View>
+  );
+}
+
+/** §9.4 — 5-minute cap elapsed unresolved. Route to support with the order ref. */
+function Unresolved({ onSupport }: { onSupport?: () => void }) {
+  return (
+    <View style={styles.centered}>
+      <Text style={styles.header}>Still confirming</Text>
+      <Text style={styles.footnote}>
+        This is taking longer than usual. If you were charged, our team will sort it out — no
+        duplicate charge will happen.
+      </Text>
+      <Button title="Contact support" variant="secondary" onPress={onSupport ?? (() => {})} style={styles.retry} />
+    </View>
   );
 }
 
@@ -92,11 +137,11 @@ function Success({ amount }: { amount: string }) {
   );
 }
 
-function Failure({ onRetry }: { onRetry?: () => void }) {
+function Failure({ message, onRetry }: { message?: string | null; onRetry?: () => void }) {
   return (
     <View style={styles.centered}>
       <Text style={styles.header}>Payment didn’t go through</Text>
-      <Text style={styles.footnote}>You weren’t charged. Try again.</Text>
+      <Text style={styles.footnote}>{message ?? "You weren’t charged. Try again."}</Text>
       <Button title="Try again" onPress={onRetry ?? (() => {})} style={styles.retry} />
     </View>
   );

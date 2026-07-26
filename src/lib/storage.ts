@@ -16,6 +16,8 @@ type Schema = {
   "gg.device": string;
   /** Onboarding shown once (M4). Not secret, but this typed KV is our only storage seam. */
   "gg.onboarded": boolean;
+  /** §9.4 reconciliation — a debited-but-unconfirmed order resumed on next cold start (M6). */
+  "gg.pendingOrder": { orderId: string; entityType: string; entityId: string };
 };
 
 type Key = keyof Schema;

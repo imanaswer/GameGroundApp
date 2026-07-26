@@ -57,6 +57,39 @@ export interface GameSummary {
   organizerTier: Tier | null;
 }
 
+/* ── Payments (§9) ─────────────────────────────────────────────────────────
+ * The client NEVER sends an amount. create-order derives paise server-side;
+ * verify re-asserts the order↔user↔entity↔amount binding. */
+
+export type EntityType = "game" | "coach" | "camp" | "workshop" | "event";
+
+/** `POST /payments/create-order` response — amount is server-computed. */
+export interface CreatedOrder {
+  orderId: string;
+  amountPaise: number;
+  currency: string;
+  keyId: string;
+}
+
+/** The Razorpay SDK success payload passed straight back to verify. */
+export interface RazorpayResult {
+  razorpay_order_id: string;
+  razorpay_payment_id: string;
+  razorpay_signature: string;
+}
+
+export type PaymentStatus = "created" | "attempted" | "paid" | "failed";
+
+/** `GET /payments/history` row — the reconciliation poll reads `status` for its order. */
+export interface PaymentRecord {
+  orderId: string;
+  entityType: EntityType;
+  entityId: string;
+  amountPaise: number;
+  status: PaymentStatus;
+  createdAt: string;
+}
+
 /** `GET /games/:id` — list fields plus the detail-only surface. */
 export interface GameDetail extends GameSummary {
   description: string;
