@@ -10,6 +10,10 @@ The client-side push infra is complete and degrades gracefully, but end-to-end d
 - An EAS project id / credentials so `getExpoPushTokenAsync` yields a real token (dev/simulator returns none — the client no-ops gracefully until then).
 Until these land, registration/prefs calls fail silently (logged to Sentry), the app never crashes, and it retries on each app open.
 
+## M15 perf — device-gated measurements (see docs/PERF.md)
+
+Code changes are complete (persistence, offline gating, memoization, lazy lightbox, release-check.sh — all bundle-verified). The pass/fail *measurements* need the reference Android: cold-start < 2.5s, 60fps scroll / no blank cells, Android download < 40 MB, and the airplane-mode tour. Method for each is in `docs/PERF.md`; fill the table before M16.
+
 ## M14 delight — rows needing on-device iteration (not shipped headlessly)
 
 Delivered as reusable, bundle-verified primitives: CountUp (§8), Confetti (§5), tier-up

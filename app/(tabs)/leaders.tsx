@@ -7,10 +7,11 @@ import { useState } from "react";
 import { ScrollView, StyleSheet, View } from "react-native";
 
 import type { LeaderScope, LeaderWindow } from "@/api/types";
-import { EmptyState, ErrorState, Header, Screen, SegmentedControl } from "@/components/chrome";
+import { EmptyState, ErrorState, Header, OfflineBanner, Screen, SegmentedControl } from "@/components/chrome";
 import { ChipRow, LeadersIcon, Skeleton } from "@/components/ds";
 import { LeaderRow, PinnedRankRow, Podium } from "@/components/social/Leaderboard";
 import { useLeaderboard } from "@/hooks/queries";
+import { useIsOnline } from "@/hooks/useIsOnline";
 import { color, icon as iconSize, layout, space } from "@/lib/tokens";
 
 const SCOPES: { key: LeaderScope; label: string }[] = [
@@ -27,6 +28,7 @@ export default function LeadersTab() {
   const [scope, setScope] = useState<LeaderScope>("players");
   const [window, setWindow] = useState<LeaderWindow>("all");
   const { data, isLoading, isError, error, refetch } = useLeaderboard(scope, window);
+  const online = useIsOnline();
 
   const goto = (id: string) => router.push(`/profile?userId=${id}`);
   const top3 = data?.rows.slice(0, 3) ?? [];
@@ -40,6 +42,7 @@ export default function LeadersTab() {
   return (
     <Screen padded={false}>
       <Header title="Leaders" />
+      {!online && <OfflineBanner />}
       <View style={styles.controls}>
         <SegmentedControl segments={SCOPES} value={scope} onChange={setScope} />
       </View>

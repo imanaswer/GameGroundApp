@@ -2,6 +2,7 @@
  * DESIGN_SYSTEM.md §6 GameCard — the workhorse. Props shaped from kit GG_DATA;
  * M5 maps real API GameSummary → this view model.
  */
+import { memo } from "react";
 import { StyleSheet, Text, View } from "react-native";
 
 import { AvatarStack, LiveChip, MapPinIcon, Press, SlotBar, TierBadge } from "@/components/ds";
@@ -24,7 +25,7 @@ export type GameCardData = {
   total: number;
 };
 
-export function GameCard({ data, onPress }: { data: GameCardData; onPress: () => void }) {
+export const GameCard = memo(function GameCard({ data, onPress }: { data: GameCardData; onPress: () => void }) {
   return (
     <Press accessibilityRole="button" onPress={onPress} style={cardStyles.card}>
       <CardImage uri={data.imageUrl} height={118}>
@@ -46,7 +47,7 @@ export function GameCard({ data, onPress }: { data: GameCardData; onPress: () =>
       </View>
     </Press>
   );
-}
+});
 
 const styles = StyleSheet.create({
   titleRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: space(2) },

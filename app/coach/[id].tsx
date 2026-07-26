@@ -6,7 +6,7 @@
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { useEffect, useState } from "react";
+import { Suspense, lazy, useEffect, useState } from "react";
 import { Linking, ScrollView, StyleSheet, Text, View } from "react-native";
 
 import type { CoachBatch } from "@/api/types";
@@ -15,13 +15,16 @@ import { CheckoutSheet } from "@/components/checkout";
 import { Avatar, Button, MessageIcon, Press, Skeleton, Stars } from "@/components/ds";
 import { useCoach } from "@/hooks/queries";
 import { useCheckout } from "@/hooks/useCheckout";
+import { useIsOnline } from "@/hooks/useIsOnline";
 import { usePush } from "@/hooks/usePush";
 import { formatAmount, formatPrice } from "@/lib/format";
 import { shareEntity } from "@/lib/share";
 import { color, gradient, layout, radius, space, type } from "@/lib/tokens";
 
-import { Lightbox } from "./_lightbox";
 import { ReviewForm } from "./_review-form";
+
+// Lazy: the pinch-zoom lightbox module loads only when a photo is first tapped (M15).
+const Lightbox = lazy(() => import("./_lightbox").then((m) => ({ default: m.Lightbox })));
 
 type Tab = "overview" | "batches" | "photos" | "reviews";
 const TABS: { key: Tab; label: string }[] = [
@@ -40,6 +43,7 @@ export default function CoachDetail() {
   const [booking, setBooking] = useState<CoachBatch | null>(null);
 
   const checkout = useCheckout("coach", id, booking ? { batchId: booking.id } : {});
+  const online = useIsOnline();
   const { promptForPush } = usePush();
 
   // First successful booking → offer reminders (shown once, §10.2).
@@ -129,7 +133,7 @@ export default function CoachDetail() {
                         </View>
                         <View style={styles.batchRight}>
                           <Text style={styles.price}>{formatPrice(b.pricePaise) ?? "Free"}</Text>
-                          <Button title="Book" variant="mini" onPress={() => setBooking(b)} disabled={b.spotsLeft <= 0} />
+                          <Button title="Book" variant="mini" onPress={() => setBooking(b)} disabled={b.spotsLeft <= 0 || !online} />
                         </View>
                       </View>
                     ))
@@ -173,7 +177,9 @@ export default function CoachDetail() {
       </ScrollView>
 
       {lightbox !== null && coach && (
-        <Lightbox photos={coach.photos} index={lightbox} onClose={() => setLightbox(null)} />
+        <Suspense fallback={null}>
+          <Lightbox photos={coach.photos} index={lightbox} onClose={() => setLightbox(null)} />
+        </Suspense>
       )}
 
       {booking && (

@@ -25,6 +25,7 @@ import {
 } from "@/components/ds";
 import { useGame, useGameAction } from "@/hooks/queries";
 import { useCheckout } from "@/hooks/useCheckout";
+import { useIsOnline } from "@/hooks/useIsOnline";
 import { usePush } from "@/hooks/usePush";
 import { formatAmount, formatPrice, formatWhen } from "@/lib/format";
 import * as haptics from "@/lib/haptics";
@@ -49,6 +50,7 @@ export default function GameDetail() {
 
   const paid = !!game && game.pricePaise !== null && game.pricePaise > 0;
   const checkout = useCheckout("game", id);
+  const online = useIsOnline();
   const { promptForPush } = usePush();
 
   // A paid join confirming is a "first booking" moment — offer reminders (shown once).
@@ -189,10 +191,11 @@ export default function GameDetail() {
       {game && !sheetOpen && (
         <StickyCTA
           price={price}
-          caption={price && !game.viewerJoined ? "per player" : undefined}
+          caption={online ? (price && !game.viewerJoined ? "per player" : undefined) : "Offline — reconnect to join"}
           ctaLabel={ctaLabel}
           onPress={onCtaPress}
           loading={action.isPending}
+          disabled={!online}
         />
       )}
 

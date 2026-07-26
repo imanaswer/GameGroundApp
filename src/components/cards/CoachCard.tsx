@@ -1,4 +1,5 @@
 /** DESIGN_SYSTEM.md §6 CoachCard. Image + overlapping face avatar → name/sport vs stars/price. */
+import { memo } from "react";
 import { StyleSheet, Text, View } from "react-native";
 
 import { Avatar, Press, Stars } from "@/components/ds";
@@ -16,7 +17,7 @@ export type CoachCardData = {
   price: string;
 };
 
-export function CoachCard({ data, onPress }: { data: CoachCardData; onPress: () => void }) {
+export const CoachCard = memo(function CoachCard({ data, onPress }: { data: CoachCardData; onPress: () => void }) {
   return (
     <Press accessibilityRole="button" onPress={onPress} style={cardStyles.card}>
       <CardImage uri={data.facilityImageUrl} height={100} />
@@ -37,7 +38,7 @@ export function CoachCard({ data, onPress }: { data: CoachCardData; onPress: () 
       </View>
     </Press>
   );
-}
+});
 
 const styles = StyleSheet.create({
   avatarPerch: { position: "absolute", top: 100 - 24, left: space(3.5) },

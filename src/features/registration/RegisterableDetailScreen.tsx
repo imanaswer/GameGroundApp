@@ -11,6 +11,7 @@ import { ScrollView, StyleSheet, Text, View } from "react-native";
 
 import { ErrorState, HeroNav, Screen, StickyCTA } from "@/components/chrome";
 import { CalendarIcon, MapPinIcon, Skeleton, SlotBar } from "@/components/ds";
+import { useIsOnline } from "@/hooks/useIsOnline";
 import { formatPrice, formatWhen } from "@/lib/format";
 import { shareEntity } from "@/lib/share";
 import { color, gradient, layout, radius, space, type } from "@/lib/tokens";
@@ -23,6 +24,7 @@ export function RegisterableDetailScreen({ config, id }: { config: EntityConfig;
   const router = useRouter();
   const { data: item, isLoading, isError, error, refetch } = useRegisterableDetail(config, id);
   const [registering, setRegistering] = useState(false);
+  const online = useIsOnline();
 
   if (isError) {
     return (
@@ -113,10 +115,10 @@ export function RegisterableDetailScreen({ config, id }: { config: EntityConfig;
       {item && !registering && (
         <StickyCTA
           price={price}
-          caption={price ? "per registration" : undefined}
+          caption={!online ? "Offline — reconnect to register" : price ? "per registration" : undefined}
           ctaLabel={full ? "Fully booked" : "Register"}
           onPress={() => setRegistering(true)}
-          disabled={full}
+          disabled={full || !online}
         />
       )}
     </Screen>

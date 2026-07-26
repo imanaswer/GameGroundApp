@@ -6,10 +6,11 @@ import { useState } from "react";
 import { StyleSheet, View } from "react-native";
 
 import type { RegisterableKind } from "@/api/types";
-import { Header, Screen, SegmentedControl } from "@/components/chrome";
+import { Header, OfflineBanner, Screen, SegmentedControl } from "@/components/chrome";
 import { SearchBar } from "@/components/ds";
 import { DiscoverSegment, ENTITIES } from "@/features/registration";
 import { useDebounce } from "@/hooks/useDebounce";
+import { useIsOnline } from "@/hooks/useIsOnline";
 import { layout, space } from "@/lib/tokens";
 
 const SEGMENTS: { key: RegisterableKind; label: string }[] = [
@@ -22,10 +23,12 @@ export default function DiscoverTab() {
   const [segment, setSegment] = useState<RegisterableKind>("camp");
   const [rawQuery, setRawQuery] = useState("");
   const q = useDebounce(rawQuery.trim(), 300);
+  const online = useIsOnline();
 
   return (
     <Screen padded={false}>
       <Header title="Discover" />
+      {!online && <OfflineBanner />}
       <View style={styles.controls}>
         <SearchBar value={rawQuery} onChangeText={setRawQuery} placeholder="Search camps, workshops, events" />
       </View>

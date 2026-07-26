@@ -2,6 +2,7 @@
  * DESIGN_SYSTEM.md §6 Camp/Workshop/EventCard. GameCard anatomy + a registration
  * SlotBar ("x% registered") + FILLING FAST >70%. One component, section accent per kind.
  */
+import { memo } from "react";
 import { StyleSheet, Text, View } from "react-native";
 
 import { CalendarIcon, LiveChip, Press, SlotBar } from "@/components/ds";
@@ -22,7 +23,7 @@ export type RegistrationCardData = {
 
 const FILLING = 0.7;
 
-export function RegistrationCard({
+export const RegistrationCard = memo(function RegistrationCard({
   data,
   onPress,
 }: {
@@ -47,7 +48,7 @@ export function RegistrationCard({
       </View>
     </Press>
   );
-}
+});
 
 const styles = StyleSheet.create({
   titleRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: space(2) },

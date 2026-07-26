@@ -1,5 +1,6 @@
 import NetInfo from "@react-native-community/netinfo";
-import { QueryClient, QueryClientProvider, onlineManager } from "@tanstack/react-query";
+import { QueryClient, onlineManager } from "@tanstack/react-query";
+import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
 import { useFonts } from "expo-font";
 import { Stack, useRouter } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
@@ -15,14 +16,18 @@ import { AuthProvider } from "@/hooks/useAuth";
 import { DeepLinkProvider } from "@/hooks/useDeepLinks";
 import { PushProvider } from "@/hooks/usePush";
 import { initAnalytics } from "@/lib/analytics";
+import { persistOptions } from "@/lib/query-persist";
 import { RazorpayHost } from "@/lib/razorpay";
 import { initSentry } from "@/lib/sentry";
 import { color } from "@/lib/tokens";
 
 SplashScreen.preventAutoHideAsync();
 
-// ponytail: single client; per-domain staleTimes live on each query hook (§6.1).
-const queryClient = new QueryClient();
+// Single client; per-domain staleTimes live on each query hook (§6.1). gcTime ≥ persist maxAge
+// so persisted entries survive to be restored offline (§8.3).
+const queryClient = new QueryClient({
+  defaultOptions: { queries: { gcTime: 24 * 60 * 60 * 1000, retry: 2 } },
+});
 
 // §6.2 — online state from NetInfo drives React Query's refetch-on-reconnect + the offline UI.
 onlineManager.setEventListener((setOnline) =>
@@ -72,7 +77,7 @@ export default function RootLayout() {
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <QueryClientProvider client={queryClient}>
+      <PersistQueryClientProvider client={queryClient} persistOptions={persistOptions}>
         <AuthProvider>
           <ToastProvider>
             <DeepLinkProvider>
@@ -92,7 +97,7 @@ export default function RootLayout() {
             </DeepLinkProvider>
           </ToastProvider>
         </AuthProvider>
-      </QueryClientProvider>
+      </PersistQueryClientProvider>
     </GestureHandlerRootView>
   );
 }
