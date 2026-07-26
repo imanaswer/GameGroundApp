@@ -11,3 +11,10 @@ export {
 } from "./games";
 export { useCoaches, useCoach, useSubmitReview, toCoachCard } from "./coaches";
 export { useLeaderboard, useSearch } from "./social";
+export {
+  useProfile,
+  useActivity,
+  usePaymentsHistory,
+  useUpdateProfile,
+  useDeleteAccount,
+} from "./users";

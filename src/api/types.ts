@@ -130,6 +130,51 @@ export interface CoachDetail extends CoachSummary {
   viewerCanReview: boolean;
 }
 
+/* ── Profiles (§3.3, product 6.6) ──────────────────────────────────────────*/
+
+export interface RankProgress {
+  tier: Tier;
+  points: number;
+  /** Points at which the next tier unlocks; null when already at the top tier. */
+  nextTierAt: number | null;
+}
+
+export interface ProfileStats {
+  games: number;
+  attendance: number;
+  reputation: number;
+  rank: number | null;
+}
+
+export interface ActivityItem {
+  id: string;
+  /** "joined" | "created" | "attended" | "booked" | "tier_up" … rendered by kind. */
+  kind: string;
+  title: string;
+  at: string;
+}
+
+export interface UserProfile {
+  id: string;
+  name: string;
+  username: string;
+  city: string | null;
+  avatarUrl: string | null;
+  sports: string[];
+  tier: Tier | null;
+  progress: RankProgress | null;
+  stats: ProfileStats;
+  /** Last-10 attendance intensities 0–1 for the WeekStrip (attendance only, Decision 6). */
+  seasonStrip: number[];
+}
+
+export interface UpdateProfileInput {
+  name?: string;
+  city?: string;
+  sports?: string[];
+  avatarPreset?: string;
+}
+
 /* ── Leaderboard (§3.3) ────────────────────────────────────────────────────*/
 
 export type LeaderScope = "players" | "organizers";
