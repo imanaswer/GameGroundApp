@@ -57,6 +57,47 @@ export interface GameSummary {
   organizerTier: Tier | null;
 }
 
+/* ── Coaches (§3.3) ────────────────────────────────────────────────────────*/
+
+export interface CoachSummary {
+  id: string;
+  name: string;
+  sport: string;
+  facilityImageUrl: string | null;
+  avatarUrl: string | null;
+  rating: number;
+  reviewCount: number;
+  /** null → "on request"; else server-computed paise for the base batch. */
+  pricePaise: number | null;
+  area: string | null;
+}
+
+export interface CoachBatch {
+  id: string;
+  name: string;
+  schedule: string;
+  pricePaise: number;
+  spotsLeft: number;
+}
+
+export interface CoachReview {
+  id: string;
+  author: PlayerRef;
+  rating: number;
+  body: string;
+  createdAt: string;
+}
+
+export interface CoachDetail extends CoachSummary {
+  bio: string;
+  batches: CoachBatch[];
+  photos: string[];
+  reviews: CoachReview[];
+  whatsapp: string | null;
+  /** Server eligibility: can the viewer post a review right now? */
+  viewerCanReview: boolean;
+}
+
 /* ── Venues (§3.3 — create-game picker) ────────────────────────────────────*/
 
 export interface Venue {

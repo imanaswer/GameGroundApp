@@ -19,4 +19,9 @@ export const keys = {
     all: ["venues"] as const,
     slots: (venueId: string) => ["venues", venueId, "slots"] as const,
   },
+  coaches: {
+    all: ["coaches"] as const,
+    list: (filters: { sport?: string; q?: string }) => ["coaches", "list", filters] as const,
+    detail: (id: string) => ["coaches", "detail", id] as const,
+  },
 } as const;

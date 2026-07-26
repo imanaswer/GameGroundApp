@@ -9,3 +9,4 @@ export {
   useCreateGame,
   toGameCard,
 } from "./games";
+export { useCoaches, useCoach, useSubmitReview, toCoachCard } from "./coaches";
