@@ -23,9 +23,14 @@ module.exports = {
   scheme: "gameground",
   userInterfaceStyle: "dark",
   backgroundColor: "#050505",
+  // EAS Update (OTA). runtimeVersion tracks app version so OTA never crosses a native change.
+  updates: { url: "https://u.expo.dev/c51e7b53-2f3f-4556-b1c7-4e539836f90a" },
+  runtimeVersion: { policy: "appVersion" },
   ios: {
     bundleIdentifier: variant.id,
     supportsTablet: false,
+    // Uses only standard/exempt encryption (HTTPS) — skips the export-compliance prompt.
+    infoPlist: { ITSAppUsesNonExemptEncryption: false },
     // Universal Links (M13). Requires the matching apple-app-site-association on the web repo
     // (public/.well-known/, appID = TEAMID.net.gameground.app). See docs/DEEP_LINKS_WEB.md.
     associatedDomains: ["applinks:www.gameground.net", "applinks:gameground.net"],
