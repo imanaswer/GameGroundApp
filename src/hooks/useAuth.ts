@@ -20,7 +20,9 @@ import { Platform } from "react-native";
 import * as authApi from "@/api/auth";
 import { isNoResponse } from "@/api/client";
 import type { AuthPayload, SessionUser } from "@/api/types";
+import * as analytics from "@/lib/analytics";
 import { env } from "@/lib/env";
+import { setSentryUser } from "@/lib/sentry";
 import * as storage from "@/lib/storage";
 
 type Status = "restoring" | "signedOut" | "signedIn";
@@ -61,12 +63,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         await storage.set("gg.user", fresh);
         setUser(fresh);
         setStatus("signedIn");
+        analytics.identify(fresh.id, { username: fresh.username });
+        setSentryUser({ id: fresh.id });
       } catch (e) {
         const cached = await storage.get("gg.user");
         if (isNoResponse(e) && cached) {
           setUser(cached);
           setOffline(true);
           setStatus("signedIn");
+          setSentryUser({ id: cached.id });
         } else {
           await storage.clearAuth();
           setStatus("signedOut");
@@ -79,6 +84,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(payload.user);
     setOffline(false);
     setStatus("signedIn");
+    analytics.identify(payload.user.id, { username: payload.user.username });
+    setSentryUser({ id: payload.user.id });
   }, []);
 
   const login = useCallback(
@@ -106,12 +113,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     adopt(await authApi.loginWithApple(credential.identityToken, fullName || null));
   }, [adopt]);
 
-  // Logout (§5.1): revoke best-effort → clear SecureStore → clear query cache.
-  // PostHog identity reset joins this chain when analytics init lands (M4).
+  // Logout (§5.1): revoke best-effort → clear SecureStore → clear query cache → reset identity.
   const logout = useCallback(async () => {
     await authApi.revoke().catch(() => {});
     await storage.clearAuth();
     queryClient.clear();
+    analytics.resetAnalytics();
+    setSentryUser(null);
     setUser(null);
     setStatus("signedOut");
   }, [queryClient]);

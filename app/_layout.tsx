@@ -4,10 +4,13 @@ import { Stack, useRouter } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
 import { useEffect } from "react";
+import { InteractionManager } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 
 import { setClientHandlers } from "@/api/client";
 import { AuthProvider } from "@/hooks/useAuth";
+import { initAnalytics } from "@/lib/analytics";
+import { initSentry } from "@/lib/sentry";
 import { color } from "@/lib/tokens";
 
 SplashScreen.preventAutoHideAsync();
@@ -44,6 +47,15 @@ export default function RootLayout() {
     // Hide on error too — a missing font must not leave the user staring at the splash.
     if (fontsLoaded || fontError) SplashScreen.hideAsync();
   }, [fontsLoaded, fontError]);
+
+  // Analytics + crash reporting init is deferred past first frame (§13 cold-start budget).
+  useEffect(() => {
+    const task = InteractionManager.runAfterInteractions(() => {
+      initSentry();
+      initAnalytics();
+    });
+    return () => task.cancel();
+  }, []);
 
   if (!fontsLoaded && !fontError) return null;
 

@@ -14,6 +14,8 @@ type Schema = {
   "gg.user": SessionUser;
   /** Stable per-install id; refresh-token families are keyed on it (§5.3). */
   "gg.device": string;
+  /** Onboarding shown once (M4). Not secret, but this typed KV is our only storage seam. */
+  "gg.onboarded": boolean;
 };
 
 type Key = keyof Schema;
