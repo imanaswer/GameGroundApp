@@ -1,5 +1,8 @@
 {
-  "cli": { "version": ">= 12.0.0", "appVersionSource": "remote" },
+  "cli": {
+    "version": ">= 12.0.0",
+    "appVersionSource": "remote"
+  },
   "build": {
     "development": {
       "developmentClient": true,
@@ -8,11 +11,14 @@
       "env": {
         "APP_ENV": "development",
         "EXPO_PUBLIC_API_URL": "https://www.gameground.net",
-        "EXPO_PUBLIC_RAZORPAY_KEY_ID": "rzp_test_replace_me",
-        "EXPO_PUBLIC_POSTHOG_KEY": ""
+        "EXPO_PUBLIC_RAZORPAY_KEY_ID": "rzp_test_replace_me"
       },
-      "ios": { "simulator": false },
-      "android": { "buildType": "apk" }
+      "ios": {
+        "simulator": false
+      },
+      "android": {
+        "buildType": "apk"
+      }
     },
     "preview": {
       "distribution": "internal",
@@ -20,10 +26,11 @@
       "env": {
         "APP_ENV": "preview",
         "EXPO_PUBLIC_API_URL": "https://www.gameground.net",
-        "EXPO_PUBLIC_RAZORPAY_KEY_ID": "rzp_test_replace_me",
-        "EXPO_PUBLIC_POSTHOG_KEY": ""
+        "EXPO_PUBLIC_RAZORPAY_KEY_ID": "rzp_test_replace_me"
       },
-      "android": { "buildType": "apk" }
+      "android": {
+        "buildType": "apk"
+      }
     },
     "production": {
       "channel": "production",
@@ -31,10 +38,11 @@
       "env": {
         "APP_ENV": "production",
         "EXPO_PUBLIC_API_URL": "https://www.gameground.net",
-        "EXPO_PUBLIC_RAZORPAY_KEY_ID": "rzp_live_replace_me",
-        "EXPO_PUBLIC_POSTHOG_KEY": ""
+        "EXPO_PUBLIC_RAZORPAY_KEY_ID": "rzp_live_replace_me"
       }
     }
   },
-  "submit": { "production": {} }
+  "submit": {
+    "production": {}
+  }
 }
