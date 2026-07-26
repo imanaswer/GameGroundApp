@@ -5,7 +5,7 @@
 import { StyleSheet, Text, View } from "react-native";
 
 import type { LeaderRow as Row } from "@/api/types";
-import { Avatar, Press, TierBadge } from "@/components/ds";
+import { Avatar, CountUp, Press, TierBadge } from "@/components/ds";
 import { color, layout, radius, space, type } from "@/lib/tokens";
 
 function Delta({ delta }: { delta: number }) {
@@ -25,7 +25,7 @@ export function Podium({ top, onPress }: { top: Row[]; onPress: (id: string) => 
         <Press key={r.user.id} onPress={() => onPress(r.user.id)} style={styles.podCol}>
           <Avatar name={r.user.name} uri={r.user.avatarUrl} size={PODIUM_SIZE[r.rank] ?? 48} />
           <Text style={styles.podName} numberOfLines={1}>{r.user.name}</Text>
-          <Text style={[styles.podScore, r.rank === 1 && styles.gold]}>{r.score.toLocaleString("en-IN")}</Text>
+          <CountUp value={r.score} style={r.rank === 1 ? styles.podScoreGold : styles.podScore} />
           <Text style={styles.podRank}>#{r.rank}</Text>
         </Press>
       ))}
@@ -62,7 +62,7 @@ const styles = StyleSheet.create({
   podCol: { alignItems: "center", gap: space(1.5), maxWidth: 100 },
   podName: { ...type.caption, color: color.text, maxWidth: 90 },
   podScore: { fontFamily: type.heading.fontFamily, fontSize: 15, color: color.text },
-  gold: { color: color.gold },
+  podScoreGold: { fontFamily: type.heading.fontFamily, fontSize: 15, color: color.gold },
   podRank: { ...type.micro, color: color.dim },
 
   row: { flexDirection: "row", alignItems: "center", gap: space(3), paddingVertical: space(2.5), paddingHorizontal: space(2) },

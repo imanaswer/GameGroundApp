@@ -76,6 +76,9 @@ export const avatarColors = [
 /** The user's own avatar: 135° gradient. */
 export const ownAvatarGradient = ["#6c8cff", "#a78bfa"] as const;
 
+/** MOTION.md §5 — the confetti 5-color set (gold · success · red-light · white · violet). */
+export const confetti = ["#eab308", "#4ade80", "#ff6b74", "#ffffff", "#a78bfa"] as const;
+
 /** DS §1.4 — the only permitted gradients/overlays. */
 export const gradient = {
   imageScrim: { colors: ["transparent", "rgba(0,0,0,0.55)"], locations: [0.4, 1] },

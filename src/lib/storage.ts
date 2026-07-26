@@ -28,6 +28,8 @@ type Schema = {
   "gg.pushToken": string;
   /** Deep link (M13): target path stashed while logged out, resumed after login. */
   "gg.pendingDeepLink": string;
+  /** Delight (M14): last tier the user has been congratulated for — tier-up fires once. */
+  "gg.lastSeenTier": string;
 };
 
 type Key = keyof Schema;

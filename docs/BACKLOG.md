@@ -10,6 +10,24 @@ The client-side push infra is complete and degrades gracefully, but end-to-end d
 - An EAS project id / credentials so `getExpoPushTokenAsync` yields a real token (dev/simulator returns none — the client no-ops gracefully until then).
 Until these land, registration/prefs calls fail silently (logged to Sentry), the app never crashes, and it retries on each app open.
 
+## M14 delight — rows needing on-device iteration (not shipped headlessly)
+
+Delivered as reusable, bundle-verified primitives: CountUp (§8), Confetti (§5), tier-up
+takeover (§5, fires once), extended payment-success confetti (§5), centralized haptics, and a
+verified reduced-motion path. The following MOTION.md rows are deliberately **not** shipped
+blind because they either fight the platform or misfire without a device to tune against — do
+them in an on-device pass:
+- **Shared-element card→detail** (`sharedTransitionTag`) — Reanimated shared transitions are
+  fragile; needs device tuning per Games/Coaches/Discover.
+- **List-entrance stagger** — FlashList recycles cells, so per-item `entering` re-fires on
+  scroll (MOTION says first-page-only). Needs a first-render-only guard tuned on device.
+- **Branded pull-to-refresh** (rotating play-mark) — RN `RefreshControl` isn't componentizable;
+  needs a custom scroll-driven indicator validated at 60fps.
+- **Tab-icon spring + halo + collapsing-hero parallax fine-tuning** — needs a custom TabBar and
+  scroll-offset tuning measured on the reference Android.
+- **Payment-success reputation-gain card + avatar-into-stack** — depends on the server rep delta
+  from the refetched profile (not currently returned by verify); wire when that data exists.
+
 ## Backend/ops dependencies surfaced by M13 (deep links) — web repo + credentials
 
 The mobile side (associatedDomains + Android intentFilters + validated routing + stash-resume) is complete. Universal/App Links won't verify on-device until:

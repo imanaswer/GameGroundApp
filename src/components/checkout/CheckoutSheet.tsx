@@ -5,7 +5,7 @@
  */
 import { StyleSheet, Text, View } from "react-native";
 
-import { Button, CheckIcon } from "@/components/ds";
+import { Button, CheckIcon, Confetti } from "@/components/ds";
 import { color, radius, space, type } from "@/lib/tokens";
 
 export type CheckoutState =
@@ -126,8 +126,11 @@ function Unresolved({ onSupport }: { onSupport?: () => void }) {
 }
 
 function Success({ amount }: { amount: string }) {
+  // Extended success (MOTION §5): confetti burst over the check. The reputation-gain card +
+  // avatar-into-stack need the server rep delta from the refetched profile — see BACKLOG (M14).
   return (
     <View style={styles.centered}>
+      <Confetti />
       <View style={styles.successRing}>
         <CheckIcon size={28} color={color.success} />
       </View>

@@ -6,7 +6,7 @@
 import { StyleSheet, Text, View } from "react-native";
 
 import type { ProfileStats, RankProgress as Progress, UserProfile } from "@/api/types";
-import { Avatar, TierBadge } from "@/components/ds";
+import { Avatar, CountUp, TierBadge } from "@/components/ds";
 import { color, radius, space, type } from "@/lib/tokens";
 
 export function PlayerHeroCard({ profile, isSelf }: { profile: UserProfile; isSelf?: boolean }) {
@@ -34,30 +34,34 @@ export function RankProgress({ progress }: { progress: Progress }) {
       <View style={styles.track}>
         <View style={[styles.fill, { width: `${ratio * 100}%` }]} />
       </View>
-      <Text style={styles.progressMeta}>
-        {progress.nextTierAt
-          ? `${progress.points} pts · next tier at ${progress.nextTierAt}`
-          : `${progress.points} pts · top tier`}
-      </Text>
+      <View style={styles.progressMetaRow}>
+        <CountUp value={progress.points} suffix=" pts" style={styles.progressMeta} />
+        <Text style={styles.progressMeta}>
+          {progress.nextTierAt ? ` · next tier at ${progress.nextTierAt}` : " · top tier"}
+        </Text>
+      </View>
     </View>
   );
 }
 
 export function StatStrip({ stats }: { stats: ProfileStats }) {
   const cells = [
-    { label: "Games", value: stats.games },
-    { label: "Attendance", value: `${stats.attendance}%` },
-    { label: "Reputation", value: stats.reputation },
-    { label: "Rank", value: stats.rank ? `#${stats.rank}` : "—" },
+    { label: "Games", value: stats.games, suffix: "" },
+    { label: "Attendance", value: stats.attendance, suffix: "%" },
+    { label: "Reputation", value: stats.reputation, suffix: "" },
   ];
   return (
     <View style={styles.strip}>
       {cells.map((c, i) => (
         <View key={c.label} style={[styles.cell, i > 0 && styles.cellDivider]}>
-          <Text style={styles.cellValue}>{c.value}</Text>
+          <CountUp value={c.value} suffix={c.suffix} style={styles.cellValue} />
           <Text style={styles.cellLabel}>{c.label}</Text>
         </View>
       ))}
+      <View style={[styles.cell, styles.cellDivider]}>
+        <Text style={styles.cellValue}>{stats.rank ? `#${stats.rank}` : "—"}</Text>
+        <Text style={styles.cellLabel}>Rank</Text>
+      </View>
     </View>
   );
 }
@@ -81,6 +85,7 @@ const styles = StyleSheet.create({
   progressWrap: { alignSelf: "stretch", marginTop: space(2), gap: space(1.5) },
   track: { height: 7, borderRadius: 999, backgroundColor: color.track, overflow: "hidden" },
   fill: { height: 7, borderRadius: 999, backgroundColor: color.red },
+  progressMetaRow: { flexDirection: "row", justifyContent: "center", alignItems: "center" },
   progressMeta: { ...type.caption, color: color.dim, textAlign: "center" },
 
   strip: { flexDirection: "row", backgroundColor: color.card, borderRadius: radius.input, borderWidth: 1, borderColor: color.border, paddingVertical: space(3) },

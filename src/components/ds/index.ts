@@ -9,4 +9,6 @@ export { SlotBar } from "./SlotBar";
 export { Input } from "./Input";
 export { SearchBar } from "./SearchBar";
 export { Skeleton, CardSkeleton } from "./Skeleton";
+export { CountUp } from "./CountUp";
+export { Confetti } from "./Confetti";
 export * from "./icons";

@@ -10,6 +10,7 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 
 import { setClientHandlers } from "@/api/client";
 import { ToastProvider } from "@/components/chrome";
+import { TierUpProvider } from "@/components/social/TierUp";
 import { AuthProvider } from "@/hooks/useAuth";
 import { DeepLinkProvider } from "@/hooks/useDeepLinks";
 import { PushProvider } from "@/hooks/usePush";
@@ -76,6 +77,7 @@ export default function RootLayout() {
           <ToastProvider>
             <DeepLinkProvider>
               <PushProvider>
+                <TierUpProvider>
                 <ClientHandlerBridge />
                 <RazorpayHost />
                 <StatusBar style="light" />
@@ -85,6 +87,7 @@ export default function RootLayout() {
                   <Stack.Screen name="search" options={{ presentation: "modal" }} />
                   <Stack.Screen name="upgrade-required" options={{ gestureEnabled: false }} />
                 </Stack>
+                </TierUpProvider>
               </PushProvider>
             </DeepLinkProvider>
           </ToastProvider>

@@ -3,12 +3,13 @@
  * Hero + StatStrip + Overview/Games tabs (Achievements deferred to v1.1, Decision 6).
  */
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ScrollView, StyleSheet, Text, View } from "react-native";
 
 import { ErrorState, HeroNav, Screen, SegmentedControl } from "@/components/chrome";
 import { Button, SettingsIcon, Skeleton } from "@/components/ds";
 import { PlayerHeroCard, StatStrip, WeekStrip } from "@/components/social/Profile";
+import { useTierUp } from "@/components/social/TierUp";
 import { useActivity, useProfile } from "@/hooks/queries";
 import { useAuth } from "@/hooks/useAuth";
 import { formatWhen } from "@/lib/format";
@@ -26,6 +27,12 @@ export default function Profile() {
   const { data: profile, isLoading, isError, error, refetch } = useProfile(id);
   const activity = useActivity(id);
   const [tab, setTab] = useState<Tab>("overview");
+
+  // Tier-up celebration (MOTION §5) — fires once when the viewer's own tier increases.
+  const { celebrate } = useTierUp();
+  useEffect(() => {
+    if (isSelf && profile?.tier) celebrate(profile.tier);
+  }, [isSelf, profile?.tier, celebrate]);
 
   if (isError) {
     return (
