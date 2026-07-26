@@ -51,3 +51,9 @@ export function setSentryUser(user: { id: string } | null) {
   if (!started) return;
   Sentry.setUser(user ? { id: user.id } : null);
 }
+
+/** Lightweight trail marker (e.g. an unresolved deep link). No-op until Sentry inits. */
+export function breadcrumb(message: string, data?: Record<string, unknown>) {
+  if (!started) return;
+  Sentry.addBreadcrumb({ message, data, level: "info" });
+}

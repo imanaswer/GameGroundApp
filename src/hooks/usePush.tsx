@@ -11,7 +11,6 @@
  * service layer — this provider never throws into the UI.
  */
 import * as Notifications from "expo-notifications";
-import { useRouter } from "expo-router";
 import {
   createContext,
   useCallback,
@@ -26,7 +25,7 @@ import { AppState, Modal, StyleSheet, Text, View } from "react-native";
 import { useToast } from "@/components/chrome";
 import { Button } from "@/components/ds";
 import { useAuth } from "@/hooks/useAuth";
-import { resolveDeepLink } from "@/lib/deeplinks";
+import { useDeepLinkRouter } from "@/hooks/useDeepLinks";
 import {
   configureAndroidChannel,
   registerForPush,
@@ -45,36 +44,28 @@ type PushContextValue = {
 const PushContext = createContext<PushContextValue | null>(null);
 
 export function PushProvider({ children }: { children: ReactNode }) {
-  const router = useRouter();
   const toast = useToast();
   const { status } = useAuth();
+  const { route } = useDeepLinkRouter(); // shared validate → navigate / stash / home
   const signedIn = status === "signedIn";
   const [prePrompt, setPrePrompt] = useState(false);
-
-  const routeTo = useCallback(
-    (url: string | null) => {
-      const path = url ? resolveDeepLink(url) : null;
-      router.push((path ?? "/home") as never);
-    },
-    [router],
-  );
 
   // Cold-start tap: a notification that launched the app.
   useEffect(() => {
     Notifications.getLastNotificationResponseAsync()
       .then((res) => {
-        if (res) routeTo(urlFromResponse(res));
+        if (res) route(urlFromResponse(res));
       })
       .catch(() => {});
-  }, [routeTo]);
+  }, [route]);
 
   // Tap while running (background/foreground) → route via data.url.
   useEffect(() => {
     const sub = Notifications.addNotificationResponseReceivedListener((res) => {
-      routeTo(urlFromResponse(res));
+      route(urlFromResponse(res));
     });
     return () => sub.remove();
-  }, [routeTo]);
+  }, [route]);
 
   // Foreground receipt → in-app toast (OS banner suppressed by the handler). Tap re-routes.
   useEffect(() => {
@@ -83,11 +74,11 @@ export function PushProvider({ children }: { children: ReactNode }) {
       toast.show({
         title: title ?? "Game Ground",
         body: body ?? undefined,
-        onPress: () => routeTo(typeof (data as { url?: string })?.url === "string" ? (data as { url: string }).url : null),
+        onPress: () => route(typeof (data as { url?: string })?.url === "string" ? (data as { url: string }).url : null),
       });
     });
     return () => sub.remove();
-  }, [toast, routeTo]);
+  }, [toast, route]);
 
   // Registration lifecycle: only when signed in. Re-register on app foreground + token refresh.
   useEffect(() => {

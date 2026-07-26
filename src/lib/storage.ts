@@ -26,6 +26,8 @@ type Schema = {
   "gg.pushPrefs": Record<string, boolean>;
   /** Push (M12): last Expo token we registered — detects refresh + lets logout unregister. */
   "gg.pushToken": string;
+  /** Deep link (M13): target path stashed while logged out, resumed after login. */
+  "gg.pendingDeepLink": string;
 };
 
 type Key = keyof Schema;

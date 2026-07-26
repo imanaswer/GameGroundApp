@@ -17,6 +17,7 @@ import { useCoach } from "@/hooks/queries";
 import { useCheckout } from "@/hooks/useCheckout";
 import { usePush } from "@/hooks/usePush";
 import { formatAmount, formatPrice } from "@/lib/format";
+import { shareEntity } from "@/lib/share";
 import { color, gradient, layout, radius, space, type } from "@/lib/tokens";
 
 import { Lightbox } from "./_lightbox";
@@ -57,7 +58,7 @@ export default function CoachDetail() {
 
   return (
     <Screen padded={false}>
-      <HeroNav onBack={router.back} onShare={() => {}} />
+      <HeroNav onBack={router.back} onShare={() => coach && shareEntity("coach", coach.id, coach.name)} />
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
         <View style={styles.hero}>
           {coach?.facilityImageUrl ? (

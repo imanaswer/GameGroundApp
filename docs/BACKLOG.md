@@ -10,6 +10,13 @@ The client-side push infra is complete and degrades gracefully, but end-to-end d
 - An EAS project id / credentials so `getExpoPushTokenAsync` yields a real token (dev/simulator returns none — the client no-ops gracefully until then).
 Until these land, registration/prefs calls fail silently (logged to Sentry), the app never crashes, and it retries on each app open.
 
+## Backend/ops dependencies surfaced by M13 (deep links) — web repo + credentials
+
+The mobile side (associatedDomains + Android intentFilters + validated routing + stash-resume) is complete. Universal/App Links won't verify on-device until:
+- `public/.well-known/apple-app-site-association` and `assetlinks.json` are served from `gameground.net` (exact contents in `docs/DEEP_LINKS_WEB.md`), needing the Apple **Team ID** and the Android **release SHA-256 fingerprint** from `eas credentials`.
+- Served with `application/json`, no redirect. Verify per the checklist in that doc.
+Notification-tap routing works today without these; only externally-tapped web links depend on them.
+
 | Item | Target | Notes |
 |---|---|---|
 | Streaks + named achievements (Weekend Warrior, Night Owl, 100 Matches, Captain/Legend) + XP framing | v1.1 | Decision 6. Server: achievement definitions, award engine hooked into existing mutation paths, user_achievements table. Client: AchievementsRail unlock states + celebration per MOTION.md §5. |

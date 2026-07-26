@@ -27,6 +27,9 @@ const config: ExpoConfig = {
   ios: {
     bundleIdentifier: variant.id,
     supportsTablet: false,
+    // Universal Links (M13). Requires the matching apple-app-site-association on the web repo
+    // (public/.well-known/, appID = TEAMID.net.gameground.app). See docs/DEEP_LINKS_WEB.md.
+    associatedDomains: ["applinks:www.gameground.net", "applinks:gameground.net"],
   },
   android: {
     package: variant.id,
@@ -35,8 +38,23 @@ const config: ExpoConfig = {
       foregroundImage: "./assets/images/android-icon-foreground.png",
       monochromeImage: "./assets/images/android-icon-monochrome.png",
     },
+    // App Links (M13). autoVerify pairs with assetlinks.json (release SHA256) on the web repo.
+    intentFilters: [
+      {
+        action: "VIEW",
+        autoVerify: true,
+        data: [
+          { scheme: "https", host: "www.gameground.net", pathPrefix: "/games" },
+          { scheme: "https", host: "www.gameground.net", pathPrefix: "/coaches" },
+          { scheme: "https", host: "www.gameground.net", pathPrefix: "/camps" },
+          { scheme: "https", host: "www.gameground.net", pathPrefix: "/workshops" },
+          { scheme: "https", host: "www.gameground.net", pathPrefix: "/events" },
+          { scheme: "https", host: "www.gameground.net", pathPrefix: "/leaderboard" },
+        ],
+        category: ["BROWSABLE", "DEFAULT"],
+      },
+    ],
   },
-  // Universal links (associatedDomains / intentFilters) land in M13 with the .well-known files.
   plugins: [
     "expo-router",
     "expo-secure-store",

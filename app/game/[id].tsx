@@ -28,6 +28,7 @@ import { useCheckout } from "@/hooks/useCheckout";
 import { usePush } from "@/hooks/usePush";
 import { formatAmount, formatPrice, formatWhen } from "@/lib/format";
 import * as haptics from "@/lib/haptics";
+import { shareEntity } from "@/lib/share";
 import { color, gradient, layout, space, type } from "@/lib/tokens";
 
 function MetaRow({ icon, text }: { icon: React.ReactNode; text: string }) {
@@ -113,7 +114,7 @@ export default function GameDetail() {
 
   return (
     <Screen padded={false}>
-      <HeroNav onBack={router.back} onShare={() => {}} />
+      <HeroNav onBack={router.back} onShare={() => game && shareEntity("game", game.id, game.title)} />
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
         <View style={styles.hero}>
           {game?.imageUrl ? (

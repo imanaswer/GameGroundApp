@@ -12,6 +12,7 @@ import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { ErrorState, HeroNav, Screen, StickyCTA } from "@/components/chrome";
 import { CalendarIcon, MapPinIcon, Skeleton, SlotBar } from "@/components/ds";
 import { formatPrice, formatWhen } from "@/lib/format";
+import { shareEntity } from "@/lib/share";
 import { color, gradient, layout, radius, space, type } from "@/lib/tokens";
 
 import type { EntityConfig } from "./entities";
@@ -37,7 +38,7 @@ export function RegisterableDetailScreen({ config, id }: { config: EntityConfig;
 
   return (
     <Screen padded={false}>
-      <HeroNav onBack={router.back} onShare={() => {}} />
+      <HeroNav onBack={router.back} onShare={() => item && shareEntity(config.kind, item.id, item.title)} />
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
         <View style={styles.hero}>
           {item?.imageUrl ? (

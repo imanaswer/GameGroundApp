@@ -2,7 +2,7 @@
  * M12/M13 — deep-link resolver. Notification data.url and web/scheme links map to app routes;
  * anything unmappable returns null so the caller can fall back to home (never a crash).
  */
-import { resolveDeepLink } from "@/lib/deeplinks";
+import { planNavigation, resolveDeepLink } from "@/lib/deeplinks";
 
 describe("resolveDeepLink", () => {
   test("web plural entity URLs map to singular app routes", () => {
@@ -32,5 +32,28 @@ describe("resolveDeepLink", () => {
     expect(resolveDeepLink("https://www.gameground.net/")).toBeNull();
     expect(resolveDeepLink("not a url")).toBeNull();
     expect(resolveDeepLink("")).toBeNull();
+  });
+
+  test("S1.9 — ids with injection/traversal chars are rejected, not interpolated", () => {
+    expect(resolveDeepLink("https://www.gameground.net/games/../admin")).toBeNull();
+    expect(resolveDeepLink("https://www.gameground.net/games/a b c")).toBeNull();
+    expect(resolveDeepLink("gameground://game/<script>")).toBeNull();
+  });
+});
+
+describe("planNavigation (auth-gated stash-and-resume)", () => {
+  const link = "https://www.gameground.net/games/abc123";
+
+  test("signed in → navigate straight to the target", () => {
+    expect(planNavigation(link, true)).toEqual({ action: "navigate", path: "/game/abc123" });
+  });
+
+  test("signed out → stash the target and go to login", () => {
+    expect(planNavigation(link, false)).toEqual({ action: "stash-then-login", path: "/game/abc123" });
+  });
+
+  test("malformed → home regardless of auth", () => {
+    expect(planNavigation("https://www.gameground.net/nope", true)).toEqual({ action: "home" });
+    expect(planNavigation("garbage", false)).toEqual({ action: "home" });
   });
 });
