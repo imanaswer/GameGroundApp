@@ -6,7 +6,6 @@
  * ~170, coach ~130). Without them it stays the plain transparent nav (back-compatible). The solid
  * bar is purely visual (pointerEvents none) — the persistent circular buttons own all taps.
  */
-import { BlurView } from "expo-blur";
 import { StyleSheet, Text, View } from "react-native";
 import Animated, {
   Extrapolation,
@@ -44,7 +43,8 @@ export function HeroNav({
     <>
       {scrollY && title && (
         <Animated.View style={[styles.solid, { paddingTop: insets.top + space(2.5) }, solidStyle]} pointerEvents="none">
-          <BlurView intensity={14} tint="dark" style={StyleSheet.absoluteFill} />
+          {/* Near-opaque navBlurBg fill; a real BlurView was removed (expo-blur is native, needs a
+              dev-client rebuild) so detail screens run without one. */}
           <View style={styles.solidFill} />
           <Text style={styles.solidTitle} numberOfLines={1}>
             {title}

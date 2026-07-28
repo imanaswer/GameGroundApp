@@ -7,7 +7,6 @@
  * Drives expo-router's <Tabs> via its `tabBar` prop; the per-route icon/title come straight
  * from each screen's `options` so the tab list stays declared in one place (app/(tabs)/_layout).
  */
-import { BlurView } from "expo-blur";
 import type { BottomTabBarProps } from "expo-router/build/react-navigation/bottom-tabs/types";
 import { useEffect } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
@@ -42,9 +41,9 @@ export function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
 
   return (
     <View style={[styles.wrap, { height: BAR_H + insets.bottom, paddingBottom: insets.bottom }]}>
-      <BlurView intensity={16} tint="dark" style={StyleSheet.absoluteFill} />
-      {/* Translucent fill sits over the blur so the bar reads correctly even before a native
-          rebuild picks up expo-blur (blur renders transparent until then). */}
+      {/* Opaque-ish translucent fill (tabBarBg). A real BlurView was removed so the app runs on
+          the current dev client — expo-blur is native and needs a rebuild. Reintroduce behind a
+          rebuild if the scroll-under-blur effect is wanted (DS §5). */}
       <View style={styles.fill} pointerEvents="none" />
       <View style={styles.row}>
         {state.routes.map((route, index) => {
