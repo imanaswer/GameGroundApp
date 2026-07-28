@@ -4,13 +4,13 @@
  * post-booking review with server eligibility errors rendered inline.
  */
 import { Image } from "expo-image";
-import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Suspense, lazy, useEffect, useState } from "react";
-import { Linking, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Linking, StyleSheet, Text, View } from "react-native";
+import Animated, { useAnimatedScrollHandler, useSharedValue } from "react-native-reanimated";
 
 import type { CoachBatch } from "@/api/types";
-import { ErrorState, HeroNav, Screen, SegmentedControl } from "@/components/chrome";
+import { ErrorState, HeroNav, ParallaxHero, Screen, SegmentedControl } from "@/components/chrome";
 import { CheckoutSheet } from "@/components/checkout";
 import { Avatar, Button, MessageIcon, Press, Skeleton, Stars } from "@/components/ds";
 import { useCoach } from "@/hooks/queries";
@@ -19,7 +19,7 @@ import { useIsOnline } from "@/hooks/useIsOnline";
 import { usePush } from "@/hooks/usePush";
 import { formatAmount, formatPrice } from "@/lib/format";
 import { shareEntity } from "@/lib/share";
-import { color, gradient, layout, radius, space, type } from "@/lib/tokens";
+import { color, layout, radius, space, type } from "@/lib/tokens";
 
 import { ReviewForm } from "@/components/coach/ReviewForm";
 
@@ -44,6 +44,11 @@ export default function CoachDetail() {
   const [lightbox, setLightbox] = useState<number | null>(null);
   const [booking, setBooking] = useState<CoachBatch | null>(null);
 
+  const scrollY = useSharedValue(0);
+  const onScroll = useAnimatedScrollHandler((e) => {
+    scrollY.value = e.contentOffset.y;
+  });
+
   const checkout = useCheckout("coach", id, booking ? { batchId: booking.id } : {});
   const online = useIsOnline();
   const { promptForPush } = usePush();
@@ -64,20 +69,20 @@ export default function CoachDetail() {
 
   return (
     <Screen padded={false}>
-      <HeroNav onBack={router.back} onShare={() => coach && shareEntity("coach", coach.id, coach.name)} />
-      <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-        <View style={styles.hero}>
-          {coach?.facilityImageUrl ? (
-            <Image source={{ uri: coach.facilityImageUrl }} style={StyleSheet.absoluteFill} contentFit="cover" />
-          ) : (
-            <View style={[StyleSheet.absoluteFill, styles.heroFallback]} />
-          )}
-          <LinearGradient
-            colors={gradient.heroScrim.colors as unknown as [string, string, string]}
-            locations={gradient.heroScrim.locations as unknown as [number, number, number]}
-            style={StyleSheet.absoluteFill}
-          />
-        </View>
+      <HeroNav
+        onBack={router.back}
+        onShare={() => coach && shareEntity("coach", coach.id, coach.name)}
+        scrollY={scrollY}
+        title={coach?.name}
+        collapseAt={130}
+      />
+      <Animated.ScrollView
+        contentContainerStyle={styles.scroll}
+        showsVerticalScrollIndicator={false}
+        onScroll={onScroll}
+        scrollEventThrottle={16}
+      >
+        <ParallaxHero imageUrl={coach?.facilityImageUrl} height={180} scrollY={scrollY} />
 
         <View style={styles.body}>
           {isLoading || !coach ? (
@@ -176,7 +181,7 @@ export default function CoachDetail() {
             </>
           )}
         </View>
-      </ScrollView>
+      </Animated.ScrollView>
 
       {lightbox !== null && coach && (
         <Suspense fallback={null}>
@@ -208,8 +213,6 @@ export default function CoachDetail() {
 
 const styles = StyleSheet.create({
   scroll: { paddingBottom: space(24) },
-  hero: { height: 180, backgroundColor: color.imagePlaceholder },
-  heroFallback: { backgroundColor: color.card },
   body: { paddingHorizontal: layout.screenX, marginTop: -space(8), gap: space(3) },
   headRow: { flexDirection: "row", alignItems: "center", gap: space(3) },
   headText: { flex: 1, gap: space(1) },

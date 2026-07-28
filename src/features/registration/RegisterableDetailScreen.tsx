@@ -3,18 +3,17 @@
  * Events render an announcements feed; the registration form + checkout are identical across
  * all three (§9 — if a new payment branch appears here, the design is wrong).
  */
-import { Image } from "expo-image";
-import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { useState } from "react";
-import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
+import Animated, { useAnimatedScrollHandler, useSharedValue } from "react-native-reanimated";
 
-import { ErrorState, HeroNav, Screen, StickyCTA } from "@/components/chrome";
+import { ErrorState, HeroNav, ParallaxHero, Screen, StickyCTA } from "@/components/chrome";
 import { CalendarIcon, MapPinIcon, Skeleton, SlotBar } from "@/components/ds";
 import { useIsOnline } from "@/hooks/useIsOnline";
 import { formatPrice, formatWhen } from "@/lib/format";
 import { shareEntity } from "@/lib/share";
-import { color, gradient, layout, radius, space, type } from "@/lib/tokens";
+import { color, layout, radius, space, type } from "@/lib/tokens";
 
 import type { EntityConfig } from "./entities";
 import { RegistrationForm } from "./RegistrationForm";
@@ -25,6 +24,11 @@ export function RegisterableDetailScreen({ config, id }: { config: EntityConfig;
   const { data: item, isLoading, isError, error, refetch } = useRegisterableDetail(config, id);
   const [registering, setRegistering] = useState(false);
   const online = useIsOnline();
+
+  const scrollY = useSharedValue(0);
+  const onScroll = useAnimatedScrollHandler((e) => {
+    scrollY.value = e.contentOffset.y;
+  });
 
   if (isError) {
     return (
@@ -40,20 +44,20 @@ export function RegisterableDetailScreen({ config, id }: { config: EntityConfig;
 
   return (
     <Screen padded={false}>
-      <HeroNav onBack={router.back} onShare={() => item && shareEntity(config.kind, item.id, item.title)} />
-      <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-        <View style={styles.hero}>
-          {item?.imageUrl ? (
-            <Image source={{ uri: item.imageUrl }} style={StyleSheet.absoluteFill} contentFit="cover" />
-          ) : (
-            <View style={[StyleSheet.absoluteFill, styles.heroFallback]} />
-          )}
-          <LinearGradient
-            colors={gradient.heroScrim.colors as unknown as [string, string, string]}
-            locations={gradient.heroScrim.locations as unknown as [number, number, number]}
-            style={StyleSheet.absoluteFill}
-          />
-        </View>
+      <HeroNav
+        onBack={router.back}
+        onShare={() => item && shareEntity(config.kind, item.id, item.title)}
+        scrollY={scrollY}
+        title={item?.title}
+        collapseAt={150}
+      />
+      <Animated.ScrollView
+        contentContainerStyle={styles.scroll}
+        showsVerticalScrollIndicator={false}
+        onScroll={onScroll}
+        scrollEventThrottle={16}
+      >
+        <ParallaxHero imageUrl={item?.imageUrl} height={220} scrollY={scrollY} />
 
         <View style={styles.body}>
           {isLoading || !item ? (
@@ -110,7 +114,7 @@ export function RegisterableDetailScreen({ config, id }: { config: EntityConfig;
             </>
           )}
         </View>
-      </ScrollView>
+      </Animated.ScrollView>
 
       {item && !registering && (
         <StickyCTA
@@ -127,8 +131,6 @@ export function RegisterableDetailScreen({ config, id }: { config: EntityConfig;
 
 const styles = StyleSheet.create({
   scroll: { paddingBottom: space(28) },
-  hero: { height: 220, backgroundColor: color.imagePlaceholder },
-  heroFallback: { backgroundColor: color.card },
   body: { paddingHorizontal: layout.screenX, marginTop: -space(8), gap: space(2) },
   eyebrow: { ...type.label, color: color.redLight },
   title: { ...type.title1, color: color.text },

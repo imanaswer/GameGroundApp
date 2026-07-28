@@ -3,19 +3,19 @@
  * only — never optimistic §6.1) / paid (M6 checkout seam) / waitlist; leave with the
  * cutoff surfaced; organizer attendance. Renders free AND paid games, every state.
  */
-import { Image } from "expo-image";
-import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
-import { Alert, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Alert, StyleSheet, Text, View } from "react-native";
+import Animated, { useAnimatedScrollHandler, useSharedValue } from "react-native-reanimated";
 
-import { ErrorState, HeroNav, Screen, StickyCTA } from "@/components/chrome";
+import { ErrorState, HeroNav, ParallaxHero, Screen, StickyCTA } from "@/components/chrome";
 import { CheckoutSheet } from "@/components/checkout";
 import {
   Avatar,
   AvatarStack,
   CalendarIcon,
   ClockIcon,
+  ExpandCard,
   MapPinIcon,
   Press,
   Skeleton,
@@ -30,7 +30,7 @@ import { usePush } from "@/hooks/usePush";
 import { formatAmount, formatPrice, formatWhen } from "@/lib/format";
 import * as haptics from "@/lib/haptics";
 import { shareEntity } from "@/lib/share";
-import { color, gradient, layout, space, type } from "@/lib/tokens";
+import { color, layout, space, type } from "@/lib/tokens";
 
 function MetaRow({ icon, text }: { icon: React.ReactNode; text: string }) {
   return (
@@ -47,6 +47,11 @@ export default function GameDetail() {
   const { data: game, isLoading, isError, error, refetch } = useGame(id);
   const action = useGameAction(id);
   const [sheetOpen, setSheetOpen] = useState(false);
+
+  const scrollY = useSharedValue(0);
+  const onScroll = useAnimatedScrollHandler((e) => {
+    scrollY.value = e.contentOffset.y;
+  });
 
   const paid = !!game && game.pricePaise !== null && game.pricePaise > 0;
   const checkout = useCheckout("game", id);
@@ -116,20 +121,20 @@ export default function GameDetail() {
 
   return (
     <Screen padded={false}>
-      <HeroNav onBack={router.back} onShare={() => game && shareEntity("game", game.id, game.title)} />
-      <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-        <View style={styles.hero}>
-          {game?.imageUrl ? (
-            <Image source={{ uri: game.imageUrl }} style={StyleSheet.absoluteFill} contentFit="cover" />
-          ) : (
-            <View style={[StyleSheet.absoluteFill, styles.heroFallback]} />
-          )}
-          <LinearGradient
-            colors={gradient.heroScrim.colors as unknown as [string, string, string]}
-            locations={gradient.heroScrim.locations as unknown as [number, number, number]}
-            style={StyleSheet.absoluteFill}
-          />
-        </View>
+      <HeroNav
+        onBack={router.back}
+        onShare={() => game && shareEntity("game", game.id, game.title)}
+        scrollY={scrollY}
+        title={game?.title}
+        collapseAt={170}
+      />
+      <Animated.ScrollView
+        contentContainerStyle={styles.scroll}
+        showsVerticalScrollIndicator={false}
+        onScroll={onScroll}
+        scrollEventThrottle={16}
+      >
+        <ParallaxHero imageUrl={game?.imageUrl} height={HERO_H} scrollY={scrollY} />
 
         <View style={styles.body}>
           {isLoading || !game ? (
@@ -183,10 +188,23 @@ export default function GameDetail() {
                 <Text style={styles.label}>Organizer</Text>
                 <Text style={styles.orgName}>{game.organizer.name}</Text>
               </View>
+
+              {/* Good to know (§5 ExpandCard) — rules and refund policy, collapsed by default. */}
+              <View style={styles.goodToKnow}>
+                <Text style={styles.label}>Good to know</Text>
+                <ExpandCard
+                  title="Rules & etiquette"
+                  body="Arrive 10 minutes early · Non-marking shoes only · Attendance counts toward your tier · Leaving under 6h before start affects reliability."
+                />
+                <ExpandCard
+                  title="Refunds & cancellation"
+                  body="Full refund if the organizer cancels. Player cancellations follow the cutoff shown at checkout."
+                />
+              </View>
             </>
           )}
         </View>
-      </ScrollView>
+      </Animated.ScrollView>
 
       {game && !sheetOpen && (
         <StickyCTA
@@ -248,8 +266,6 @@ const HERO_H = 260;
 
 const styles = StyleSheet.create({
   scroll: { paddingBottom: space(28) },
-  hero: { height: HERO_H, backgroundColor: color.imagePlaceholder },
-  heroFallback: { backgroundColor: color.card },
   body: { paddingHorizontal: layout.screenX, marginTop: -space(8), gap: space(2) },
   title: { ...type.title1, color: color.text },
   sportRow: { flexDirection: "row", alignItems: "center", gap: space(2) },
@@ -269,6 +285,7 @@ const styles = StyleSheet.create({
   attToggleText: { ...type.caption, color: color.dim },
   attToggleTextOn: { color: color.success },
   organizer: { marginTop: space(5), gap: space(1) },
+  goodToKnow: { marginTop: space(5), gap: space(2) },
   label: { ...type.label, color: color.dim },
   orgName: { ...type.heading, color: color.text },
   gap: { marginTop: space(3) },

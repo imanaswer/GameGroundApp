@@ -4,6 +4,7 @@ export { Placeholder } from "./Placeholder";
 export { Header } from "./Header";
 export { TabBar } from "./TabBar";
 export { HeroNav } from "./HeroNav";
+export { ParallaxHero } from "./ParallaxHero";
 export { StickyCTA } from "./StickyCTA";
 export { SegmentedControl } from "./SegmentedControl";
 export { EmptyState } from "./EmptyState";
