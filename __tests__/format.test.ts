@@ -6,6 +6,11 @@ describe("formatPrice", () => {
     expect(formatPrice(null)).toBeNull();
     expect(formatPrice(0)).toBeNull();
   });
+  test("absent/non-finite paise → null, never '₹NaN'", () => {
+    expect(formatPrice(undefined)).toBeNull();
+    expect(formatPrice(NaN)).toBeNull();
+    expect(formatPrice(Infinity)).toBeNull();
+  });
   test("whole rupees drop the decimals", () => {
     expect(formatPrice(12000)).toBe("₹120");
   });

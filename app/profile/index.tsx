@@ -7,7 +7,7 @@ import { useEffect, useState } from "react";
 import { ScrollView, StyleSheet, Text, View } from "react-native";
 
 import { ErrorState, HeroNav, Screen, SegmentedControl } from "@/components/chrome";
-import { Button, SettingsIcon, Skeleton } from "@/components/ds";
+import { BackIcon, Button, Press, SettingsIcon, Skeleton } from "@/components/ds";
 import { PlayerHeroCard, StatStrip, WeekStrip } from "@/components/social/Profile";
 import { useTierUp } from "@/components/social/TierUp";
 import { useActivity, useProfile } from "@/hooks/queries";
@@ -49,6 +49,15 @@ export default function Profile() {
         {!isSelf && <HeroNav onBack={router.back} />}
         {isSelf && (
           <View style={styles.selfNav}>
+            <Press
+              accessibilityRole="button"
+              accessibilityLabel="Back"
+              scaleTo={0.9}
+              onPress={router.back}
+              style={styles.backBtn}
+            >
+              <BackIcon color={color.text} />
+            </Press>
             <Button
               title="Settings"
               variant="ghost"
@@ -121,7 +130,21 @@ export default function Profile() {
 
 const styles = StyleSheet.create({
   nav: { minHeight: space(6) },
-  selfNav: { alignItems: "flex-end", paddingHorizontal: space(2), paddingTop: space(2) },
+  selfNav: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: space(2),
+    paddingTop: space(2),
+  },
+  backBtn: {
+    width: 34,
+    height: 34,
+    borderRadius: 999,
+    backgroundColor: color.elev,
+    alignItems: "center",
+    justifyContent: "center",
+  },
   scroll: { paddingHorizontal: layout.screenX, paddingBottom: space(20), gap: space(4) },
   gap: { marginTop: space(3) },
   season: { gap: space(2) },

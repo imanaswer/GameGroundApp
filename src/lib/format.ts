@@ -3,9 +3,9 @@
  * *renders* the server's paise, so this is presentation, not calculation.
  */
 
-/** null paise → null (caller shows "FREE"); else "₹120" style, whole rupees. */
-export function formatPrice(pricePaise: number | null): string | null {
-  if (pricePaise === null || pricePaise === 0) return null;
+/** null/absent/non-finite paise → null (caller shows "FREE"); else "₹120" style, whole rupees. */
+export function formatPrice(pricePaise: number | null | undefined): string | null {
+  if (pricePaise == null || pricePaise === 0 || !Number.isFinite(pricePaise)) return null;
   const rupees = pricePaise / 100;
   return `₹${Number.isInteger(rupees) ? rupees : rupees.toFixed(2)}`;
 }

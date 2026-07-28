@@ -34,9 +34,15 @@ export async function loginWithApple(
   );
 }
 
-/** Session-validity probe on cold start (§5.1). Client handles 401→refresh→replay itself. */
-export function me(): Promise<SessionUser> {
-  return api.get<SessionUser>("/auth/me");
+/**
+ * Session-validity probe on cold start (§5.1). Client handles 401→refresh→replay itself.
+ * `/auth/me` returns the session nested as `{ user }` (matching the login payload); older/other
+ * deployments returned it flat. Accept both so a missing top-level id/name can't blank the
+ * session — an undefined `user.id` silently breaks every id-keyed screen (profile, etc.).
+ */
+export async function me(): Promise<SessionUser> {
+  const raw = await api.get<SessionUser & { user?: SessionUser }>("/auth/me");
+  return raw.user ?? raw;
 }
 
 export function forgotPassword(email: string): Promise<unknown> {
