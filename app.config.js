@@ -67,6 +67,17 @@ module.exports = {
     // Push (M12): brand-red accent + monochrome icon; the plugin adds the iOS APNs entitlement
     // and Android POST_NOTIFICATIONS permission at build time.
     ["expo-notifications", { color: "#e63946", icon: "./assets/images/android-icon-monochrome.png" }],
+    // Crash reporting (§13). Wires the native Sentry SDK into the build — without this the JS SDK
+    // can't reach native and warns on launch. organization/project drive sourcemap upload during
+    // release builds only (gated on SENTRY_AUTH_TOKEN); omitting them is safe for dev/debug builds.
+    [
+      "@sentry/react-native",
+      {
+        url: "https://sentry.io/",
+        organization: process.env.SENTRY_ORG,
+        project: process.env.SENTRY_PROJECT,
+      },
+    ],
   ],
   experiments: { typedRoutes: true, reactCompiler: true },
   extra: {

@@ -146,9 +146,13 @@ export function useAuth(): AuthContextValue {
  */
 export function useGoogleLogin(onError: (e: unknown) => void) {
   const { adopt } = useAuth();
+  // Pass the ids straight through (already "" when unconfigured). Coercing "" to undefined trips
+  // expo-auth-session's invariantClientId, which throws on `undefined` during render — crashing the
+  // whole login screen. An empty string passes the invariant; the `available` gate below keeps the
+  // button hidden until real ids exist, which is the intended "hidden until configured" behavior.
   const [request, response, promptAsync] = Google.useIdTokenAuthRequest({
-    iosClientId: env.googleIosClientId || undefined,
-    androidClientId: env.googleAndroidClientId || undefined,
+    iosClientId: env.googleIosClientId,
+    androidClientId: env.googleAndroidClientId,
   });
 
   useEffect(() => {
