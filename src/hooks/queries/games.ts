@@ -7,7 +7,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import * as gamesApi from "@/api/games";
 import * as venuesApi from "@/api/venues";
 import type { GameDetail, GameSummary } from "@/api/types";
-import type { GameCardData } from "@/components/cards";
+import type { GameCardData, UpNextData } from "@/components/cards";
 import { formatPrice, formatWhen } from "@/lib/format";
 
 import { keys, type GameFilters } from "./keys";
@@ -81,6 +81,21 @@ export function toGameCard(g: GameSummary): GameCardData {
     fillingFast: filling && g.status === "open",
     players: g.players.map((p) => ({ name: p.name, uri: p.avatarUrl })),
     organizerTier: g.organizerTier ?? undefined,
+    joined: g.slotsFilled,
+    total: g.slotsTotal,
+  };
+}
+
+/** Home flagship (§6 UpNextHeroCard). Time-of-day label + raw ISO for the live countdown. */
+export function toUpNext(g: GameSummary): UpNextData {
+  return {
+    id: g.id,
+    title: g.title,
+    venue: g.venueName,
+    timeLabel: new Date(g.startsAt).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }),
+    startsAt: g.startsAt,
+    imageUrl: g.imageUrl,
+    players: g.players.map((p) => ({ name: p.name, uri: p.avatarUrl })),
     joined: g.slotsFilled,
     total: g.slotsTotal,
   };

@@ -35,6 +35,8 @@ export const color = {
   /** DS §5 — TabBar/nav chrome translucent fill over blur (rgba(5,5,5,.86–.88)). */
   tabBarBg: "rgba(5,5,5,0.88)",
   navBlurBg: "rgba(5,5,5,0.94)",
+  /** MOTION §8/§10 — ambient shine sweep band, ≤10% white. */
+  shineWhite: "rgba(255,255,255,0.08)",
   // SlotBar/Skeleton tracks (DS §4)
   track: "rgba(255,255,255,0.08)",
   overflowChip: "rgba(255,255,255,0.16)",

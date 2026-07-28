@@ -1,21 +1,24 @@
 /**
  * Home — the launch tab (product PRD 6.10). v1 composes a real feed client-side from the live
- * `/games` + `/coaches` endpoints (see useHome). Greeting, an Up-Next feature, a "starting soon"
- * list, a coaches rail, and a "set your sports" setup card. Every state ships (DS §9).
+ * `/games` + `/coaches` endpoints (see useHome): greeting, the UpNext flagship hero, a "starting
+ * soon" rail, a coaches rail, and a "set your sports" setup card. Every state ships (DS §9).
  *
- * The full server-composed hero/ticker flourish (UpNextHeroCard, live ticker) lands when the
- * `GET /api/home` server-half ships — this screen is the shippable client-half in the meantime.
+ * The full server-composed feed (live ticker, ranked hero) lands when `GET /api/home` ships;
+ * this screen is the shippable client-half until then.
  */
 import { useRouter } from "expo-router";
 import { RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
+import Animated, { useAnimatedScrollHandler, useSharedValue } from "react-native-reanimated";
 
-import { CoachCard, GameCard } from "@/components/cards";
+import { CoachCard, GameCard, UpNextHeroCard } from "@/components/cards";
 import { EmptyState, Header, OfflineBanner, Screen } from "@/components/chrome";
-import { CardSkeleton, ChevronRightIcon, GamesIcon, InfoIcon, Press, SearchIcon } from "@/components/ds";
-import { toCoachCard, toGameCard, useHome, useProfile } from "@/hooks/queries";
+import { Appear, CardSkeleton, ChevronRightIcon, GamesIcon, InfoIcon, Press, SearchIcon } from "@/components/ds";
+import { toCoachCard, toGameCard, toUpNext, useHome, useProfile } from "@/hooks/queries";
 import { useAuth } from "@/hooks/useAuth";
 import * as haptics from "@/lib/haptics";
 import { color, icon as iconSize, layout, radius, space, type } from "@/lib/tokens";
+
+const AnimatedScrollView = Animated.createAnimatedComponent(ScrollView);
 
 function greeting(now: Date): string {
   const h = now.getHours();
@@ -35,6 +38,11 @@ export default function HomeTab() {
   const profile = useProfile(user?.id ?? "");
   const needsSports = profile.data && profile.data.sports.length === 0;
 
+  const scrollY = useSharedValue(0);
+  const onScroll = useAnimatedScrollHandler((e) => {
+    scrollY.value = e.contentOffset.y;
+  });
+
   const empty =
     !home.isLoading && !home.upNext && home.startingSoon.length === 0 && home.newCoaches.length === 0;
 
@@ -50,9 +58,11 @@ export default function HomeTab() {
       />
       {home.isOffline && <OfflineBanner />}
 
-      <ScrollView
+      <AnimatedScrollView
         contentContainerStyle={styles.scroll}
         showsVerticalScrollIndicator={false}
+        onScroll={onScroll}
+        scrollEventThrottle={16}
         refreshControl={
           <RefreshControl
             refreshing={home.isRefetching}
@@ -64,21 +74,25 @@ export default function HomeTab() {
           />
         }
       >
-        <Text style={styles.greeting}>
-          {greeting(new Date())}, {firstName(user?.name)}
-        </Text>
+        <Appear index={0}>
+          <Text style={styles.greeting}>
+            {greeting(new Date())}, {firstName(user?.name)}
+          </Text>
+        </Appear>
 
         {needsSports && (
-          <Press onPress={() => router.push("/profile/edit")} style={styles.setupCard}>
-            <View style={styles.setupIcon}>
-              <InfoIcon color={color.redLight} />
-            </View>
-            <View style={styles.setupText}>
-              <Text style={styles.setupTitle}>Set your sports</Text>
-              <Text style={styles.setupBody}>Pick the sports you play to personalise your games.</Text>
-            </View>
-            <ChevronRightIcon color={color.dim2} />
-          </Press>
+          <Appear index={1}>
+            <Press onPress={() => router.push("/profile/edit")} style={styles.setupCard}>
+              <View style={styles.setupIcon}>
+                <InfoIcon color={color.redLight} />
+              </View>
+              <View style={styles.setupText}>
+                <Text style={styles.setupTitle}>Set your sports</Text>
+                <Text style={styles.setupBody}>Pick the sports you play to personalise your games.</Text>
+              </View>
+              <ChevronRightIcon color={color.dim2} />
+            </Press>
+          </Appear>
         )}
 
         {home.isLoading ? (
@@ -98,37 +112,45 @@ export default function HomeTab() {
         ) : (
           <>
             {home.upNext && (
-              <Section label="Up next tonight">
-                <View style={styles.stack}>
-                  <GameCard data={toGameCard(home.upNext)} onPress={() => router.push(`/game/${home.upNext!.id}`)} />
+              <Appear index={2}>
+                <View style={styles.heroWrap}>
+                  <UpNextHeroCard
+                    data={toUpNext(home.upNext)}
+                    scrollY={scrollY}
+                    onPress={() => router.push(`/game/${home.upNext!.id}`)}
+                  />
                 </View>
-              </Section>
+              </Appear>
             )}
 
             {home.startingSoon.length > 0 && (
-              <Section label="Starting soon" onSeeAll={() => router.push("/games")}>
-                <View style={styles.stack}>
-                  {home.startingSoon.map((g) => (
-                    <GameCard key={g.id} data={toGameCard(g)} onPress={() => router.push(`/game/${g.id}`)} />
-                  ))}
-                </View>
-              </Section>
+              <Appear index={3}>
+                <Section label="Starting soon" onSeeAll={() => router.push("/games")}>
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.rail}>
+                    {home.startingSoon.map((g) => (
+                      <GameCard key={g.id} data={toGameCard(g)} compact onPress={() => router.push(`/game/${g.id}`)} />
+                    ))}
+                  </ScrollView>
+                </Section>
+              </Appear>
             )}
 
             {home.newCoaches.length > 0 && (
-              <Section label="Coaches to learn from" onSeeAll={() => router.push("/coaches")}>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.rail}>
-                  {home.newCoaches.map((c) => (
-                    <View key={c.id} style={styles.railItem}>
-                      <CoachCard data={toCoachCard(c)} onPress={() => router.push(`/coach/${c.id}`)} />
-                    </View>
-                  ))}
-                </ScrollView>
-              </Section>
+              <Appear index={4}>
+                <Section label="Coaches to learn from" onSeeAll={() => router.push("/coaches")}>
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.rail}>
+                    {home.newCoaches.map((c) => (
+                      <View key={c.id} style={styles.railItem}>
+                        <CoachCard data={toCoachCard(c)} onPress={() => router.push(`/coach/${c.id}`)} />
+                      </View>
+                    ))}
+                  </ScrollView>
+                </Section>
+              </Appear>
             )}
           </>
         )}
-      </ScrollView>
+      </AnimatedScrollView>
     </Screen>
   );
 }
@@ -159,7 +181,7 @@ function Section({
 }
 
 const styles = StyleSheet.create({
-  scroll: { paddingBottom: space(24) },
+  scroll: { paddingBottom: space(28) },
   greeting: { ...type.title1, color: color.text, paddingHorizontal: layout.screenX, marginTop: space(1), marginBottom: space(4) },
 
   setupCard: {
@@ -181,6 +203,7 @@ const styles = StyleSheet.create({
 
   loading: { paddingHorizontal: layout.screenX, gap: space(3) },
   emptyWrap: { height: 360 },
+  heroWrap: { paddingHorizontal: layout.screenX, marginBottom: space(2) },
 
   section: { marginBottom: space(6) },
   sectionHead: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: layout.screenX, marginBottom: space(3) },
@@ -188,7 +211,6 @@ const styles = StyleSheet.create({
   seeAll: { flexDirection: "row", alignItems: "center", gap: space(0.5) },
   seeAllText: { ...type.caption, color: color.redLight, fontFamily: type.bodyStrong.fontFamily },
 
-  stack: { paddingHorizontal: layout.screenX, gap: space(3) },
   rail: { paddingHorizontal: layout.screenX, gap: space(3) },
   railItem: { width: 260 },
 });
