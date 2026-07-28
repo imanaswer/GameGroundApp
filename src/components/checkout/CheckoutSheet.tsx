@@ -3,10 +3,25 @@
  * driven by the real machine phase (creating/gateway/verifying) and the reconciling /
  * unresolved states (§9.4) are added. The sheet never fabricates progress on a timer.
  */
+import { useEffect } from "react";
 import { StyleSheet, Text, View } from "react-native";
+import Animated, {
+  useAnimatedProps,
+  useAnimatedStyle,
+  useReducedMotion,
+  useSharedValue,
+  withDelay,
+  withSpring,
+  withTiming,
+} from "react-native-reanimated";
+import Svg, { Path } from "react-native-svg";
 
 import { Button, CheckIcon, Confetti } from "@/components/ds";
 import { color, radius, space, type } from "@/lib/tokens";
+import { dur, ease, spring } from "@/theme/animations";
+
+const AnimatedPath = Animated.createAnimatedComponent(Path);
+const CHECK_LEN = 24; // ~path length of "M6 13l4 4 8-9"
 
 export type CheckoutState =
   | "methods"
@@ -126,17 +141,49 @@ function Unresolved({ onSupport }: { onSupport?: () => void }) {
 }
 
 function Success({ amount }: { amount: string }) {
-  // Extended success (MOTION §5): confetti burst over the check. The reputation-gain card +
-  // avatar-into-stack need the server rep delta from the refetched profile — see BACKLOG (M14).
+  // Extended success (MOTION §5): check-circle spring-in + SVG draw-on, then confetti burst. The
+  // reputation-gain card + avatar-into-stack need the server rep delta from the refetched profile
+  // (never client-computed) — see BACKLOG (M14).
   return (
     <View style={styles.centered}>
       <Confetti />
-      <View style={styles.successRing}>
-        <CheckIcon size={28} color={color.success} />
-      </View>
+      <SuccessCheck />
       <Text style={styles.header}>You’re in</Text>
       <Text style={styles.footnote}>Paid {amount}. Your spot is confirmed.</Text>
     </View>
+  );
+}
+
+/** §5 check-circle: ring springs in, the check strokes on over dur.slow. Reduced-motion static. */
+function SuccessCheck() {
+  const reduced = useReducedMotion();
+  const scale = useSharedValue(reduced ? 1 : 0);
+  const draw = useSharedValue(reduced ? 1 : 0);
+
+  useEffect(() => {
+    if (reduced) return;
+    scale.value = withSpring(1, spring.pop);
+    draw.value = withDelay(120, withTiming(1, { duration: dur.slow, easing: ease.exit }));
+  }, [reduced, scale, draw]);
+
+  const ringStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
+  const pathProps = useAnimatedProps(() => ({ strokeDashoffset: CHECK_LEN * (1 - draw.value) }));
+
+  return (
+    <Animated.View style={[styles.successRing, ringStyle]}>
+      <Svg width={30} height={30} viewBox="0 0 24 24">
+        <AnimatedPath
+          d="M6 13l4 4 8-9"
+          stroke={color.success}
+          strokeWidth={3}
+          fill="none"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeDasharray={CHECK_LEN}
+          animatedProps={pathProps}
+        />
+      </Svg>
+    </Animated.View>
   );
 }
 

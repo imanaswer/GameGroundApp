@@ -1,6 +1,7 @@
 import Feather from "@expo/vector-icons/Feather";
 import type { ComponentProps } from "react";
 import type { ColorValue } from "react-native";
+import Svg, { Path } from "react-native-svg";
 
 import { color, icon as iconSize } from "@/lib/tokens";
 
@@ -53,3 +54,15 @@ export const LogOutIcon = make("log-out");
 export const TrashIcon = make("trash-2");
 export const InfoIcon = make("info");
 export const FilterIcon = make("sliders");
+
+/**
+ * Podium crown (DS §8) — the one celebratory glyph Feather doesn't carry. Filled, gold by default;
+ * a deliberate, documented exception to the single-family rule for the leaderboard #1 topper only.
+ */
+export function CrownIcon({ size = 18, color: tint = color.gold }: { size?: number; color?: ColorValue }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill={tint}>
+      <Path d="M3 18h18l-2-9-4.5 4L12 5l-2.5 8L5 9z" />
+    </Svg>
+  );
+}

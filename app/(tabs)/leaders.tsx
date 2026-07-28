@@ -67,8 +67,8 @@ export default function LeadersTab() {
       ) : (
         <ScrollView contentContainerStyle={styles.list}>
           {top3.length > 0 && <Podium top={top3} onPress={goto} />}
-          {rest.map((r) => (
-            <LeaderRow key={r.user.id} row={r} onPress={goto} />
+          {rest.map((r, i) => (
+            <LeaderRow key={r.user.id} row={r} onPress={goto} index={i} />
           ))}
         </ScrollView>
       )}
