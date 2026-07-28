@@ -15,7 +15,10 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+
 import type { LeaderRow as Row } from "@/api/types";
+import { TAB_BAR_HEIGHT } from "@/components/chrome/TabBar";
 import { Appear, Avatar, CountUp, CrownIcon, Press, TierBadge } from "@/components/ds";
 import { color, layout, radius, space, tier as tierTokens, type } from "@/lib/tokens";
 
@@ -54,7 +57,12 @@ export function Podium({ top, onPress }: { top: Row[]; onPress: (id: string) => 
         const size = PODIUM_SIZE[r.rank] ?? 48;
         return (
           <Appear key={r.user.id} index={staggerIndex[r.rank] ?? 0} style={styles.podCol}>
-            <Press onPress={() => onPress(r.user.id)} style={styles.podPress}>
+            <Press
+              accessibilityRole="button"
+              accessibilityLabel={`${r.user.name}, rank ${r.rank}, ${r.score} points`}
+              onPress={() => onPress(r.user.id)}
+              style={styles.podPress}
+            >
               <View>
                 {r.rank === 1 && <CrownBob />}
                 <View style={[styles.ring, { borderColor: RING[r.rank] ?? color.border2, borderRadius: 999 }]}>
@@ -85,7 +93,12 @@ export function LeaderRow({
   index?: number;
 }) {
   const inner = (
-    <Press onPress={() => onPress(row.user.id)} style={[styles.row, highlight && styles.rowSelf]}>
+    <Press
+      accessibilityRole="button"
+      accessibilityLabel={`${row.user.name}, rank ${row.rank}, ${row.score} points`}
+      onPress={() => onPress(row.user.id)}
+      style={[styles.row, highlight && styles.rowSelf]}
+    >
       <Text style={styles.rank}>{row.rank}</Text>
       <Avatar name={row.user.name} uri={row.user.avatarUrl} size={32} />
       <View style={styles.rowText}>
@@ -99,11 +112,15 @@ export function LeaderRow({
   return index === undefined ? inner : <Appear index={index}>{inner}</Appear>;
 }
 
-/** Own-rank strip pinned above the tab bar when the viewer is outside the visible list. */
+/** Own-rank strip pinned above the tab bar when the viewer is outside the visible list (§8). */
 export function PinnedRankRow({ row, onPress }: { row: Row; onPress: (id: string) => void }) {
   const reduced = useReducedMotion();
+  const insets = useSafeAreaInsets();
   return (
-    <Animated.View style={styles.pinnedWrap} entering={reduced ? undefined : SlideInDown.duration(320)}>
+    <Animated.View
+      style={[styles.pinnedWrap, { bottom: TAB_BAR_HEIGHT + insets.bottom }]}
+      entering={reduced ? undefined : SlideInDown.duration(320)}
+    >
       <LeaderRow row={row} onPress={onPress} highlight />
     </Animated.View>
   );
@@ -130,5 +147,5 @@ const styles = StyleSheet.create({
   down: { color: color.redLight },
   score: { fontFamily: type.heading.fontFamily, fontSize: 12.5, color: color.text },
 
-  pinnedWrap: { paddingHorizontal: layout.screenX, paddingVertical: space(2), backgroundColor: color.elev, borderTopWidth: 1, borderTopColor: color.border },
+  pinnedWrap: { position: "absolute", left: 0, right: 0, paddingHorizontal: layout.screenX, paddingVertical: space(2), backgroundColor: color.elev, borderTopWidth: 1, borderTopColor: color.border },
 });

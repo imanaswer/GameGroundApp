@@ -4,7 +4,7 @@ import { useRouter } from "expo-router";
 import { RefreshControl, StyleSheet, View } from "react-native";
 
 import { RegistrationCard } from "@/components/cards";
-import { EmptyState, ErrorState } from "@/components/chrome";
+import { EmptyState, ErrorState, useTabBarPadding } from "@/components/chrome";
 import { CardSkeleton, DiscoverIcon } from "@/components/ds";
 import * as haptics from "@/lib/haptics";
 import { color, icon as iconSize, layout, space } from "@/lib/tokens";
@@ -16,6 +16,7 @@ export function DiscoverSegment({ config, q }: { config: EntityConfig; q: string
   const router = useRouter();
   const { data, isLoading, isError, error, refetch, isRefetching } = useRegisterableList(config, q);
   const empty = data && data.length === 0;
+  const bottomPad = useTabBarPadding();
 
   if (isLoading) {
     return (
@@ -43,7 +44,7 @@ export function DiscoverSegment({ config, q }: { config: EntityConfig; q: string
     <FlashList
       data={data}
       keyExtractor={(x) => x.id}
-      contentContainerStyle={styles.list}
+      contentContainerStyle={{ ...styles.list, paddingBottom: bottomPad }}
       ItemSeparatorComponent={() => <View style={styles.sep} />}
       renderItem={({ item }) => (
         <RegistrationCard data={toRegistrationCard(item)} onPress={() => router.push(`/${config.kind}/${item.id}`)} />

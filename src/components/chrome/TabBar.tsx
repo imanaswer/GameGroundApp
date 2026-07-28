@@ -20,10 +20,22 @@ import Animated, {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import * as haptics from "@/lib/haptics";
-import { color, font, icon as iconSize } from "@/lib/tokens";
+import { color, font, icon as iconSize, space } from "@/lib/tokens";
 import { spring } from "@/theme/animations";
 
 const BAR_H = 70;
+
+/** Base bar height excluding the safe-area inset. */
+export const TAB_BAR_HEIGHT = BAR_H;
+
+/**
+ * Bottom padding a scrollable tab screen needs so its last content clears the (absolute,
+ * blur-overlay) tab bar. The bar floats over content by design, so screens pad for it.
+ */
+export function useTabBarPadding(extra = space(4)) {
+  const insets = useSafeAreaInsets();
+  return BAR_H + insets.bottom + extra;
+}
 
 export function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
   const insets = useSafeAreaInsets();

@@ -7,7 +7,7 @@ import { useState } from "react";
 import { ScrollView, StyleSheet, View } from "react-native";
 
 import type { LeaderScope, LeaderWindow } from "@/api/types";
-import { EmptyState, ErrorState, Header, OfflineBanner, Screen, SegmentedControl } from "@/components/chrome";
+import { EmptyState, ErrorState, Header, OfflineBanner, Screen, SegmentedControl, useTabBarPadding } from "@/components/chrome";
 import { ChipRow, LeadersIcon, Skeleton } from "@/components/ds";
 import { LeaderRow, PinnedRankRow, Podium } from "@/components/social/Leaderboard";
 import { useLeaderboard } from "@/hooks/queries";
@@ -38,6 +38,8 @@ export default function LeadersTab() {
     data?.viewerRank && !data.rows.some((r) => r.user.id === data.viewerRank?.user.id)
       ? data.viewerRank
       : null;
+  // Clear the absolute tab bar, plus the pinned own-rank strip when it's floating above it.
+  const bottomPad = useTabBarPadding(pinned ? space(20) : space(4));
 
   return (
     <Screen padded={false}>
@@ -65,7 +67,7 @@ export default function LeadersTab() {
           body="Play some games to get on the board."
         />
       ) : (
-        <ScrollView contentContainerStyle={styles.list}>
+        <ScrollView contentContainerStyle={{ ...styles.list, paddingBottom: bottomPad }}>
           {top3.length > 0 && <Podium top={top3} onPress={goto} />}
           {rest.map((r, i) => (
             <LeaderRow key={r.user.id} row={r} onPress={goto} index={i} />

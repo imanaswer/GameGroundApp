@@ -5,7 +5,7 @@ import { useState } from "react";
 import { RefreshControl, StyleSheet, View } from "react-native";
 
 import { CoachCard } from "@/components/cards";
-import { EmptyState, ErrorState, Header, OfflineBanner, Screen } from "@/components/chrome";
+import { EmptyState, ErrorState, Header, OfflineBanner, Screen, useTabBarPadding } from "@/components/chrome";
 import { CardSkeleton, ChipRow, CoachesIcon, SearchBar } from "@/components/ds";
 import { toCoachCard, useCoaches } from "@/hooks/queries";
 import { useDebounce } from "@/hooks/useDebounce";
@@ -31,6 +31,7 @@ export default function CoachesTab() {
     q: q || undefined,
   });
   const empty = data && data.length === 0;
+  const bottomPad = useTabBarPadding();
 
   return (
     <Screen padded={false}>
@@ -63,7 +64,7 @@ export default function CoachesTab() {
         <FlashList
           data={data}
           keyExtractor={(c) => c.id}
-          contentContainerStyle={styles.list}
+          contentContainerStyle={{ ...styles.list, paddingBottom: bottomPad }}
           ItemSeparatorComponent={() => <View style={styles.sep} />}
           renderItem={({ item }) => (
             <CoachCard data={toCoachCard(item)} onPress={() => router.push(`/coach/${item.id}`)} />

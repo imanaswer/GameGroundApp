@@ -2,7 +2,7 @@
 export { Screen } from "./Screen";
 export { Placeholder } from "./Placeholder";
 export { Header } from "./Header";
-export { TabBar } from "./TabBar";
+export { TabBar, TAB_BAR_HEIGHT, useTabBarPadding } from "./TabBar";
 export { HeroNav } from "./HeroNav";
 export { ParallaxHero } from "./ParallaxHero";
 export { StickyCTA } from "./StickyCTA";

@@ -11,7 +11,7 @@ import { RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native
 import Animated, { useAnimatedScrollHandler, useSharedValue } from "react-native-reanimated";
 
 import { CoachCard, GameCard, UpNextHeroCard } from "@/components/cards";
-import { EmptyState, Header, OfflineBanner, Screen } from "@/components/chrome";
+import { EmptyState, Header, OfflineBanner, Screen, useTabBarPadding } from "@/components/chrome";
 import { Appear, CardSkeleton, ChevronRightIcon, GamesIcon, InfoIcon, Press, SearchIcon } from "@/components/ds";
 import { toCoachCard, toGameCard, toUpNext, useHome, useProfile } from "@/hooks/queries";
 import { useAuth } from "@/hooks/useAuth";
@@ -42,6 +42,7 @@ export default function HomeTab() {
   const onScroll = useAnimatedScrollHandler((e) => {
     scrollY.value = e.contentOffset.y;
   });
+  const bottomPad = useTabBarPadding(space(6));
 
   const empty =
     !home.isLoading && !home.upNext && home.startingSoon.length === 0 && home.newCoaches.length === 0;
@@ -59,7 +60,7 @@ export default function HomeTab() {
       {home.isOffline && <OfflineBanner />}
 
       <AnimatedScrollView
-        contentContainerStyle={styles.scroll}
+        contentContainerStyle={{ ...styles.scroll, paddingBottom: bottomPad }}
         showsVerticalScrollIndicator={false}
         onScroll={onScroll}
         scrollEventThrottle={16}

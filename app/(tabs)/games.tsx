@@ -8,7 +8,7 @@ import { useState } from "react";
 import { RefreshControl, StyleSheet, View } from "react-native";
 
 import { GameCard } from "@/components/cards";
-import { EmptyState, ErrorState, Header, OfflineBanner, Screen } from "@/components/chrome";
+import { EmptyState, ErrorState, Header, OfflineBanner, Screen, useTabBarPadding } from "@/components/chrome";
 import { CardSkeleton, ChipRow, GamesIcon, SearchBar, SearchIcon } from "@/components/ds";
 import { toGameCard, useGames } from "@/hooks/queries";
 import { useDebounce } from "@/hooks/useDebounce";
@@ -42,6 +42,7 @@ export default function GamesTab() {
 
   const empty = data && data.length === 0;
   const filtered = sport !== "all" || !!q;
+  const bottomPad = useTabBarPadding();
 
   return (
     <Screen padded={false}>
@@ -88,7 +89,7 @@ export default function GamesTab() {
         <FlashList
           data={data}
           keyExtractor={(g) => g.id}
-          contentContainerStyle={styles.list}
+          contentContainerStyle={{ ...styles.list, paddingBottom: bottomPad }}
           ItemSeparatorComponent={() => <View style={styles.sep} />}
           renderItem={({ item }) => (
             <GameCard data={toGameCard(item)} onPress={() => router.push(`/game/${item.id}`)} />
