@@ -2,6 +2,7 @@
 export { Screen } from "./Screen";
 export { Placeholder } from "./Placeholder";
 export { Header } from "./Header";
+export { TabBar } from "./TabBar";
 export { HeroNav } from "./HeroNav";
 export { StickyCTA } from "./StickyCTA";
 export { SegmentedControl } from "./SegmentedControl";

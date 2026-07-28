@@ -1,7 +1,7 @@
 import { Tabs } from "expo-router";
 
+import { TabBar } from "@/components/chrome/TabBar";
 import { CoachesIcon, DiscoverIcon, GamesIcon, HomeIcon, LeadersIcon } from "@/components/ds/icons";
-import { color, type } from "@/lib/tokens";
 
 /** Tab order is fixed by Decision 5: home · games · coaches · discover · leaders. */
 const TABS = [
@@ -15,13 +15,9 @@ const TABS = [
 export default function TabsLayout() {
   return (
     <Tabs
-      screenOptions={{
-        headerShown: false,
-        tabBarActiveTintColor: color.red,
-        tabBarInactiveTintColor: color.dim2,
-        tabBarStyle: { backgroundColor: color.card, borderTopColor: color.border },
-        tabBarLabelStyle: { ...type.micro, textTransform: "uppercase" },
-      }}
+      // Custom bar owns the chrome (blur, spring icon, indicator, halo, haptic) per DS §5 / MOTION §2.
+      tabBar={(props) => <TabBar {...props} />}
+      screenOptions={{ headerShown: false }}
     >
       {TABS.map(({ name, title, Icon }) => (
         <Tabs.Screen

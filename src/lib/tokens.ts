@@ -32,6 +32,9 @@ export const color = {
   redSurface: "rgba(230,57,70,0.16)",
   redWash: "rgba(230,57,70,0.06)",
   liveRed: "rgba(230,57,70,0.92)",
+  /** DS §5 — TabBar/nav chrome translucent fill over blur (rgba(5,5,5,.86–.88)). */
+  tabBarBg: "rgba(5,5,5,0.88)",
+  navBlurBg: "rgba(5,5,5,0.94)",
   // SlotBar/Skeleton tracks (DS §4)
   track: "rgba(255,255,255,0.08)",
   overflowChip: "rgba(255,255,255,0.16)",
