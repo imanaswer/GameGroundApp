@@ -1,0 +1,59 @@
+# Flow 5/5 (§14): account deletion.
+#
+# ⚠️ DESTRUCTIVE AND IRREVERSIBLE. This permanently deletes the account in ${DOOMED_EMAIL}.
+# Use a throwaway account created for this run — never a real user, never the account the
+# other flows share. Run it last.
+#
+# Worth automating despite the cost: App Review rejects apps that offer account creation
+# without in-app deletion, so this is a submission blocker, not just a feature test. The
+# server rotates identifiers on delete, so re-login must fail afterwards (M11 exit criterion).
+appId: net.gameground.app.preview
+name: 05 account deletion
+env:
+  EXISTING_EMAIL: ${DOOMED_EMAIL}
+  EXISTING_PASSWORD: ${DOOMED_PASSWORD}
+---
+- runFlow: subflows/login.yaml
+
+- tapOn: "Home"
+- tapOn:
+    text: "Profile"
+    optional: true
+- extendedWaitUntil:
+    visible: "Edit"
+    timeout: 15000
+- tapOn: "Edit"
+
+- scrollUntilVisible:
+    element:
+      text: "Delete my account"
+    direction: DOWN
+- tapOn: "Delete my account"
+
+# Native Alert confirmation. Maestro taps these by button text; if it misses, the flow
+# hangs rather than failing cleanly — see README.
+- extendedWaitUntil:
+    visible: "Delete"
+    timeout: 10000
+- tapOn:
+    text: "Delete"
+    index: 1                   # calibrate: the destructive button, not the title
+
+# Deletion hard-logs-out the device.
+- extendedWaitUntil:
+    visible: "Welcome"
+    timeout: 30000
+
+# The real assertion: the credentials must no longer work. Server-side identifier rotation
+# means this should fail, not succeed with an empty profile.
+- tapOn: "Email"
+- inputText: ${DOOMED_EMAIL}
+- tapOn: "Password"
+- inputText: ${DOOMED_PASSWORD}
+- hideKeyboard
+- tapOn: "Log in"
+
+- extendedWaitUntil:
+    visible: "Invalid|incorrect|not found"   # calibrate: exact server error copy
+    timeout: 20000
+- assertNotVisible: "Games"

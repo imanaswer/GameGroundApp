@@ -1,0 +1,46 @@
+# Flow 3/5 (§14): camp registration.
+#
+# Exercises the shared registerable form engine (src/features/registration/*) — the same code
+# path camps, workshops and events all run through, so this flow covers three entities' worth
+# of risk. Audit #28/#30 changed this path recently (free registration now uses its real
+# endpoint, userRegistration is honoured), which is exactly why it is worth an E2E.
+appId: net.gameground.app.preview
+name: 03 camp registration
+---
+- runFlow: subflows/login.yaml
+
+- tapOn: "Discover"
+- extendedWaitUntil:
+    visible: "Camps"
+    timeout: 20000
+- tapOn: "Camps"
+
+- extendedWaitUntil:
+    visible: ${CAMP_NAME}      # calibrate: an open camp with slots left
+    timeout: 20000
+- tapOn: ${CAMP_NAME}
+
+- extendedWaitUntil:
+    visible: "Register"
+    timeout: 15000
+- tapOn: "Register"
+
+# Camp form fields come from entities.ts: childName, age, phone.
+- tapOn: "Child’s name"        # note the curly apostrophe — it is U+2019 in entities.ts
+- inputText: "E2E Child"
+- tapOn: "Contact number"
+- inputText: ${PHONE}
+- hideKeyboard
+
+- tapOn: "Continue"            # calibrate: RegistrationForm submit copy
+
+# A free camp completes here; a paid one hands off to checkout (covered by flow 02).
+- extendedWaitUntil:
+    visible: "Registered|You're registered"
+    timeout: 30000
+
+# Prove it persisted server-side rather than trusting the success state.
+- tapOn: "Home"
+- extendedWaitUntil:
+    visible: ${CAMP_NAME}
+    timeout: 20000

@@ -1,0 +1,53 @@
+# Flow 2/5 (§14): login → book a coach with a test-mode payment.
+#
+# ⚠️ PREVIEW BUILD ONLY. Preview carries a Razorpay *test* key; a production build would
+# charge real money. Check the bundle id above before running.
+#
+# This is the highest-value and least-reliable flow: the Razorpay Standard Checkout runs in a
+# WebView (DECISIONS #10), and Maestro's matching inside webviews is weaker than on native views.
+appId: net.gameground.app.preview
+name: 02 login and book a coach (test payment)
+---
+- runFlow: subflows/login.yaml
+
+- tapOn: "Coaches"
+- extendedWaitUntil:
+    visible: ${COACH_NAME}     # calibrate: pick a coach that is actually bookable
+    timeout: 20000
+- tapOn: ${COACH_NAME}
+
+- extendedWaitUntil:
+    visible: "Book"            # calibrate: exact StickyCTA copy on the coach detail
+    timeout: 15000
+- tapOn: "Book"
+
+# Slot picking — calibrate against SlotBar. Index 0 = first available slot.
+- tapOn:
+    index: 0
+    text: ${SLOT_LABEL}
+
+- tapOn: "Continue"            # calibrate: CheckoutSheet primary action
+
+# --- Razorpay WebView boundary -------------------------------------------------------
+# Everything below is inside the hosted checkout, not our UI. Expect to rework it.
+# Razorpay test mode: use the Success simulation rather than card entry where possible.
+- extendedWaitUntil:
+    visible: "Razorpay|Pay now|Card"
+    timeout: 30000
+
+- tapOn:
+    text: "Success"            # calibrate: test-mode simulation control
+    optional: true
+
+# --- back in our UI ------------------------------------------------------------------
+# The server verifies the HMAC on /payments/verify and the webhook settles independently,
+# so a client-side "success" is not proof — assert the booking is really reflected.
+- extendedWaitUntil:
+    visible: "Booked|Booking confirmed"
+    timeout: 60000
+
+# Round-trip proof: the booking must survive a fresh read, not just the success screen.
+- tapOn: "Home"
+- extendedWaitUntil:
+    visible: ${COACH_NAME}
+    timeout: 20000

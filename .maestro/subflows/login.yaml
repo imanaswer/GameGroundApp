@@ -1,0 +1,25 @@
+# Shared login. Used by flows 02-05 so a copy change lands in one place.
+#   -e EXISTING_EMAIL="..." -e EXISTING_PASSWORD="..."
+appId: net.gameground.app.preview
+---
+- launchApp:
+    clearState: true
+
+- tapOn:
+    text: "Get started"
+    optional: true
+- tapOn:
+    text: "Log in"
+    optional: true
+
+- assertVisible: "Welcome"
+- tapOn: "Email"
+- inputText: ${EXISTING_EMAIL}
+- tapOn: "Password"
+- inputText: ${EXISTING_PASSWORD}
+- hideKeyboard
+- tapOn: "Log in"
+
+- extendedWaitUntil:
+    visible: "Games"
+    timeout: 20000

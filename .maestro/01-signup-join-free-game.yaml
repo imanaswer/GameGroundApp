@@ -1,0 +1,57 @@
+# Flow 1/5 (§14): signup → browse → join a free game.
+# The core acquisition path. If this breaks, nothing else matters.
+#
+# Needs a fresh email every run — signup rejects duplicates:
+#   -e EMAIL="e2e+$(date +%s)@example.com" -e PASSWORD="..."
+appId: net.gameground.app.preview
+name: 01 signup and join a free game
+---
+- clearState
+- launchApp
+
+# Onboarding shows exactly once per install (M4); clearState puts us back to first-run.
+# Optional because the copy may differ — calibrate against the real onboarding CTA.
+- tapOn:
+    text: "Get started"
+    optional: true
+
+- tapOn:
+    text: "Create account"
+    optional: true
+- assertVisible: "Create your"
+
+- tapOn: "Full name"
+- inputText: "E2E Tester"
+- tapOn: "Username"
+- inputText: ${USERNAME}
+- tapOn: "Email"
+- inputText: ${EMAIL}
+- tapOn: "Password"
+- inputText: ${PASSWORD}
+- hideKeyboard
+- tapOn: "Create account"
+
+# Signup lands on the tabs. Allow for the network plus the entrance stagger.
+- extendedWaitUntil:
+    visible: "Games"
+    timeout: 20000
+- tapOn: "Games"
+
+# calibrate: open the first game card. Cards have no testID, so there is no honest
+# selector to write here yet — use `maestro studio` on a running build to fill this in.
+# Until then this line is a deliberate placeholder and the flow stops here.
+- tapOn:
+    text: ${GAME_TITLE}
+
+- extendedWaitUntil:
+    visible: "Join game"
+    timeout: 15000
+
+# Free game only — a paid one opens checkout, which is flow 02's job.
+- tapOn: "Join game"
+
+# The server decides join vs waitlist on overflow (audit #21/#27), so accept either —
+# both prove the mutation round-tripped and the detail refetched.
+- extendedWaitUntil:
+    visible: "Leave game"
+    timeout: 20000
