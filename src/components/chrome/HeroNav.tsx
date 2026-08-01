@@ -53,11 +53,11 @@ export function HeroNav({
       )}
 
       <View style={[styles.row, { top: insets.top + space(1) }]} pointerEvents="box-none">
-        <Press accessibilityRole="button" accessibilityLabel="Back" scaleTo={0.9} onPress={onBack} style={styles.btn}>
+        <Press accessibilityRole="button" accessibilityLabel="Back" scaleTo={0.9} hitSlop={8} onPress={onBack} style={styles.btn}>
           <BackIcon color={color.text} />
         </Press>
         {onShare && (
-          <Press accessibilityRole="button" accessibilityLabel="Share" scaleTo={0.9} onPress={onShare} style={styles.btn}>
+          <Press accessibilityRole="button" accessibilityLabel="Share" scaleTo={0.9} hitSlop={8} onPress={onShare} style={styles.btn}>
             <ShareIcon color={color.text} />
           </Press>
         )}

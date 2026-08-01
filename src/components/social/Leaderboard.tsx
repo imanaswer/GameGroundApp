@@ -22,8 +22,8 @@ import { TAB_BAR_HEIGHT } from "@/components/chrome/TabBar";
 import { Appear, Avatar, CountUp, CrownIcon, Press, TierBadge } from "@/components/ds";
 import { color, layout, radius, space, tier as tierTokens, type } from "@/lib/tokens";
 
-function Delta({ delta }: { delta: number }) {
-  if (delta === 0) return null;
+function Delta({ delta }: { delta: number | null }) {
+  if (!delta) return null;
   const up = delta > 0;
   return <Text style={[styles.delta, up ? styles.up : styles.down]}>{up ? "▲" : "▼"}{Math.abs(delta)}</Text>;
 }

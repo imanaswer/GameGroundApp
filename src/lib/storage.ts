@@ -16,10 +16,22 @@ type Schema = {
   "gg.device": string;
   /** Onboarding shown once (M4). Not secret, but this typed KV is our only storage seam. */
   "gg.onboarded": boolean;
-  /** §9.4 reconciliation — a debited-but-unconfirmed order resumed on next cold start (M6). */
-  "gg.pendingOrder": { orderId: string; entityType: string; entityId: string };
+  /**
+   * §9.4 reconciliation — a debited-but-unconfirmed order resumed on next cold start (M6).
+   * `startedAt` (epoch ms) bounds the resume: a poll runs 5 min, so without a give-up age an order
+   * the webhook never settles would re-poll on every launch forever. Optional — entries written
+   * before this field existed are stamped on their first resume.
+   */
+  "gg.pendingOrder": {
+    orderId: string;
+    entityType: string;
+    entityId: string;
+    startedAt?: number;
+  };
   /** Local recent search terms (M10) — non-secret, but this KV is our only storage seam. */
   "gg.recentSearches": string[];
+  /** Home: the "set your sports" nudge is dismissible-once. Non-secret; this KV is our seam. */
+  "gg.setupSportsDismissed": boolean;
   /** Push (M12): whether the contextual pre-prompt has been shown (never re-ask on denial). */
   "gg.pushPromptSeen": boolean;
   /** Push (M12): per-category prefs, mirrored to the server; local is the offline source. */

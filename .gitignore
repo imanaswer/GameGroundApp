@@ -44,3 +44,6 @@ example
 
 # project
 .claude/settings.local.json
+
+# scratch: audit reports, findings, review notes — local viewing only
+.scratch/

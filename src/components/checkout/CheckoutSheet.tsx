@@ -3,8 +3,9 @@
  * driven by the real machine phase (creating/gateway/verifying) and the reconciling /
  * unresolved states (§9.4) are added. The sheet never fabricates progress on a timer.
  */
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Animated, {
   useAnimatedProps,
   useAnimatedStyle,
@@ -16,7 +17,8 @@ import Animated, {
 } from "react-native-reanimated";
 import Svg, { Path } from "react-native-svg";
 
-import { Button, CheckIcon, Confetti } from "@/components/ds";
+import { Button, CheckIcon, Confetti, Press } from "@/components/ds";
+import * as haptics from "@/lib/haptics";
 import { color, radius, space, type } from "@/lib/tokens";
 import { dur, ease, spring } from "@/theme/animations";
 
@@ -49,6 +51,7 @@ export function CheckoutSheet({
   onPay,
   onRetry,
   onSupport,
+  onClose,
 }: {
   state: CheckoutState;
   amount: string;
@@ -57,14 +60,17 @@ export function CheckoutSheet({
   onPay?: () => void;
   onRetry?: () => void;
   onSupport?: () => void;
+  /** Dismiss from a resolved state (the success "Done" action). */
+  onClose?: () => void;
 }) {
+  const insets = useSafeAreaInsets();
   return (
-    <View style={styles.sheet}>
+    <View style={[styles.sheet, { paddingBottom: space(5) + insets.bottom }]}>
       <View style={styles.handle} />
       {state === "methods" && <Methods amount={amount} onPay={onPay} />}
       {state === "processing" && <Processing phase={phase} />}
       {state === "reconciling" && <Reconciling />}
-      {state === "success" && <Success amount={amount} />}
+      {state === "success" && <Success amount={amount} onClose={onClose} />}
       {state === "failure" && <Failure message={error} onRetry={onRetry} />}
       {state === "unresolved" && <Unresolved onSupport={onSupport} />}
     </View>
@@ -72,23 +78,37 @@ export function CheckoutSheet({
 }
 
 function Methods({ amount, onPay }: { amount: string; onPay?: () => void }) {
+  const [selected, setSelected] = useState(METHODS[0].key);
   return (
     <>
       <Text style={styles.header}>Complete payment</Text>
       <Text style={styles.amount}>{amount}</Text>
       <View style={styles.methods}>
-        {METHODS.map((m, i) => (
-          <View key={m.key} style={[styles.method, i === 0 && styles.methodSelected]}>
-            <View style={styles.methodText}>
-              <Text style={styles.methodName}>{m.name}</Text>
-              <Text style={styles.methodCaption}>{m.caption}</Text>
-            </View>
-            <View style={[styles.radio, i === 0 && styles.radioOn]}>{i === 0 && <View style={styles.radioDot} />}</View>
-          </View>
-        ))}
+        {METHODS.map((m) => {
+          const on = m.key === selected;
+          return (
+            <Press
+              key={m.key}
+              accessibilityRole="radio"
+              accessibilityState={{ selected: on }}
+              accessibilityLabel={`${m.name} — ${m.caption}`}
+              onPress={() => {
+                haptics.selection();
+                setSelected(m.key);
+              }}
+              style={[styles.method, on && styles.methodSelected]}
+            >
+              <View style={styles.methodText}>
+                <Text style={styles.methodName}>{m.name}</Text>
+                <Text style={styles.methodCaption}>{m.caption}</Text>
+              </View>
+              <View style={[styles.radio, on && styles.radioOn]}>{on && <View style={styles.radioDot} />}</View>
+            </Press>
+          );
+        })}
       </View>
       <Button title={`Pay ${amount}`} onPress={onPay ?? (() => {})} />
-      <Text style={styles.footnote}>Amount is confirmed by Game Ground’s server.</Text>
+      <Text style={styles.footnote}>Amount is confirmed by GameGround’s server.</Text>
     </>
   );
 }
@@ -140,7 +160,7 @@ function Unresolved({ onSupport }: { onSupport?: () => void }) {
   );
 }
 
-function Success({ amount }: { amount: string }) {
+function Success({ amount, onClose }: { amount: string; onClose?: () => void }) {
   // Extended success (MOTION §5): check-circle spring-in + SVG draw-on, then confetti burst. The
   // reputation-gain card + avatar-into-stack need the server rep delta from the refetched profile
   // (never client-computed) — see BACKLOG (M14).
@@ -150,6 +170,7 @@ function Success({ amount }: { amount: string }) {
       <SuccessCheck />
       <Text style={styles.header}>You’re in</Text>
       <Text style={styles.footnote}>Paid {amount}. Your spot is confirmed.</Text>
+      {onClose && <Button title="Done" onPress={onClose} style={styles.retry} />}
     </View>
   );
 }
@@ -200,7 +221,7 @@ function Failure({ message, onRetry }: { message?: string | null; onRetry?: () =
 const styles = StyleSheet.create({
   sheet: { backgroundColor: color.elev, borderTopLeftRadius: radius.sheet, borderTopRightRadius: radius.sheet, padding: space(5), gap: space(3) },
   handle: { width: 38, height: 4, borderRadius: 999, backgroundColor: color.border2, alignSelf: "center", marginBottom: space(2) },
-  header: { ...type.heading, fontSize: 16, color: color.text },
+  header: { ...type.heading, color: color.text },
   amount: { ...type.amount, color: color.text },
   footnote: { ...type.caption, color: color.dim },
 

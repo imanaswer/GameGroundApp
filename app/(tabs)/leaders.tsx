@@ -4,21 +4,22 @@
  */
 import { useRouter } from "expo-router";
 import { useState } from "react";
-import { ScrollView, StyleSheet, View } from "react-native";
+import { ScrollView, StyleSheet, Text, View } from "react-native";
 
 import type { LeaderScope, LeaderWindow } from "@/api/types";
-import { EmptyState, ErrorState, Header, OfflineBanner, Screen, SegmentedControl, useTabBarPadding } from "@/components/chrome";
-import { ChipRow, LeadersIcon, Skeleton } from "@/components/ds";
+import { EmptyState, ErrorState, Header, OfflineBanner, Screen, useTabBarPadding } from "@/components/chrome";
+import { Chip, LeadersIcon, Press, Skeleton } from "@/components/ds";
 import { LeaderRow, PinnedRankRow, Podium } from "@/components/social/Leaderboard";
 import { useLeaderboard } from "@/hooks/queries";
 import { useIsOnline } from "@/hooks/useIsOnline";
-import { color, icon as iconSize, layout, space } from "@/lib/tokens";
+import * as haptics from "@/lib/haptics";
+import { color, icon as iconSize, layout, space, type } from "@/lib/tokens";
 
 const SCOPES: { key: LeaderScope; label: string }[] = [
   { key: "players", label: "Players" },
   { key: "organizers", label: "Organizers" },
 ];
-const WINDOWS = [
+const WINDOWS: { key: LeaderWindow; label: string }[] = [
   { key: "all", label: "All-time" },
   { key: "30d", label: "Last 30 days" },
 ];
@@ -46,10 +47,31 @@ export default function LeadersTab() {
       <Header title="Leaders" />
       {!online && <OfflineBanner />}
       <View style={styles.controls}>
-        <SegmentedControl segments={SCOPES} value={scope} onChange={setScope} />
-      </View>
-      <View style={styles.controls}>
-        <ChipRow items={WINDOWS} value={window} onChange={(k) => setWindow(k as LeaderWindow)} />
+        <View style={styles.scopeTabs}>
+          {SCOPES.map((s) => {
+            const on = scope === s.key;
+            return (
+              <Press
+                key={s.key}
+                accessibilityRole="tab"
+                accessibilityState={{ selected: on }}
+                onPress={() => {
+                  haptics.selection();
+                  setScope(s.key);
+                }}
+                style={styles.tab}
+              >
+                <Text style={[styles.tabLabel, on && styles.tabLabelOn]}>{s.label}</Text>
+                <View style={[styles.underline, on && styles.underlineOn]} />
+              </Press>
+            );
+          })}
+        </View>
+        <View style={styles.windowChips}>
+          {WINDOWS.map((w) => (
+            <Chip key={w.key} label={w.label} active={window === w.key} onPress={() => setWindow(w.key)} size="sm" />
+          ))}
+        </View>
       </View>
 
       {isLoading && !data ? (
@@ -65,6 +87,7 @@ export default function LeadersTab() {
           icon={<LeadersIcon size={iconSize.empty} color={color.red} />}
           headline="No rankings yet."
           body="Play some games to get on the board."
+          cta={{ label: "Find a game", onPress: () => router.push("/games") }}
         />
       ) : (
         <ScrollView contentContainerStyle={{ ...styles.list, paddingBottom: bottomPad }}>
@@ -81,7 +104,20 @@ export default function LeadersTab() {
 }
 
 const styles = StyleSheet.create({
-  controls: { paddingHorizontal: layout.screenX, paddingBottom: space(3) },
+  controls: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: layout.screenX,
+    paddingBottom: space(3),
+  },
+  scopeTabs: { flexDirection: "row", gap: space(5) },
+  tab: { alignItems: "center", gap: space(1.5), paddingTop: space(1) },
+  tabLabel: { ...type.heading, color: color.dim },
+  tabLabelOn: { color: color.text },
+  underline: { height: 2.5, width: "100%", borderRadius: 999 },
+  underlineOn: { backgroundColor: color.red },
+  windowChips: { flexDirection: "row", gap: space(2) },
   list: { paddingHorizontal: layout.screenX, paddingBottom: space(6) },
   skel: { marginBottom: space(2) },
 });

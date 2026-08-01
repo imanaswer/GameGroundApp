@@ -14,8 +14,9 @@ import Animated, {
   useSharedValue,
   withTiming,
 } from "react-native-reanimated";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { color, gradient } from "@/lib/tokens";
+import { color, gradient, layout, space } from "@/lib/tokens";
 import { dur, ease } from "@/theme/animations";
 
 const OVERSCAN = 60;
@@ -25,13 +26,17 @@ export function ParallaxHero({
   height,
   scrollY,
   children,
+  topRight,
 }: {
   imageUrl?: string | null;
   height: number;
   scrollY?: SharedValue<number>;
   /** Overlay content (e.g. a title block) pinned inside the hero. */
   children?: React.ReactNode;
+  /** Optional chip pinned top-right, below the nav (e.g. a DateBadge). Scrolls with the hero. */
+  topRight?: React.ReactNode;
 }) {
+  const insets = useSafeAreaInsets();
   const reduced = useReducedMotion();
   const enter = useSharedValue(reduced ? 1 : 0);
 
@@ -59,6 +64,11 @@ export function ParallaxHero({
         locations={gradient.heroScrim.locations as unknown as [number, number, number]}
         style={StyleSheet.absoluteFill}
       />
+      {topRight && (
+        <View style={[styles.topRight, { top: insets.top + space(11) }]} pointerEvents="box-none">
+          {topRight}
+        </View>
+      )}
       {children && <View style={styles.overlay}>{children}</View>}
     </View>
   );
@@ -69,4 +79,5 @@ const styles = StyleSheet.create({
   imageWrap: { position: "absolute", top: -OVERSCAN, left: 0, right: 0 },
   fallback: { backgroundColor: color.card },
   overlay: { position: "absolute", left: 0, right: 0, bottom: 0 },
+  topRight: { position: "absolute", right: layout.screenX },
 });

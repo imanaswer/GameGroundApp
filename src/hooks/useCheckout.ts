@@ -3,8 +3,13 @@
  * The state transitions live in lib/checkout-machine.ts (unit-tested); this hook binds
  * them to the CheckoutSheet, query invalidation, reconciliation persistence, and FLAG_SECURE.
  *
- * ⚠️ The native gateway open is a flagged seam (lib/razorpay.ts) blocked on the Razorpay
- * New-Architecture decision (DECISIONS.md #10). Everything else here works and is tested.
+ * The gateway open (lib/razorpay.tsx) is a real hosted-checkout WebView, not a stub —
+ * DECISIONS.md #10 was ratified. It still needs a physical-device pass, which is an exit
+ * criterion for any payment integration rather than a gap in this one.
+ *
+ * NOTE: paid entities only. A ₹0 entity can never reach here — the server's charge helpers
+ * reject a zero amount, so free camps/workshops/events use their own register endpoint
+ * (features/registration). Routing free through checkout silently fails.
  */
 import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -59,7 +64,12 @@ export function useCheckout(
 
   const beginReconcile = useCallback(
     async (orderId: string) => {
-      await storage.set("gg.pendingOrder", { orderId, entityType, entityId });
+      await storage.set("gg.pendingOrder", {
+        orderId,
+        entityType,
+        entityId,
+        startedAt: Date.now(),
+      });
       if (mounted.current) setState("reconciling");
       const result = await reconcile(orderId, async (id) => {
         const rows = await paymentsApi.history();
@@ -115,23 +125,51 @@ export function useCheckout(
   return { state, phase, error, start, retry: start, reset };
 }
 
+/** How long a debited-but-unconfirmed order stays worth re-polling before we stop retrying. */
+const RESUME_GIVE_UP_MS = 24 * 60 * 60 * 1000;
+
+export type PendingOrder = {
+  orderId: string;
+  entityType: string;
+  entityId: string;
+  startedAt?: number;
+};
+
 /**
  * Cold-start resume (§9.4): if a pending order was persisted, restart its poll.
- * Called once from the app shell after auth restore.
+ * Called once from the app shell after auth restore (see PendingPaymentBridge in app/_layout).
+ *
+ * Bounded on purpose: one poll runs 5 minutes at 10s intervals, so an order the webhook never
+ * settles would cost 30 requests on every launch, forever. After RESUME_GIVE_UP_MS we drop the
+ * record — the money question then belongs to support, not to an infinite background poll.
+ *
+ * Resolves with the outcome so the caller can invalidate the right entity and tell the user.
  */
 export async function resumePendingReconciliation(
-  onConfirmed: (orderId: string) => void,
-): Promise<void> {
+  onConfirmed: (pending: PendingOrder) => void,
+): Promise<"confirmed" | "failed" | "unresolved" | "gave-up" | "none"> {
   const pending = await storage.get("gg.pendingOrder");
-  if (!pending) return;
+  if (!pending) return "none";
+
+  // Entries written before `startedAt` existed: stamp now so they age out from this launch.
+  if (pending.startedAt === undefined) {
+    await storage.set("gg.pendingOrder", { ...pending, startedAt: Date.now() });
+  } else if (Date.now() - pending.startedAt > RESUME_GIVE_UP_MS) {
+    await storage.remove("gg.pendingOrder");
+    return "gave-up";
+  }
+
   const result = await reconcile(pending.orderId, async (id) => {
     const rows = await paymentsApi.history();
     return rows.find((r) => r.orderId === id)?.status ?? null;
   });
+
   if (result === "confirmed") {
     await storage.remove("gg.pendingOrder");
-    onConfirmed(pending.orderId);
+    onConfirmed(pending);
   } else if (result === "failed") {
     await storage.remove("gg.pendingOrder");
   }
+  // "unresolved" deliberately keeps the record — the next cold start tries again until give-up.
+  return result;
 }

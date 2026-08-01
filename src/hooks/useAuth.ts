@@ -168,12 +168,16 @@ export function useGoogleLogin(onError: (e: unknown) => void) {
   return { available: configured && !!request, prompt: () => promptAsync() };
 }
 
-/** Apple button shows only where Apple auth actually works. */
+/**
+ * Apple button shows only where Apple auth actually works — which means BOTH the device
+ * supporting it and the server route existing. Device capability alone is what made this button
+ * ship visible on every iPhone while `/auth/apple/mobile` 404s (§5.2 is unshipped server work).
+ */
 export function useAppleAvailable(): boolean {
-  const [available, setAvailable] = useState(false);
+  const [deviceSupports, setDeviceSupports] = useState(false);
   useEffect(() => {
-    if (Platform.OS !== "ios") return;
-    AppleAuthentication.isAvailableAsync().then(setAvailable, () => setAvailable(false));
+    if (Platform.OS !== "ios" || !env.appleAuthEnabled) return;
+    AppleAuthentication.isAvailableAsync().then(setDeviceSupports, () => setDeviceSupports(false));
   }, []);
-  return available;
+  return env.appleAuthEnabled && deviceSupports;
 }

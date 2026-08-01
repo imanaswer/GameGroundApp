@@ -81,6 +81,20 @@ export const avatarColors = [
 /** The user's own avatar: 135° gradient. */
 export const ownAvatarGradient = ["#6c8cff", "#a78bfa"] as const;
 
+/**
+ * Google brand palette — the 4-color "G" glyph plus the required light button surface.
+ * These are Google's own brand marks (not part of the DS ramp); they live here because
+ * this file is the single sanctioned home for color literals.
+ */
+export const google = {
+  blue: "#4285F4",
+  green: "#34A853",
+  yellow: "#FBBC05",
+  red: "#EA4335",
+  surface: "#ffffff",
+  onSurface: "#1f1f1f",
+} as const;
+
 /** MOTION.md §5 — the confetti 5-color set (gold · success · red-light · white · violet). */
 export const confetti = ["#eab308", "#4ade80", "#ff6b74", "#ffffff", "#a78bfa"] as const;
 
@@ -140,8 +154,14 @@ export const font = {
 /** DS §2 — serif never below 20 and never for UI controls. */
 export const type = {
   display: { fontFamily: font.serif, fontSize: 39, lineHeight: 42, letterSpacing: -0.5 },
-  title1: { fontFamily: font.serif, fontSize: 27, lineHeight: 29 },
-  title2: { fontFamily: font.serif, fontSize: 22, lineHeight: 25 },
+  // Auth-screen headline: the heavy Inter "display" used where the serif display would be too much
+  // (login/signup/reset). Context-named like `display`/`amount`. See DECISIONS #12 / DS §2.
+  authTitle: { fontFamily: font.sansExtra, fontSize: 30, lineHeight: 34, letterSpacing: -1.2 },
+  // Screen/nav headers are Inter SemiBold to sit with the GameGround sans wordmark without shouting;
+  // serif is rationed to `display` (onboarding), `amount` (checkout), and the red serif-italic accent
+  // word inside an Inter heading — the Home greeting + auth headings (DECISIONS #13). See DS §2.
+  title1: { fontFamily: font.sansSemi, fontSize: 22, lineHeight: 27, letterSpacing: -0.4 },
+  title2: { fontFamily: font.sansSemi, fontSize: 18, lineHeight: 23, letterSpacing: -0.2 },
   amount: { fontFamily: font.serif, fontSize: 33, lineHeight: 36 },
   heading: { fontFamily: font.sansBold, fontSize: 15, lineHeight: 20 },
   body: { fontFamily: font.sans, fontSize: 13, lineHeight: 18 },

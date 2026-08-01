@@ -12,7 +12,8 @@ import Animated, {
   withSpring,
 } from "react-native-reanimated";
 
-import { ChevronDownIcon, Press } from "@/components/ds";
+import { Press } from "./Press";
+import { ChevronDownIcon } from "./icons";
 import * as haptics from "@/lib/haptics";
 import { color, radius, space, type } from "@/lib/tokens";
 import { dur, spring } from "@/theme/animations";

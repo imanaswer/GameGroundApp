@@ -10,7 +10,6 @@
  * With the backend push routes undeployed, registration/prefs failures are swallowed by the
  * service layer — this provider never throws into the UI.
  */
-import * as Notifications from "expo-notifications";
 import {
   createContext,
   useCallback,
@@ -21,6 +20,7 @@ import {
   type ReactNode,
 } from "react";
 import { AppState, Modal, StyleSheet, Text, View } from "react-native";
+import Constants, { ExecutionEnvironment } from "expo-constants";
 
 import { useToast } from "@/components/chrome";
 import { Button } from "@/components/ds";
@@ -35,6 +35,30 @@ import {
 } from "@/lib/notifications";
 import * as storage from "@/lib/storage";
 import { color, radius, space, type } from "@/lib/tokens";
+
+// expo-notifications is loaded lazily (absent in Expo Go), so its surface is untyped by design.
+type ExpoNotifications = any;
+
+const isExpoGo = Constants.executionEnvironment === ExecutionEnvironment.StoreClient;
+
+/** Lazy accessor for expo-notifications — null in Expo Go. */
+let _notif: ExpoNotifications | null | undefined;
+function Notif(): ExpoNotifications | null {
+  if (_notif === undefined) {
+    // Requiring expo-notifications in Expo Go logs a red error at eval time, so skip it there.
+    if (isExpoGo) {
+      _notif = null;
+    } else {
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
+        _notif = require("expo-notifications");
+      } catch {
+        _notif = null;
+      }
+    }
+  }
+  return _notif;
+}
 
 type PushContextValue = {
   /** Call after a first successful join/booking to offer reminders (shown once). */
@@ -52,8 +76,8 @@ export function PushProvider({ children }: { children: ReactNode }) {
 
   // Cold-start tap: a notification that launched the app.
   useEffect(() => {
-    Notifications.getLastNotificationResponseAsync()
-      .then((res) => {
+    Notif()?.getLastNotificationResponseAsync()
+      .then((res: any) => {
         if (res) route(urlFromResponse(res));
       })
       .catch(() => {});
@@ -61,7 +85,9 @@ export function PushProvider({ children }: { children: ReactNode }) {
 
   // Tap while running (background/foreground) → route via data.url.
   useEffect(() => {
-    const sub = Notifications.addNotificationResponseReceivedListener((res) => {
+    const N = Notif();
+    if (!N) return;
+    const sub = N.addNotificationResponseReceivedListener((res: any) => {
       route(urlFromResponse(res));
     });
     return () => sub.remove();
@@ -69,10 +95,12 @@ export function PushProvider({ children }: { children: ReactNode }) {
 
   // Foreground receipt → in-app toast (OS banner suppressed by the handler). Tap re-routes.
   useEffect(() => {
-    const sub = Notifications.addNotificationReceivedListener((n) => {
+    const N = Notif();
+    if (!N) return;
+    const sub = N.addNotificationReceivedListener((n: any) => {
       const { title, body, data } = n.request.content;
       toast.show({
-        title: title ?? "Game Ground",
+        title: title ?? "GameGround",
         body: body ?? undefined,
         onPress: () => route(typeof (data as { url?: string })?.url === "string" ? (data as { url: string }).url : null),
       });
@@ -100,7 +128,12 @@ export function PushProvider({ children }: { children: ReactNode }) {
     const seen = await storage.get("gg.pushPromptSeen");
     if (seen) return; // shown once; the OS/Settings own it thereafter
     // Skip the pre-prompt entirely if permission is already granted.
-    const granted = (await Notifications.getPermissionsAsync()).status === "granted";
+    const N = Notif();
+    if (!N) {
+      // No notifications in Expo Go — skip entirely.
+      return;
+    }
+    const granted = (await N.getPermissionsAsync()).status === "granted";
     if (granted) {
       await storage.set("gg.pushPromptSeen", true);
       registerForPush();

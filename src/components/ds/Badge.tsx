@@ -12,6 +12,8 @@ import Animated, {
 
 import { color, space, tier as tierMap, type, type Tier } from "@/lib/tokens";
 
+import { StarIcon } from "./icons";
+
 export function Badge({ label, tone = "neutral" }: { label: string; tone?: "neutral" | "success" | "red" }) {
   return (
     <View style={[styles.badge, styles[tone]]}>
@@ -20,11 +22,21 @@ export function Badge({ label, tone = "neutral" }: { label: string; tone?: "neut
   );
 }
 
-export function TierBadge({ tier }: { tier: Tier }) {
+export function TierBadge({ tier, suffix }: { tier: Tier; suffix?: string }) {
   const t = tierMap[tier];
   return (
     <View style={[styles.badge, { backgroundColor: t.bg }]}>
-      <Text style={[styles.text, { color: t.fg }]}>{tier}</Text>
+      <Text style={[styles.text, { color: t.fg }]}>{suffix ? `${tier} ${suffix}` : tier}</Text>
+    </View>
+  );
+}
+
+/** Server-flagged highlight — gold pill overlaid on card images (mirrors the web "Featured" label). */
+export function FeaturedChip({ label = "Featured" }: { label?: string }) {
+  return (
+    <View style={styles.featured}>
+      <StarIcon size={9} color={color.goldDeep} />
+      <Text style={styles.featuredText}>{label}</Text>
     </View>
   );
 }
@@ -74,4 +86,16 @@ const styles = StyleSheet.create({
   },
   dot: { width: 4, height: 4, borderRadius: 999, backgroundColor: color.text },
   liveText: { fontFamily: type.micro.fontFamily, fontSize: 8.5, letterSpacing: 0.68, textTransform: "uppercase", color: color.text },
+
+  featured: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: space(1),
+    borderRadius: 6,
+    paddingVertical: space(0.75),
+    paddingHorizontal: space(1.75),
+    backgroundColor: color.goldLight,
+    alignSelf: "flex-start",
+  },
+  featuredText: { fontFamily: type.micro.fontFamily, fontSize: 8.5, letterSpacing: 0.68, textTransform: "uppercase", color: color.goldDeep },
 });

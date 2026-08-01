@@ -1,20 +1,24 @@
-import { Link } from "expo-router";
+import { useRouter } from "expo-router";
 import { useState } from "react";
-import { StyleSheet, Text } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 
 import * as authApi from "@/api/auth";
 import { LoginSchema } from "@/api/schemas";
+import { AuthShell, SwitchLink } from "@/components/auth/AuthShell";
 import { FormError } from "@/components/auth/fields";
-import { Screen } from "@/components/chrome/Screen";
-import { Button, Input } from "@/components/ds";
-import { color, space, type } from "@/lib/tokens";
+import { Button, CheckIcon, Input } from "@/components/ds";
+import { Press } from "@/components/ds/Press";
+import { color, radius, space, type } from "@/lib/tokens";
 
 export default function ForgotPassword() {
+  const router = useRouter();
   const [email, setEmail] = useState("");
   const [fieldError, setFieldError] = useState<string | undefined>();
   const [formError, setFormError] = useState<unknown>(null);
   const [busy, setBusy] = useState(false);
   const [sent, setSent] = useState(false);
+
+  const back = () => (router.canGoBack() ? router.back() : router.replace("/login"));
 
   const submit = async () => {
     setFormError(null);
@@ -33,43 +37,76 @@ export default function ForgotPassword() {
   };
 
   return (
-    <Screen>
-      <Text style={styles.title}>Reset password</Text>
+    <AuthShell
+      title="Reset your"
+      accent="password"
+      subtitle="Enter your email and we’ll send you a link to set a new one."
+      onBack={back}
+    >
       {sent ? (
-        <>
-          <Text style={styles.sub}>
-            If an account exists for {email.trim()}, a reset link is on its way. Check your inbox.
+        <View style={styles.doneCard}>
+          <View style={styles.doneIcon}>
+            <CheckIcon size={20} color={color.success} />
+          </View>
+          <Text style={styles.doneTitle}>Check your inbox</Text>
+          <Text style={styles.doneBody}>
+            If an account exists for {email.trim()}, a reset link is on its way.
           </Text>
-          <Link href="/login" style={styles.link}>
-            Back to log in
-          </Link>
-        </>
+          <Press accessibilityRole="button" tilt={false} onPress={submit} disabled={busy} style={styles.resend}>
+            <Text style={styles.resendText}>{busy ? "Resending…" : "Didn’t get it? Resend"}</Text>
+          </Press>
+        </View>
       ) : (
         <>
-          <Text style={styles.sub}>Enter your email and we’ll send you a reset link.</Text>
           <FormError error={formError} />
           <Input
             label="Email"
             value={email}
-            onChangeText={setEmail}
+            onChangeText={(v) => {
+              setEmail(v);
+              if (fieldError) setFieldError(undefined);
+            }}
             error={fieldError}
             autoCapitalize="none"
             autoComplete="email"
+            textContentType="emailAddress"
             keyboardType="email-address"
-            placeholder="you@example.com"
+            placeholder="you@email.com"
+            returnKeyType="send"
+            onSubmitEditing={submit}
           />
           <Button title="Send reset link" onPress={submit} loading={busy} />
-          <Link href="/login" style={styles.link}>
-            Back to log in
-          </Link>
         </>
       )}
-    </Screen>
+
+      <View style={styles.spacer} />
+      <SwitchLink prompt="Remembered it?" action="Back to log in" onPress={() => router.replace("/login")} />
+    </AuthShell>
   );
 }
 
 const styles = StyleSheet.create({
-  title: { ...type.title1, color: color.text, marginTop: space(10), marginBottom: space(2) },
-  sub: { ...type.body, color: color.dim, marginBottom: space(7) },
-  link: { ...type.bodyStrong, color: color.redLight, textAlign: "center", marginTop: space(5) },
+  doneCard: {
+    alignItems: "center",
+    gap: space(3),
+    backgroundColor: color.card,
+    borderWidth: 1,
+    borderColor: color.border,
+    borderRadius: radius.card,
+    paddingVertical: space(8),
+    paddingHorizontal: space(6),
+  },
+  doneIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 999,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: color.successSurface,
+  },
+  doneTitle: { ...type.heading, color: color.text },
+  doneBody: { ...type.body, lineHeight: 20, color: color.dim, textAlign: "center" },
+  resend: { marginTop: space(1) },
+  resendText: { ...type.bodyStrong, color: color.redLight },
+  spacer: { flex: 1, minHeight: space(6) },
 });

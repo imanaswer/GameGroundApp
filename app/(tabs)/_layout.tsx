@@ -1,7 +1,8 @@
-import { Tabs } from "expo-router";
+import { Redirect, Tabs } from "expo-router";
 
 import { TabBar } from "@/components/chrome/TabBar";
 import { CoachesIcon, DiscoverIcon, GamesIcon, HomeIcon, LeadersIcon } from "@/components/ds/icons";
+import { useAuth } from "@/hooks/useAuth";
 
 /** Tab order is fixed by Decision 5: home · games · coaches · discover · leaders. */
 const TABS = [
@@ -13,6 +14,13 @@ const TABS = [
 ] as const;
 
 export default function TabsLayout() {
+  // Tabs are signed-in-only (§5.1, same intent as app/index.tsx). A dev-client reload can land
+  // directly on a tab route, bypassing the index gate — without this guard Home renders with a
+  // null user (no avatar, "there" greeting, guest/placeholder data). Redirect signed-out users.
+  const { status } = useAuth();
+  if (status === "restoring") return null; // splash still up while the session restores
+  if (status === "signedOut") return <Redirect href="/login" />;
+
   return (
     <Tabs
       // Custom bar owns the chrome (blur, spring icon, indicator, halo, haptic) per DS §5 / MOTION §2.

@@ -6,7 +6,10 @@ export {
   useVenues,
   useVenueSlots,
   useGameAction,
+  useCancelGame,
+  useCompleteGame,
   useCreateGame,
+  useGamePlayers,
   toGameCard,
   toUpNext,
 } from "./games";

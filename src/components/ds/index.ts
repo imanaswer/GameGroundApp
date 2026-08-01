@@ -2,7 +2,7 @@
 export { Press } from "./Press";
 export { Button } from "./Button";
 export { Chip, ChipRow } from "./Chip";
-export { Badge, TierBadge, LiveChip } from "./Badge";
+export { Badge, TierBadge, LiveChip, FeaturedChip } from "./Badge";
 export { Avatar, AvatarStack } from "./Avatar";
 export { Stars } from "./Stars";
 export { SlotBar } from "./SlotBar";

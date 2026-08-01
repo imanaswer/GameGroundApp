@@ -143,24 +143,50 @@ function Shine({ reduced }: { reduced: boolean }) {
   );
 }
 
-/** §8 Home countdown: HH/MM/SS cells ticking each second toward startsAt. */
+const DAY_MS = 86_400_000;
+
+/**
+ * §8 Home countdown. Live HH/MM/SS cells only ticking inside the final day — a game days out
+ * gets a calm "In N days" pill instead of false urgency (and no >99h cell overflow). At zero it
+ * reads "Starting now". Ticks every second; static under reduced motion is irrelevant (it's data).
+ */
 function Countdown({ startsAt }: { startsAt: string }) {
   const [remaining, setRemaining] = useState(() => Math.max(0, new Date(startsAt).getTime() - Date.now()));
+  // Below a day the value ticks per-second; further out it barely changes, so poll each minute.
+  const near = remaining < DAY_MS;
   useEffect(() => {
     const target = new Date(startsAt).getTime();
     const tick = () => setRemaining(Math.max(0, target - Date.now()));
     tick();
-    const iv = setInterval(tick, 1000);
+    const iv = setInterval(tick, near ? 1000 : 60_000);
     return () => clearInterval(iv);
-  }, [startsAt]);
+  }, [startsAt, near]);
+
+  if (remaining <= 0) {
+    return (
+      <View style={styles.farPill} accessibilityLabel="Starting now">
+        <Text style={styles.farText}>Starting now</Text>
+      </View>
+    );
+  }
 
   const totalSec = Math.floor(remaining / 1000);
+  const days = Math.floor(totalSec / 86_400);
+  if (days >= 1) {
+    const label = days === 1 ? "Tomorrow" : `In ${days} days`;
+    return (
+      <View style={styles.farPill} accessibilityLabel={`Starts ${days === 1 ? "tomorrow" : `in ${days} days`}`}>
+        <Text style={styles.farText}>{label}</Text>
+      </View>
+    );
+  }
+
   const hh = String(Math.floor(totalSec / 3600)).padStart(2, "0");
   const mm = String(Math.floor((totalSec % 3600) / 60)).padStart(2, "0");
   const ss = String(totalSec % 60).padStart(2, "0");
 
   return (
-    <View style={styles.countdown} accessibilityLabel={`Starts in ${hh} hours ${mm} minutes`}>
+    <View style={styles.countdown} accessibilityLabel={`Starts in ${hh} hours ${mm} minutes ${ss} seconds`}>
       <Cell value={hh} unit="HRS" />
       <Cell value={mm} unit="MIN" />
       <Cell value={ss} unit="SEC" />
@@ -203,6 +229,16 @@ const styles = StyleSheet.create({
   joined: { ...type.caption, color: color.dim },
 
   countdown: { flexDirection: "row", gap: space(1.5) },
+  farPill: {
+    backgroundColor: color.countdownTile,
+    borderWidth: 1,
+    borderColor: color.border2,
+    borderRadius: radius.tileSm,
+    paddingVertical: space(1.5),
+    paddingHorizontal: space(2.5),
+    alignSelf: "flex-end",
+  },
+  farText: { fontFamily: font.sansExtra, fontSize: 11, color: color.text, letterSpacing: 0.3 },
   cell: {
     backgroundColor: color.countdownTile,
     borderWidth: 1,
