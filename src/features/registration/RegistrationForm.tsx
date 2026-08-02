@@ -34,7 +34,15 @@ export function RegistrationForm({
   const [values, setValues] = useState<Record<string, string>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [registration, setRegistration] = useState<Record<string, unknown> | null>(null);
-  const checkout = useCheckout(config.entityType as EntityType, entityId, registration ?? {});
+  // `registration` is set the moment the form is submitted, which is exactly when this flow enters
+  // the payment path — so it doubles as the FLAG_SECURE gate (§9.5). Before that the user is only
+  // filling in a form and nothing sensitive is on screen.
+  const checkout = useCheckout(
+    config.entityType as EntityType,
+    entityId,
+    registration ?? {},
+    registration !== null,
+  );
   const { promptForPush } = usePush();
   const { show } = useToast();
   const isFree = amountPaise <= 0;

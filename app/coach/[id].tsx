@@ -39,7 +39,7 @@ export default function CoachDetail() {
     scrollY.value = e.contentOffset.y;
   });
 
-  const checkout = useCheckout("coach", id, booking ? { batchId: booking.id } : {});
+  const checkout = useCheckout("coach", id, booking ? { batchId: booking.id } : {}, !!booking);
   const online = useIsOnline();
   const { promptForPush } = usePush();
 
