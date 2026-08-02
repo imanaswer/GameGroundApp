@@ -4,7 +4,7 @@
 import { forwardRef, useState } from "react";
 import { StyleSheet, Text, TextInput, View, type TextInputProps } from "react-native";
 
-import { color, radius, space, type } from "@/lib/tokens";
+import { color, radius, ramp, space, type } from "@/lib/tokens";
 
 import { EyeIcon, EyeOffIcon } from "./icons";
 import { Press } from "./Press";
@@ -21,7 +21,6 @@ export const Input = forwardRef<TextInput, Props>(function Input(
 
   return (
     <View style={styles.wrap}>
-      {!!label && <Text style={styles.label}>{label}</Text>}
       <View
         style={[
           styles.field,
@@ -30,6 +29,11 @@ export const Input = forwardRef<TextInput, Props>(function Input(
           !editable && styles.disabled,
         ]}
       >
+        {!!label && (
+          <Text style={[styles.label, !!error && styles.labelError]} pointerEvents="none">
+            {label}
+          </Text>
+        )}
         <TextInput
           ref={ref}
           editable={editable}
@@ -69,15 +73,31 @@ export const Input = forwardRef<TextInput, Props>(function Input(
 
 const styles = StyleSheet.create({
   wrap: { marginBottom: space(4) },
-  label: { ...type.label, color: color.dim, marginBottom: space(2) },
+  /**
+   * The source notches the label INTO the field's top border rather than stacking it above
+   * (its Login 03 frame). Absolutely positioned with a `bg`-coloured backdrop so it masks the
+   * hairline behind it — which is why the field fill must be `bg` and not the grey `card`: the
+   * mask only disappears if the label's backdrop matches the page exactly.
+   */
+  label: {
+    position: "absolute",
+    top: -7,
+    left: space(3),
+    paddingHorizontal: space(1),
+    backgroundColor: color.bg,
+    ...type.caption,
+    color: color.dim,
+    zIndex: 1,
+  },
+  labelError: { color: ramp.error[600] },
   field: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: color.card,
+    backgroundColor: color.bg,
     borderRadius: radius.input,
     borderWidth: 1,
-    borderColor: color.border,
-    minHeight: 44,
+    borderColor: color.border2,
+    minHeight: 48,
   },
   input: {
     flex: 1,
@@ -87,10 +107,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: space(3.5),
     paddingVertical: space(3),
   },
-  focus: { borderColor: color.focusRing },
-  error: { borderColor: color.primarySoft },
+  focus: { borderColor: color.primary },
+  // Error is the ERROR ramp, not `primarySoft`. The red* -> primary*/error* rename mapped
+  // `redLight` to `primarySoft` mechanically, which was right for accents and wrong here: this
+  // border and the message below it are the only signal a field failed validation, and grey does
+  // not read as failure.
+  error: { borderColor: ramp.error[500] },
   disabled: { opacity: 0.5 },
   eye: { paddingHorizontal: space(3.5), paddingVertical: space(2), alignItems: "center", justifyContent: "center" },
-  errorLine: { ...type.caption, color: color.primarySoft, marginTop: space(1) },
+  errorLine: { ...type.caption, color: ramp.error[600], marginTop: space(1) },
   hintLine: { ...type.caption, color: color.dim2, marginTop: space(1) },
 });

@@ -5,13 +5,13 @@
 import { StyleSheet, Text, View } from "react-native";
 
 import { AlertIcon, Button, OfflineIcon } from "@/components/ds";
-import { color, icon as iconSize, layout, space, type } from "@/lib/tokens";
+import { color, icon as iconSize, layout, space, type , ramp} from "@/lib/tokens";
 
 export function ErrorState({ message, onRetry }: { message: string; onRetry: () => void }) {
   return (
     <View style={styles.wrap}>
       <View style={styles.tile}>
-        <AlertIcon size={iconSize.empty} color={color.primarySoft} />
+        <AlertIcon size={iconSize.empty} color={ramp.error[500]} />
       </View>
       <Text style={styles.headline}>Something went wrong</Text>
       <Text style={styles.body}>{message}</Text>

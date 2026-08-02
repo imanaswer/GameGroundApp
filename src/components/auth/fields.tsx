@@ -6,7 +6,7 @@ import { useEffect, useState } from "react";
 import { StyleSheet, Text } from "react-native";
 
 import { ApiClientError } from "@/api/client";
-import { color, space, type } from "@/lib/tokens";
+import { ramp, space, type } from "@/lib/tokens";
 
 /** Renders a thrown form error. 429s show a live countdown; everything else, the server string. */
 export function FormError({ error }: { error: unknown }) {
@@ -44,5 +44,7 @@ export function fieldErrorsFrom(error: unknown): Record<string, string> {
 }
 
 const styles = StyleSheet.create({
-  formError: { ...type.bodyStrong, color: color.primarySoft, marginBottom: space(3), textAlign: "center" },
+  // Error ramp, not `primarySoft` — the rename mapped this mechanically and a grey form error
+  // does not read as a failure.
+  formError: { ...type.bodyStrong, color: ramp.error[600], marginBottom: space(3), textAlign: "center" },
 });

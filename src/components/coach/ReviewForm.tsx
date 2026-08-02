@@ -9,7 +9,7 @@ import { fieldErrorsFrom } from "@/components/auth/fields";
 import { Button, Input, Press, StarIcon } from "@/components/ds";
 import { useSubmitReview } from "@/hooks/queries";
 import * as haptics from "@/lib/haptics";
-import { color, radius, space, type } from "@/lib/tokens";
+import { color, radius, space, type , ramp} from "@/lib/tokens";
 
 export function ReviewForm({ coachId }: { coachId: string }) {
   const submit = useSubmitReview(coachId);
@@ -73,6 +73,6 @@ const styles = StyleSheet.create({
   wrap: { gap: space(2.5), backgroundColor: color.card, borderRadius: radius.input, borderWidth: 1, borderColor: color.border, padding: space(3.5), marginBottom: space(2) },
   label: { ...type.label, color: color.dim },
   stars: { flexDirection: "row", gap: space(1.5) },
-  error: { ...type.caption, color: color.primarySoft },
+  error: { ...type.caption, color: ramp.error[600] },
   thanks: { ...type.body, color: color.successText, paddingVertical: space(2) },
 });
