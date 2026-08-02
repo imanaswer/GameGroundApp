@@ -14,7 +14,7 @@ The kit defines how screens LOOK. This file defines how the app MOVES. Both are 
 | dur.moment | 900ms | tier-up takeover (one-shot moments only) |
 | spring.press | damping 18, stiffness 320 | button/card compress-release |
 | spring.pop | damping 14, stiffness 220, slight overshoot | badges, avatars, counters, dots, segment pill |
-| spring.sheet | damping 22, stiffness 260 | bottom sheets, drag-release |
+| spring.sheet | damping 22, stiffness 260 | ~~bottom sheets, drag-release~~ — **retired 2 Aug 2026, currently unused.** Bottom sheets now slide on a curve (below); any spring is underdamped by definition and over a full screen-height travel even ~5% overshoot reads as a bounce. Token kept for a future consumer that genuinely wants settle physics. |
 | spring.layout | damping 20, stiffness 200 | list reflow, filter changes |
 | ease.exit | Easing.out(cubic) | anything leaving/settling |
 
@@ -30,7 +30,7 @@ Rule: no duration or spring config anywhere except these tokens.
 | Tab switch | Content cross-fade dur.fast + icon spring.pop 1→1.15 + indicator-bar width spring + halo scale-in. No horizontal slide. |
 | Modal (create-game, search) | Search MORPHS from the header icon: blur overlay fades in, input scales .92→1 with spring.pop. Create-game slides up full-sheet dur.base. |
 | Discover segments | Animated pill slides under the active segment (spring.pop); content fade-swaps (dur.base, translateY 10→0). |
-| Bottom sheets | Physics: drag-follows-finger, rubber-band above rest (×0.18), velocity-aware dismiss (dy>120px or v>0.55px/ms), backdrop fade tied to position. NEVER dismissible while payment verification is in flight — blocked drag answers with a warning haptic. |
+| Bottom sheets | **Entry/exit is a curve, not a spring: in on dur.base + ease.exit, out on dur.fast + ease.exit, zero overshoot** (2 Aug 2026 — see Decision 14). Physics while dragging: drag-follows-finger, rubber-band above rest (×0.18), velocity-aware dismiss (dy>120px or v>0.55px/ms), backdrop fade tied to position; a released drag that doesn't dismiss returns on the same curve. NEVER dismissible while payment verification is in flight — blocked drag answers with a warning haptic. |
 | List entrance | First page only: 30ms stagger, translateY 12–14 → 0 + fade. Never on pagination or back-nav restore. |
 | Filter/leaderboard change | Layout animation + keep-previous-data. No spinner, no blank flash. |
 | Scroll reveals | Detail-page sections reveal on intersection (translateY 18→0 + fade, .55s), once per mount. |
