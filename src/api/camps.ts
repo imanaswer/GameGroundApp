@@ -1,12 +1,30 @@
-/** camps endpoints (§3.3). Uniform with the other registerable entities — one shape. */
+/** camps endpoints (§3.3). Reconciled through the shared registerable mapper. */
 import { api } from "./client";
+import {
+  cancelRegistration as cancelReg,
+  registerFree,
+  toDetail,
+  toSummaryList,
+  type RawRegisterable,
+} from "./registerable";
 import type { RegisterableDetail, RegisterableSummary } from "./types";
 
-export function list(params: { q?: string } = {}): Promise<RegisterableSummary[]> {
+export async function list(params: { q?: string } = {}): Promise<RegisterableSummary[]> {
   const s = params.q ? `?q=${encodeURIComponent(params.q)}` : "";
-  return api.get<RegisterableSummary[]>(`/camps${s}`);
+  const rows = await api.get<RawRegisterable[]>(`/camps${s}`);
+  return toSummaryList(rows, "camp");
 }
 
-export function detail(id: string): Promise<RegisterableDetail> {
-  return api.get<RegisterableDetail>(`/camps/${id}`);
+export async function detail(id: string): Promise<RegisterableDetail> {
+  return toDetail(await api.get<RawRegisterable>(`/camps/${id}`), "camp");
+}
+
+/** Free registration (camps with price 0). Paid ones go through checkout and 402 here. */
+export function register(id: string, fields: Record<string, unknown>) {
+  return registerFree("camps", id, fields);
+}
+
+/** Cancel this registration (90-minute pre-start cutoff, server-enforced). */
+export function cancel(id: string) {
+  return cancelReg("camps", id);
 }

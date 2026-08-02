@@ -16,7 +16,16 @@ import { color, space, type } from "@/lib/tokens";
 
 const HOT = 0.75;
 
-export function SlotBar({ joined, total }: { joined: number; total: number }) {
+export function SlotBar({
+  joined,
+  total,
+  hideCaption = false,
+}: {
+  joined: number;
+  total: number;
+  /** Suppress the built-in "N/M joined · X left" caption when the screen renders its own. */
+  hideCaption?: boolean;
+}) {
   const ratio = total > 0 ? Math.min(1, joined / total) : 0;
   const hot = ratio >= HOT;
   const left = Math.max(0, total - joined);
@@ -45,9 +54,11 @@ export function SlotBar({ joined, total }: { joined: number; total: number }) {
           )}
         </Animated.View>
       </View>
-      <Text style={styles.lab}>
-        {joined}/{total} joined · {left} left
-      </Text>
+      {!hideCaption && (
+        <Text style={styles.lab}>
+          {joined}/{total} joined · {left} left
+        </Text>
+      )}
     </View>
   );
 }

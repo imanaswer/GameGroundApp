@@ -19,6 +19,8 @@ import {
   OfflineBanner,
   Screen,
   SegmentedControl,
+  SetupCard,
+  Sheet,
   StickyCTA,
 } from "@/components/chrome";
 import {
@@ -30,6 +32,7 @@ import {
   Chip,
   ChipRow,
   GamesIcon,
+  InfoIcon,
   Input,
   LiveChip,
   SearchBar,
@@ -52,6 +55,8 @@ const PEOPLE = [
 const GAME: GameCardData = {
   id: "g1",
   title: "Evening Football 7s",
+  sport: "Football",
+  level: "All Levels",
   venue: "Turf Park",
   when: "Today 7:00 PM",
   price: "₹120",
@@ -75,6 +80,7 @@ export default function Catalog() {
   const [chip, setChip] = useState<"all" | "football" | "cricket">("all");
   const [seg, setSeg] = useState<"camps" | "workshops" | "events">("camps");
   const [checkout, setCheckout] = useState<CheckoutState>("methods");
+  const [sheetOpen, setSheetOpen] = useState(false);
 
   if (!__DEV__) return <Redirect href="/home" />;
 
@@ -145,6 +151,7 @@ export default function Catalog() {
 
         <Section title="Input">
           <Input label="Email" placeholder="you@example.com" />
+          <Input label="With hint" placeholder="ananya_s" hint="Lowercase letters, numbers and underscores." />
           <Input label="With error" placeholder="…" error="Enter a valid email" />
         </Section>
 
@@ -160,11 +167,43 @@ export default function Catalog() {
         <Section title="Cards">
           <GameCard data={GAME} onPress={() => {}} />
           <CoachCard
-            data={{ id: "c1", name: "Coach Ramesh", sport: "Football", rating: 4.7, price: "₹500/hr" }}
+            data={{ id: "c1", name: "Coach Ramesh", sport: "Football", rating: 4.7, reviewCount: 42, price: "₹300–500/session" }}
             onPress={() => {}}
           />
           <RegistrationCard
             data={{ id: "r1", kind: "camp", title: "Summer Skills Camp", when: "Jun 1–15", price: "₹2,500", registered: 18, capacity: 20 }}
+            onPress={() => {}}
+          />
+        </Section>
+
+        <Section title="Rail cards — compact (Home rails)">
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.rail}>
+            <GameCard data={GAME} compact onPress={() => {}} />
+            <CoachCard
+              data={{ id: "c2", name: "Coach Ramesh", sport: "Football", rating: 4.7, reviewCount: 42, price: "₹300/session" }}
+              compact
+              onPress={() => {}}
+            />
+            <CoachCard
+              data={{ id: "c3", name: "Coach Neha", sport: "Tennis", rating: 0, reviewCount: 0, price: "On request" }}
+              compact
+              onPress={() => {}}
+            />
+          </ScrollView>
+        </Section>
+
+        <Section title="SetupCard — dismissible & static">
+          <SetupCard
+            icon={<InfoIcon color={color.text} />}
+            title="Set your sports"
+            body="Pick the sports you play to personalise your games."
+            onPress={() => {}}
+            onDismiss={() => {}}
+          />
+          <SetupCard
+            icon={<InfoIcon color={color.text} />}
+            title="Verify your number"
+            body="Confirm your phone to host games and receive updates."
             onPress={() => {}}
           />
         </Section>
@@ -204,14 +243,32 @@ export default function Catalog() {
             items={[
               { key: "methods", label: "Methods" },
               { key: "processing", label: "Processing" },
+              { key: "reconciling", label: "Reconciling" },
               { key: "success", label: "Success" },
               { key: "failure", label: "Failure" },
+              { key: "unresolved", label: "Unresolved" },
             ]}
             value={checkout}
             onChange={setCheckout}
           />
           <View style={styles.sheetHost}>
-            <CheckoutSheet state={checkout} amount="₹120" onPay={() => {}} onRetry={() => {}} />
+            <CheckoutSheet
+              state={checkout}
+              phase="gateway"
+              amount="₹120"
+              error="Card declined by your bank."
+              onPay={() => {}}
+              onRetry={() => {}}
+              onSupport={() => {}}
+              onClose={() => {}}
+            />
+          </View>
+        </Section>
+
+        <Section title="Sheet (chrome) + StickyCTA confirmed state">
+          <Button title="Open bottom sheet" variant="secondary" onPress={() => setSheetOpen(true)} />
+          <View style={styles.ctaBox}>
+            <StickyCTA status="You’re in" ctaLabel="Leave game" buttonVariant="secondary" onPress={() => {}} />
           </View>
         </Section>
 
@@ -219,6 +276,15 @@ export default function Catalog() {
       </ScrollView>
 
       <StickyCTA price="₹120" caption="per player" ctaLabel="Join game" onPress={() => {}} />
+
+      <Sheet visible={sheetOpen} onDismiss={() => setSheetOpen(false)}>
+        <View style={styles.demoSheet}>
+          <View style={styles.demoHandle} />
+          <Text style={styles.demoTitle}>Bottom sheet</Text>
+          <Text style={styles.demoBody}>Drag the handle down or tap the scrim to dismiss.</Text>
+          <Button title="Close" onPress={() => setSheetOpen(false)} />
+        </View>
+      </Sheet>
     </Screen>
   );
 }
@@ -230,6 +296,12 @@ const styles = StyleSheet.create({
   label: { ...t.label, color: color.dim },
   body: { gap: space(3) },
   rowWrap: { flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: space(2) },
+  rail: { gap: space(3), paddingVertical: space(1) },
   stateBox: { height: 320, backgroundColor: color.bg, borderRadius: 20, borderWidth: 1, borderColor: color.border, overflow: "hidden" },
   sheetHost: { borderRadius: 20, overflow: "hidden", backgroundColor: color.bg },
+  ctaBox: { height: 130, position: "relative", borderRadius: 20, borderWidth: 1, borderColor: color.border, overflow: "hidden", backgroundColor: color.bg },
+  demoSheet: { backgroundColor: color.elev, borderTopLeftRadius: 28, borderTopRightRadius: 28, padding: space(5), gap: space(3) },
+  demoHandle: { width: 38, height: 4, borderRadius: 999, backgroundColor: color.border2, alignSelf: "center", marginBottom: space(2) },
+  demoTitle: { ...t.title2, color: color.text },
+  demoBody: { ...t.body, color: color.dim },
 });

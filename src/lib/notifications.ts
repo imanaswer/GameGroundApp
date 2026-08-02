@@ -3,9 +3,13 @@
  * push API so screens/hooks stay declarative. Every server call degrades gracefully: when the
  * /api/push/* routes aren't deployed yet, failures are logged as breadcrumbs and swallowed —
  * the app never crashes and re-tries on the next app open.
+ *
+ * expo-notifications is unavailable in Expo Go (removed SDK 53). All access goes through the
+ * lazy `Notif` getter so the module is only loaded inside a development build.
+ * NOTE: We cannot use `import type` from expo-notifications — Metro resolves
+ * the import at bundle time and triggers the Expo Go crash before TS strips it.
  */
-import Constants from "expo-constants";
-import * as Notifications from "expo-notifications";
+import Constants, { ExecutionEnvironment } from "expo-constants";
 import { Platform } from "react-native";
 
 import * as pushApi from "@/api/push";
@@ -14,11 +18,44 @@ import * as storage from "@/lib/storage";
 import { DEFAULT_PREFS, type PushPrefs } from "@/lib/pushCategories";
 import { color } from "@/lib/tokens";
 
+// expo-notifications is required lazily, so its surface is untyped here by design.
+type ExpoNotifications = any;
+
+/** True when running inside Expo Go, where expo-notifications was removed (SDK 53). */
+const isExpoGo = Constants.executionEnvironment === ExecutionEnvironment.StoreClient;
+
+/** Lazy-loaded expo-notifications — null when running in Expo Go. */
+let _notif: ExpoNotifications | null | undefined;
+function Notif(): ExpoNotifications | null {
+  if (_notif === undefined) {
+    // Skip the require entirely in Expo Go: requiring expo-notifications there logs a red
+    // error at module-eval time (before our catch can swallow the throw). Only a dev build
+    // has the native module, so gate on the execution environment.
+    if (isExpoGo) {
+      _notif = null;
+    } else {
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
+        _notif = require("expo-notifications");
+      } catch {
+        _notif = null;
+      }
+    }
+  }
+  return _notif;
+}
+
+/** True when expo-notifications is available (dev build, not Expo Go). */
+export function isAvailable(): boolean {
+  return Notif() !== null;
+}
+
 /**
  * Foreground policy (§10.2): suppress the OS banner — the app shows an in-app toast instead.
  * Set once at module load so a notification arriving before configure() still behaves.
+ * No-ops in Expo Go.
  */
-Notifications.setNotificationHandler({
+Notif()?.setNotificationHandler({
   handleNotification: async () => ({
     shouldShowBanner: false,
     shouldShowList: true,
@@ -30,10 +67,12 @@ Notifications.setNotificationHandler({
 /** Android needs an explicit channel; brand the accent red (§10.2). Safe to call repeatedly. */
 export async function configureAndroidChannel(): Promise<void> {
   if (Platform.OS !== "android") return;
+  const N = Notif();
+  if (!N) return;
   try {
-    await Notifications.setNotificationChannelAsync("default", {
+    await N.setNotificationChannelAsync("default", {
       name: "Game Ground",
-      importance: Notifications.AndroidImportance.DEFAULT,
+      importance: N.AndroidImportance.DEFAULT,
       lightColor: color.red,
     });
   } catch (e) {
@@ -42,8 +81,10 @@ export async function configureAndroidChannel(): Promise<void> {
 }
 
 export async function hasPermission(): Promise<boolean> {
+  const N = Notif();
+  if (!N) return false;
   try {
-    const { status } = await Notifications.getPermissionsAsync();
+    const { status } = await N.getPermissionsAsync();
     return status === "granted";
   } catch {
     return false;
@@ -52,8 +93,10 @@ export async function hasPermission(): Promise<boolean> {
 
 /** OS permission prompt. Returns whether it ended up granted. */
 export async function requestPermission(): Promise<boolean> {
+  const N = Notif();
+  if (!N) return false;
   try {
-    const { status } = await Notifications.requestPermissionsAsync();
+    const { status } = await N.requestPermissionsAsync();
     return status === "granted";
   } catch (e) {
     captureException(e, { where: "requestPermission" });
@@ -78,9 +121,11 @@ export async function registerForPush(): Promise<void> {
   const pid = projectId();
   if (!pid) return; // dev/simulator without EAS — nothing to register
 
+  const N = Notif();
+  if (!N) return;
   let token: string;
   try {
-    const res = await Notifications.getExpoPushTokenAsync({ projectId: pid });
+    const res = await N.getExpoPushTokenAsync({ projectId: pid });
     token = res.data;
   } catch (e) {
     captureException(e, { where: "getExpoPushToken" });
@@ -140,13 +185,15 @@ export async function savePrefs(prefs: Record<string, boolean>): Promise<void> {
 
 /** Re-register when the OS rotates the push token. Returns an unsubscribe. */
 export function subscribeTokenRefresh(): { remove: () => void } {
-  return Notifications.addPushTokenListener(() => {
+  const N = Notif();
+  if (!N) return { remove: () => {} };
+  return N.addPushTokenListener(() => {
     registerForPush();
   });
 }
 
 /** The URL a notification wants to open (payloads always carry data.url per §10.1). */
-export function urlFromResponse(response: Notifications.NotificationResponse | null): string | null {
+export function urlFromResponse(response: any | null): string | null {
   const data = response?.notification.request.content.data as { url?: unknown } | undefined;
   return typeof data?.url === "string" ? data.url : null;
 }

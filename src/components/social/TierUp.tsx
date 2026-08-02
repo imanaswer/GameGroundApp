@@ -25,40 +25,55 @@ import Animated, {
   withSpring,
 } from "react-native-reanimated";
 
-import { Confetti, TierBadge } from "@/components/ds";
+import { Confetti, TrophyIcon } from "@/components/ds";
 import * as haptics from "@/lib/haptics";
 import * as storage from "@/lib/storage";
 import { tierUpDecision } from "@/lib/tierUp";
 import { color, space, tier as tierMap, type, type Tier } from "@/lib/tokens";
 import { spring } from "@/theme/animations";
 
-type TierUpContextValue = { celebrate: (tier: Tier | null) => void };
+type TierUpMeta = { caption?: string };
+type Shown = { tier: Tier; caption?: string };
+type TierUpContextValue = {
+  /** Real tier-up: only takes over when the tier actually increased vs the stored last-seen. */
+  celebrate: (tier: Tier | null, meta?: TierUpMeta) => void;
+  /** Force the celebration for the given tier regardless of history (demo / "simulate tier-up"). */
+  simulate: (tier: Tier | null, meta?: TierUpMeta) => void;
+};
 const TierUpContext = createContext<TierUpContextValue | null>(null);
 
 export function TierUpProvider({ children }: { children: ReactNode }) {
-  const [shown, setShown] = useState<Tier | null>(null);
+  const [shown, setShown] = useState<Shown | null>(null);
 
-  const celebrate = useCallback((tier: Tier | null) => {
+  const celebrate = useCallback((tier: Tier | null, meta?: TierUpMeta) => {
     if (!tier) return;
     storage.get("gg.lastSeenTier").then((last) => {
       const decision = tierUpDecision(tier, last);
       if (decision === "skip") return;
       storage.set("gg.lastSeenTier", tier); // record + celebrate both persist the new tier
-      if (decision === "celebrate") setShown(tier);
+      if (decision === "celebrate") setShown({ tier, caption: meta?.caption });
     });
   }, []);
 
-  const value = useMemo(() => ({ celebrate }), [celebrate]);
+  // Demo trigger — always shows, never persists last-seen (so it doesn't suppress a real tier-up).
+  const simulate = useCallback((tier: Tier | null, meta?: TierUpMeta) => {
+    if (!tier) return;
+    setShown({ tier, caption: meta?.caption });
+  }, []);
+
+  const value = useMemo(() => ({ celebrate, simulate }), [celebrate, simulate]);
 
   return (
     <TierUpContext.Provider value={value}>
       {children}
-      {shown && <TierUpOverlay tier={shown} onDismiss={() => setShown(null)} />}
+      {shown && (
+        <TierUpOverlay tier={shown.tier} caption={shown.caption} onDismiss={() => setShown(null)} />
+      )}
     </TierUpContext.Provider>
   );
 }
 
-function TierUpOverlay({ tier, onDismiss }: { tier: Tier; onDismiss: () => void }) {
+function TierUpOverlay({ tier, caption, onDismiss }: { tier: Tier; caption?: string; onDismiss: () => void }) {
   const reduced = useReducedMotion();
   const scale = useSharedValue(reduced ? 1 : 0.6);
 
@@ -80,18 +95,18 @@ function TierUpOverlay({ tier, onDismiss }: { tier: Tier; onDismiss: () => void 
         )}
         <View style={styles.center}>
           <Animated.View style={badgeStyle}>
-            <View style={[styles.badgeWrap, { borderColor: tierMap[tier].fg }]}>
-              <TierBadge tier={tier} />
+            <View style={[styles.badgeWrap, { backgroundColor: tierMap[tier].fg }]}>
+              <TrophyIcon size={44} color={color.bg} />
             </View>
           </Animated.View>
           <Animated.Text entering={reduced ? undefined : FadeInDown.delay(150)} style={styles.headline}>
             You just hit {tier[0].toUpperCase() + tier.slice(1)}
           </Animated.Text>
           <Animated.Text entering={reduced ? undefined : FadeInDown.delay(250)} style={styles.sub}>
-            Keep playing to climb higher.
+            {caption ?? "Keep playing to climb higher."}
           </Animated.Text>
           <Animated.Text entering={reduced ? undefined : FadeInDown.delay(400)} style={styles.hint}>
-            Tap to continue
+            Tap anywhere to continue
           </Animated.Text>
         </View>
       </Pressable>
@@ -106,10 +121,11 @@ export function useTierUp(): TierUpContextValue {
 }
 
 const styles = StyleSheet.create({
-  scrim: { position: "absolute", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: color.scrim, zIndex: 200 },
+  // Solid app-black, not a translucent scrim — the celebration owns the whole screen (no bleed-through).
+  scrim: { position: "absolute", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: color.bg, zIndex: 200 },
   fill: { flex: 1 },
   center: { flex: 1, alignItems: "center", justifyContent: "center", gap: space(3), paddingHorizontal: space(6) },
-  badgeWrap: { padding: space(4), borderRadius: 999, borderWidth: 1, alignItems: "center", justifyContent: "center" },
+  badgeWrap: { width: 104, height: 104, borderRadius: 999, alignItems: "center", justifyContent: "center" },
   headline: { ...type.title1, fontSize: 30, color: color.text, textAlign: "center", marginTop: space(4) },
   sub: { ...type.body, color: color.dim, textAlign: "center" },
   hint: { ...type.caption, color: color.dim2, marginTop: space(4) },

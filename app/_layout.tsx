@@ -1,18 +1,20 @@
 import NetInfo from "@react-native-community/netinfo";
-import { QueryClient, onlineManager } from "@tanstack/react-query";
+import { QueryClient, onlineManager, useQueryClient } from "@tanstack/react-query";
 import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
 import { useFonts } from "expo-font";
 import { Stack, useRouter } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { InteractionManager } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 
 import { setClientHandlers } from "@/api/client";
-import { ToastProvider } from "@/components/chrome";
+import { ToastProvider, useToast } from "@/components/chrome";
 import { TierUpProvider } from "@/components/social/TierUp";
-import { AuthProvider } from "@/hooks/useAuth";
+import { keys } from "@/hooks/queries";
+import { useAuth, AuthProvider } from "@/hooks/useAuth";
+import { resumePendingReconciliation } from "@/hooks/useCheckout";
 import { DeepLinkProvider } from "@/hooks/useDeepLinks";
 import { PushProvider } from "@/hooks/usePush";
 import { initAnalytics } from "@/lib/analytics";
@@ -34,16 +36,66 @@ onlineManager.setEventListener((setOnline) =>
   NetInfo.addEventListener((state) => setOnline(!!state.isConnected)),
 );
 
+/**
+ * §9.4 cold-start resume. If the app was killed between a debit and its verify verdict, a
+ * `gg.pendingOrder` is sitting in storage with the user's money in limbo. Restart that poll once
+ * per launch, as soon as there's a session to authenticate `/payments/history` with.
+ *
+ * Fire-and-forget by design: the poll runs up to 5 minutes in the background and must never block
+ * or delay first paint. On confirmation we refresh the entity the user paid for and tell them.
+ */
+function PendingPaymentBridge() {
+  const { status } = useAuth();
+  const queryClient = useQueryClient();
+  const { show } = useToast();
+  const started = useRef(false);
+
+  useEffect(() => {
+    if (status !== "signedIn" || started.current) return;
+    started.current = true;
+    resumePendingReconciliation((pending) => {
+      // Same entityType keying as useCheckout's settleSuccess — a coach order confirmed on resume
+      // has to refetch the coach, since that response carries the booking that unlocks messaging.
+      if (pending.entityType === "coach") {
+        queryClient.invalidateQueries({ queryKey: keys.coaches.detail(pending.entityId) });
+        queryClient.invalidateQueries({ queryKey: keys.coaches.all });
+      } else if (pending.entityType === "game") {
+        queryClient.invalidateQueries({ queryKey: keys.games.detail(pending.entityId) });
+        queryClient.invalidateQueries({ queryKey: keys.games.all });
+      } else {
+        queryClient.invalidateQueries({ queryKey: ["registerables", pending.entityType] });
+      }
+      queryClient.invalidateQueries({ queryKey: keys.me });
+      queryClient.invalidateQueries({ queryKey: ["payments", "history"] });
+      show({
+        title: "Payment confirmed",
+        body: "That pending payment went through — your spot is confirmed.",
+      });
+    }).catch(() => {
+      // A failed resume is never fatal: the record survives and the next launch retries.
+    });
+  }, [status, queryClient, show]);
+
+  return null;
+}
+
 /** Routes the api client's global outcomes (§4.1): dead session → login, 426 → upgrade wall. */
 function ClientHandlerBridge() {
   const router = useRouter();
+  const { show } = useToast();
   useEffect(() => {
     setClientHandlers({
-      onSessionExpired: () => router.replace("/login"),
+      onSessionExpired: () => {
+        // Sessions last as long as the access token — there is no refresh yet (dev PRD §5.3), so
+        // this fires on ordinary expiry, not just on a revoked session. Being dumped on the login
+        // screen with no explanation reads like a bug; say what happened.
+        show({ title: "Session expired", body: "Please sign in again to continue." });
+        router.replace("/login");
+      },
       onUpgradeRequired: () => router.replace("/upgrade-required"),
     });
     return () => setClientHandlers({});
-  }, [router]);
+  }, [router, show]);
   return null;
 }
 
@@ -84,6 +136,7 @@ export default function RootLayout() {
               <PushProvider>
                 <TierUpProvider>
                 <ClientHandlerBridge />
+                <PendingPaymentBridge />
                 <RazorpayHost />
                 <StatusBar style="light" />
                 <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: color.bg } }}>

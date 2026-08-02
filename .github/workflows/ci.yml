@@ -3,7 +3,10 @@ name: CI
 on:
   pull_request:
   push:
-    branches: [main, "m[0-9]*"]
+    # Every branch. The old `[main, "m[0-9]*"]` list matched the milestone naming
+    # convention only, so work on a differently-named branch (design-excellence-v2)
+    # was never checked anywhere but a laptop. Gates are ~1 min; run them everywhere.
+    branches: ["**"]
 
 jobs:
   check:
@@ -18,3 +21,33 @@ jobs:
       - run: npm run lint
       - run: npm run typecheck
       - run: npm test -- --ci
+
+  # S1.5 release gate (Developer PRD §2.4). Exports the real bundle and greps it for
+  # live keys / secrets. Slower than the unit gates, so it runs only where a release
+  # can actually be cut from, not on every feature push.
+  secret-grep:
+    if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/release')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Bundle secret-grep
+        # EXPO_PUBLIC_API_URL is required at import time by src/lib/env.ts, so the
+        # export needs it set. It is a public value, not a secret.
+        #
+        # APP_ENV=production makes the gate judge the bundle by release rules: a placeholder or
+        # test Razorpay key becomes a failure rather than a warning.
+        #
+        # EXPO_PUBLIC_RAZORPAY_KEY_ID is the publishable key id (safe as a repo *variable*, not a
+        # secret). Set it once the live key exists and the gate additionally asserts the bundle
+        # ships exactly that key. While unset, the key-id assertion is skipped — the secret scan
+        # and the wrong-environment checks still run.
+        env:
+          EXPO_PUBLIC_API_URL: https://www.gameground.net
+          APP_ENV: production
+          EXPO_PUBLIC_RAZORPAY_KEY_ID: ${{ vars.EXPO_PUBLIC_RAZORPAY_KEY_ID }}
+        run: bash scripts/release-check.sh

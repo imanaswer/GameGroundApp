@@ -24,7 +24,7 @@ export default function UpgradeRequired() {
         </View>
         <Text style={styles.title}>Time to update</Text>
         <Text style={styles.body}>
-          This version of Game Ground is no longer supported. Update to the latest to keep playing.
+          This version of GameGround is no longer supported. Update to the latest to keep playing.
         </Text>
         <Button title="Update now" onPress={() => Linking.openURL(STORE_URL)} style={styles.cta} />
       </View>

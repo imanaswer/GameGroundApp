@@ -1,0 +1,70 @@
+# Flow 3/5 (§14): camp registration.
+#
+# Exercises the shared registerable form engine (src/features/registration/*) — the same code
+# path camps, workshops and events all run through, so this flow covers three entities' worth
+# of risk. Audit #28/#30 changed this path recently (free registration now uses its real
+# endpoint, userRegistration is honoured), which is exactly why it earns an E2E.
+#
+# Form fields come from entities.ts and are keyed, so the testIDs are stable regardless of
+# label copy: registration-childName / registration-childAge / registration-phone.
+# (Those keys are asserted against entities.ts by __tests__/maestro-selectors.test.ts.)
+appId: net.gameground.app.preview
+name: 03 camp registration
+---
+- runFlow: subflows/login.yaml
+
+- tapOn:
+    id: "tab-discover"
+- extendedWaitUntil:
+    visible: "Camps"
+    timeout: 20000
+- tapOn: "Camps"
+
+- extendedWaitUntil:
+    visible:
+      id: "registerable-card"
+    timeout: 20000
+- tapOn:
+    id: "registerable-card"
+    index: 0
+
+# The detail CTA label varies (Register / Fully booked / Cancel registration). Assert the
+# label so a fully-booked fixture fails with a clear message instead of a stuck tap.
+- extendedWaitUntil:
+    visible:
+      id: "registerable-cta"
+    timeout: 15000
+- assertVisible: "Register"
+- tapOn:
+    id: "registerable-cta"
+
+- extendedWaitUntil:
+    visible:
+      id: "registration-childName"
+    timeout: 10000
+- tapOn:
+    id: "registration-childName"
+- inputText: "E2E Child"
+- tapOn:
+    id: "registration-childAge"
+- inputText: "11"
+- tapOn:
+    id: "registration-phone"
+- inputText: ${PHONE}
+- hideKeyboard
+
+# Free camp → "Confirm registration". Paid → "Continue · ₹X" and a handoff to checkout,
+# which is flow 02's territory. Prefer a free camp fixture here.
+- tapOn:
+    id: "registration-submit"
+
+- extendedWaitUntil:
+    visible: "Registered|You're registered|Cancel registration"
+    timeout: 30000
+
+# Prove it persisted server-side rather than trusting the success state.
+- tapOn:
+    id: "tab-home"
+- extendedWaitUntil:
+    visible: "Upcoming|Up next"
+    timeout: 20000

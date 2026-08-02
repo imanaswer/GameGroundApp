@@ -1,25 +1,37 @@
 /**
- * Coach detail (M8). Overview / Batches / Photos / Reviews tabs, pinch-zoom lightbox,
- * WhatsApp deep link, book batch → M6 checkout (entity "coach", batchId in registration),
- * post-booking review with server eligibility errors rendered inline.
+ * Coach detail (M8). One scroll: head → where/when → Batches (book → M6 checkout) → Facility
+ * gallery (pinch-zoom lightbox) → About → focus + certifications → Reviews (server-eligibility
+ * gated). Sticky footer = session price + WhatsApp.
  */
 import { Image } from "expo-image";
-import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Suspense, lazy, useEffect, useState } from "react";
 import { Linking, ScrollView, StyleSheet, Text, View } from "react-native";
+import Animated, { useAnimatedScrollHandler, useSharedValue } from "react-native-reanimated";
 
 import type { CoachBatch } from "@/api/types";
-import { ErrorState, HeroNav, Screen, SegmentedControl } from "@/components/chrome";
+import { ErrorState, HeroNav, ParallaxHero, Screen, Sheet, StickyCTA } from "@/components/chrome";
 import { CheckoutSheet } from "@/components/checkout";
-import { Avatar, Button, MessageIcon, Press, Skeleton, Stars } from "@/components/ds";
+import {
+  Avatar,
+  Badge,
+  Button,
+  CheckIcon,
+  ChevronRightIcon,
+  ClockIcon,
+  MapPinIcon,
+  Press,
+  Skeleton,
+  StarIcon,
+  Stars,
+} from "@/components/ds";
 import { useCoach } from "@/hooks/queries";
 import { useCheckout } from "@/hooks/useCheckout";
 import { useIsOnline } from "@/hooks/useIsOnline";
 import { usePush } from "@/hooks/usePush";
-import { formatAmount, formatPrice } from "@/lib/format";
+import { formatAmount, formatSessionRange } from "@/lib/format";
 import { shareEntity } from "@/lib/share";
-import { color, gradient, layout, radius, space, type } from "@/lib/tokens";
+import { color, layout, radius, space, type } from "@/lib/tokens";
 
 import { ReviewForm } from "@/components/coach/ReviewForm";
 
@@ -28,25 +40,73 @@ const Lightbox = lazy(() =>
   import("@/components/coach/Lightbox").then((m) => ({ default: m.Lightbox })),
 );
 
-type Tab = "overview" | "batches" | "photos" | "reviews";
-const TABS: { key: Tab; label: string }[] = [
-  { key: "overview", label: "Overview" },
-  { key: "batches", label: "Batches" },
-  { key: "photos", label: "Photos" },
-  { key: "reviews", label: "Reviews" },
-];
+/** Same tile as the game detail's meta list — kept local to each screen rather than promoted to
+ *  the DS, which would be a §10 governance change. */
+function MetaTile({ icon, label, sub, onPress }: { icon: React.ReactNode; label: string; sub?: string; onPress?: () => void }) {
+  const content = (
+    <>
+      <View style={styles.metaIcon}>{icon}</View>
+      <View style={styles.metaText}>
+        <Text style={styles.metaLabel}>{label}</Text>
+        {!!sub && <Text style={styles.metaSub}>{sub}</Text>}
+      </View>
+      {!!onPress && <ChevronRightIcon size={16} color={color.dim2} />}
+    </>
+  );
+  return onPress ? (
+    <Press accessibilityRole="button" accessibilityLabel={sub ? `${label}. ${sub}` : label} onPress={onPress} style={styles.meta}>
+      {content}
+    </Press>
+  ) : (
+    <View style={styles.meta}>{content}</View>
+  );
+}
+
+/** A "· item" list — the shape both `features` and `certifications` arrive in. */
+function TickList({ items }: { items: string[] }) {
+  return (
+    <View style={styles.tickList}>
+      {items.map((item) => (
+        <View key={item} style={styles.tickRow}>
+          <CheckIcon size={14} color={color.success} />
+          <Text style={styles.tickText}>{item}</Text>
+        </View>
+      ))}
+    </View>
+  );
+}
 
 export default function CoachDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const { data: coach, isLoading, isError, error, refetch } = useCoach(id);
-  const [tab, setTab] = useState<Tab>("overview");
   const [lightbox, setLightbox] = useState<number | null>(null);
   const [booking, setBooking] = useState<CoachBatch | null>(null);
+
+  const scrollY = useSharedValue(0);
+  const onScroll = useAnimatedScrollHandler((e) => {
+    scrollY.value = e.contentOffset.y;
+  });
 
   const checkout = useCheckout("coach", id, booking ? { batchId: booking.id } : {});
   const online = useIsOnline();
   const { promptForPush } = usePush();
+
+  const sheetDismissible = checkout.state !== "processing" && checkout.state !== "reconciling";
+  const closeSheet = () => {
+    setBooking(null);
+    checkout.reset();
+  };
+  const onSupport = () => {
+    const subject = encodeURIComponent(`Payment help — coach ${id}`);
+    Linking.openURL(`mailto:support@gameground.net?subject=${subject}`).catch(() => {});
+  };
+
+  const openDirections = () => {
+    if (!coach) return;
+    const q = encodeURIComponent(coach.address || coach.area || coach.name);
+    Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${q}`).catch(() => {});
+  };
 
   // First successful booking → offer reminders (shown once, §10.2).
   useEffect(() => {
@@ -62,28 +122,36 @@ export default function CoachDetail() {
     );
   }
 
+  const sessionLabel = coach ? formatSessionRange(coach.pricePaise, coach.pricePaiseMax) : null;
+
   return (
     <Screen padded={false}>
-      <HeroNav onBack={router.back} onShare={() => coach && shareEntity("coach", coach.id, coach.name)} />
-      <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-        <View style={styles.hero}>
-          {coach?.facilityImageUrl ? (
-            <Image source={{ uri: coach.facilityImageUrl }} style={StyleSheet.absoluteFill} contentFit="cover" />
-          ) : (
-            <View style={[StyleSheet.absoluteFill, styles.heroFallback]} />
-          )}
-          <LinearGradient
-            colors={gradient.heroScrim.colors as unknown as [string, string, string]}
-            locations={gradient.heroScrim.locations as unknown as [number, number, number]}
-            style={StyleSheet.absoluteFill}
-          />
-        </View>
+      <HeroNav
+        onBack={router.back}
+        onShare={() => coach && shareEntity("coach", coach.id, coach.name)}
+        scrollY={scrollY}
+        title={coach?.name}
+        collapseAt={130}
+      />
+      <Animated.ScrollView
+        contentContainerStyle={styles.scroll}
+        showsVerticalScrollIndicator={false}
+        onScroll={onScroll}
+        scrollEventThrottle={16}
+      >
+        <ParallaxHero imageUrl={coach?.facilityImageUrl} height={180} scrollY={scrollY} />
 
         <View style={styles.body}>
           {isLoading || !coach ? (
             <>
-              <Skeleton width="60%" height={24} />
-              <Skeleton width="40%" height={14} style={styles.gap} />
+              <View style={styles.headRow}>
+                <Skeleton width={62} height={62} round={999} />
+                <View style={styles.headText}>
+                  <Skeleton width="60%" height={20} />
+                  <Skeleton width="40%" height={13} style={styles.gapSm} />
+                </View>
+              </View>
+              <Skeleton width="100%" height={64} round={radius.input} style={styles.gap} />
             </>
           ) : (
             <>
@@ -91,92 +159,153 @@ export default function CoachDetail() {
                 <Avatar name={coach.name} uri={coach.avatarUrl} size={62} />
                 <View style={styles.headText}>
                   <Text style={styles.name}>{coach.name}</Text>
-                  <Text style={styles.sport}>
-                    {coach.sport}
-                    {coach.area ? ` · ${coach.area}` : ""}
-                  </Text>
-                  <View style={styles.ratingRow}>
-                    <Stars value={coach.rating} size={12} />
-                    <Text style={styles.reviewCount}>({coach.reviewCount})</Text>
+                  <View style={styles.metaRow}>
+                    <Text style={styles.sport}>{coach.sport}</Text>
+                    <Text style={styles.dot}>·</Text>
+                    {coach.reviewCount > 0 ? (
+                      <>
+                        <StarIcon size={12} color={color.gold} />
+                        <Text style={styles.ratingText}>{coach.rating.toFixed(1)}</Text>
+                      </>
+                    ) : (
+                      <Text style={styles.ratingText}>New</Text>
+                    )}
                   </View>
                 </View>
               </View>
 
-              <View style={styles.tabs}>
-                <SegmentedControl segments={TABS} value={tab} onChange={setTab} />
-              </View>
+              {/* Practice shape + skill band — free text from the admin form, so both are optional. */}
+              {(!!coach.coachType || !!coach.skillLevel) && (
+                <View style={styles.badges}>
+                  {!!coach.coachType && <Badge label={coach.coachType} tone="red" />}
+                  {!!coach.skillLevel && <Badge label={coach.skillLevel} />}
+                </View>
+              )}
 
-              {tab === "overview" && (
-                <View style={styles.section}>
-                  <Text style={styles.bio}>{coach.bio}</Text>
-                  {coach.whatsapp && (
-                    <Button
-                      title="Message on WhatsApp"
-                      variant="secondary"
-                      icon={<MessageIcon color={color.text} />}
-                      onPress={() => Linking.openURL(`https://wa.me/${coach.whatsapp}`)}
+              {/* Where and when. `area` is the venue name, `address` the street line. */}
+              {(!!coach.area || !!coach.address || !!coach.timing) && (
+                <View style={styles.metaList}>
+                  {(!!coach.area || !!coach.address) && (
+                    <MetaTile
+                      icon={<MapPinIcon size={17} color={color.redLight} />}
+                      label={coach.area || coach.address || ""}
+                      sub={coach.area && coach.address ? coach.address : "Get directions"}
+                      onPress={openDirections}
                     />
                   )}
-                </View>
-              )}
-
-              {tab === "batches" && (
-                <View style={styles.section}>
-                  {coach.batches.length === 0 ? (
-                    <Text style={styles.muted}>No batches open right now.</Text>
-                  ) : (
-                    coach.batches.map((b) => (
-                      <View key={b.id} style={styles.batch}>
-                        <View style={styles.batchText}>
-                          <Text style={styles.batchName}>{b.name}</Text>
-                          <Text style={styles.muted}>
-                            {b.schedule} · {b.spotsLeft} spots left
-                          </Text>
-                        </View>
-                        <View style={styles.batchRight}>
-                          <Text style={styles.price}>{formatPrice(b.pricePaise) ?? "Free"}</Text>
-                          <Button title="Book" variant="mini" onPress={() => setBooking(b)} disabled={b.spotsLeft <= 0 || !online} />
-                        </View>
-                      </View>
-                    ))
+                  {!!coach.timing && (
+                    <MetaTile icon={<ClockIcon size={17} color={color.redLight} />} label={coach.timing} sub="Available" />
                   )}
                 </View>
               )}
 
-              {tab === "photos" && (
-                <View style={styles.photoGrid}>
-                  {coach.photos.map((uri, i) => (
-                    <Press key={i} accessibilityRole="imagebutton" onPress={() => setLightbox(i)} style={styles.photo}>
-                      <Image source={{ uri }} style={styles.photoImg} contentFit="cover" recyclingKey={uri} />
-                    </Press>
-                  ))}
-                  {coach.photos.length === 0 && <Text style={styles.muted}>No photos yet.</Text>}
+              {/* Batches */}
+              <View style={styles.section}>
+                <Text style={styles.label}>Batches</Text>
+                {coach.batches.length === 0 ? (
+                  <Text style={styles.muted}>No batches open right now.</Text>
+                ) : (
+                  coach.batches.map((b) => (
+                    <View key={b.id} style={styles.batch}>
+                      <View style={styles.batchText}>
+                        <Text style={styles.batchName}>{b.name}</Text>
+                        <Text style={styles.muted}>
+                          {[b.schedule, b.level, `${b.spotsLeft} seats left`].filter(Boolean).join(" · ")}
+                        </Text>
+                      </View>
+                      {/* Ranged-price coaches are request-only — the server refuses their
+                          checkout, so offering Book would walk the user into a 400. */}
+                      {coach.instantPayEligible && (
+                        <Button
+                          testID="coach-book"
+                          title="Book"
+                          variant="mini"
+                          onPress={() => setBooking(b)}
+                          disabled={b.spotsLeft <= 0 || !online}
+                        />
+                      )}
+                    </View>
+                  ))
+                )}
+                {/* Ranged-price coaches are request-only and the server refuses their checkout, so
+                    there is no in-app path to a booking — and with messaging now gated behind one,
+                    no contact path either. Say that plainly rather than point at a locked button. */}
+                {coach.batches.length > 0 && !coach.instantPayEligible && (
+                  <Text style={styles.muted}>
+                    This coach takes bookings by request — booking isn’t available in the app yet.
+                  </Text>
+                )}
+              </View>
+
+              {/* Facility gallery */}
+              {coach.photos.length > 0 && (
+                <View style={styles.section}>
+                  <Text style={styles.label}>Facility</Text>
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.gallery}>
+                    {coach.photos.map((uri, i) => (
+                      <Press key={i} accessibilityRole="imagebutton" onPress={() => setLightbox(i)} style={styles.photo}>
+                        <Image source={{ uri }} style={styles.photoImg} contentFit="cover" recyclingKey={uri} />
+                      </Press>
+                    ))}
+                  </ScrollView>
                 </View>
               )}
 
-              {tab === "reviews" && (
+              {/* About */}
+              {!!coach.bio && (
                 <View style={styles.section}>
+                  <Text style={styles.label}>About</Text>
+                  <Text style={styles.bio}>{coach.bio}</Text>
+                </View>
+              )}
+
+              {coach.features.length > 0 && (
+                <View style={styles.section}>
+                  <Text style={styles.label}>What you’ll work on</Text>
+                  <TickList items={coach.features} />
+                </View>
+              )}
+
+              {coach.certifications.length > 0 && (
+                <View style={styles.section}>
+                  <Text style={styles.label}>Certifications</Text>
+                  <TickList items={coach.certifications} />
+                </View>
+              )}
+
+              {/* Reviews */}
+              {(coach.viewerCanReview || coach.reviews.length > 0) && (
+                <View style={styles.section}>
+                  <Text style={styles.label}>Reviews</Text>
                   {coach.viewerCanReview && <ReviewForm coachId={id} />}
-                  {coach.reviews.length === 0 ? (
-                    <Text style={styles.muted}>No reviews yet.</Text>
-                  ) : (
-                    coach.reviews.map((r) => (
-                      <View key={r.id} style={styles.review}>
-                        <View style={styles.reviewHead}>
-                          <Avatar name={r.author.name} uri={r.author.avatarUrl} size={28} />
-                          <Text style={styles.reviewAuthor}>{r.author.name}</Text>
-                          <Stars value={r.rating} size={11} />
-                        </View>
-                        <Text style={styles.reviewBody}>{r.body}</Text>
+                  {coach.reviews.map((r) => (
+                    <View key={r.id} style={styles.review}>
+                      <View style={styles.reviewHead}>
+                        <Avatar name={r.author.name} uri={r.author.avatarUrl} size={28} />
+                        <Text style={styles.reviewAuthor}>{r.author.name}</Text>
+                        <Stars value={r.rating} size={11} />
                       </View>
-                    ))
-                  )}
+                      <Text style={styles.reviewBody}>{r.body}</Text>
+                    </View>
+                  ))}
                 </View>
               )}
             </>
           )}
         </View>
-      </ScrollView>
+      </Animated.ScrollView>
+
+      {/* WhatsApp is a post-booking channel: the coach's number is earned by booking, not by
+          browsing. `viewerHasBooking` is the server's answer, so the gate can't be faked client-side. */}
+      {coach && !booking && (
+        <StickyCTA
+          price={sessionLabel}
+          caption={coach.viewerHasBooking ? undefined : "Unlocks once you book a batch"}
+          ctaLabel="Message on WhatsApp"
+          onPress={() => coach.whatsapp && Linking.openURL(`https://wa.me/${coach.whatsapp}`)}
+          disabled={!coach.viewerHasBooking || !coach.whatsapp}
+        />
+      )}
 
       {lightbox !== null && coach && (
         <Suspense fallback={null}>
@@ -184,57 +313,75 @@ export default function CoachDetail() {
         </Suspense>
       )}
 
-      {booking && (
-        <View style={styles.sheetHost}>
+      {coach && (
+        <Sheet visible={!!booking} dismissible={sheetDismissible} onDismiss={closeSheet}>
           <CheckoutSheet
             state={checkout.state}
             phase={checkout.phase}
             error={checkout.error}
-            amount={formatAmount(booking.pricePaise)}
+            amount={booking ? formatAmount(booking.pricePaise) : ""}
             onPay={checkout.start}
             onRetry={checkout.retry}
-            onSupport={() => {}}
+            onSupport={onSupport}
+            onClose={closeSheet}
           />
-          {(checkout.state === "success" || checkout.state === "methods") && (
-            <Press onPress={() => setBooking(null)} style={styles.done}>
-              <Text style={styles.doneText}>{checkout.state === "success" ? "Done" : "Cancel"}</Text>
-            </Press>
-          )}
-        </View>
+        </Sheet>
       )}
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  scroll: { paddingBottom: space(24) },
-  hero: { height: 180, backgroundColor: color.imagePlaceholder },
-  heroFallback: { backgroundColor: color.card },
-  body: { paddingHorizontal: layout.screenX, marginTop: -space(8), gap: space(3) },
+  scroll: { paddingBottom: space(28) },
+  body: { paddingHorizontal: layout.screenX, marginTop: -space(8), gap: space(5) },
   headRow: { flexDirection: "row", alignItems: "center", gap: space(3) },
-  headText: { flex: 1, gap: space(1) },
+  headText: { flex: 1, gap: space(1.5) },
   name: { ...type.title2, color: color.text },
+  metaRow: { flexDirection: "row", alignItems: "center", gap: space(1.5) },
   sport: { ...type.body, color: color.dim },
-  ratingRow: { flexDirection: "row", alignItems: "center", gap: space(1.5) },
-  reviewCount: { ...type.caption, color: color.dim },
-  tabs: { marginTop: space(2) },
-  section: { gap: space(3) },
-  bio: { ...type.body, color: color.dim, lineHeight: 20 },
+  dot: { ...type.body, color: color.dim2 },
+  ratingText: { ...type.bodyStrong, color: color.gold },
+
+  section: { gap: space(2.5) },
+  label: { ...type.label, color: color.dim },
   muted: { ...type.body, color: color.dim },
+  bio: { ...type.body, color: color.dim, lineHeight: 20 },
+
+  badges: { flexDirection: "row", flexWrap: "wrap", gap: space(1.5) },
+
+  metaList: { gap: space(3) },
+  meta: { flexDirection: "row", alignItems: "center", gap: space(3) },
+  metaIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: radius.tile,
+    backgroundColor: color.card,
+    borderWidth: 1,
+    borderColor: color.border,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  metaText: { flex: 1, gap: space(0.5) },
+  metaLabel: { ...type.bodyStrong, color: color.text, flexShrink: 1 },
+  metaSub: { ...type.caption, color: color.dim },
+
+  tickList: { gap: space(2) },
+  tickRow: { flexDirection: "row", alignItems: "center", gap: space(2.5) },
+  tickText: { ...type.body, color: color.dim, flex: 1 },
+
   batch: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", backgroundColor: color.card, borderRadius: radius.input, borderWidth: 1, borderColor: color.border, padding: space(3.5), gap: space(3) },
   batchText: { flex: 1, gap: space(1) },
   batchName: { ...type.heading, color: color.text },
-  batchRight: { alignItems: "flex-end", gap: space(2) },
-  price: { fontFamily: type.heading.fontFamily, fontSize: 14, color: color.gold },
-  photoGrid: { flexDirection: "row", flexWrap: "wrap", gap: space(2) },
-  photo: { width: "31.5%", aspectRatio: 1, borderRadius: radius.tile, overflow: "hidden", backgroundColor: color.imagePlaceholder },
+
+  gallery: { gap: space(2.5) },
+  photo: { width: 150, aspectRatio: 1.2, borderRadius: radius.tile, overflow: "hidden", backgroundColor: color.imagePlaceholder },
   photoImg: { width: "100%", height: "100%" },
+
   review: { gap: space(1.5), paddingVertical: space(2) },
   reviewHead: { flexDirection: "row", alignItems: "center", gap: space(2) },
   reviewAuthor: { ...type.bodyStrong, color: color.text, flex: 1 },
   reviewBody: { ...type.body, color: color.dim, lineHeight: 19 },
+
   gap: { marginTop: space(3) },
-  sheetHost: { position: "absolute", left: 0, right: 0, bottom: 0 },
-  done: { alignItems: "center", paddingVertical: space(4), backgroundColor: color.elev },
-  doneText: { ...type.heading, color: color.text },
+  gapSm: { marginTop: space(1.5) },
 });

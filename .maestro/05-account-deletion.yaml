@@ -1,0 +1,66 @@
+# Flow 5/5 (§14): account deletion.
+#
+# ⚠️ DESTRUCTIVE AND IRREVERSIBLE. This permanently deletes the account in ${DOOMED_EMAIL}.
+# Use a throwaway account created for this run — never a real user, never the account the
+# other flows share. Run it last.
+#
+# Worth automating despite the cost: App Review rejects apps that offer account creation
+# without in-app deletion, so this is a submission blocker, not just a feature test. The
+# server rotates identifiers on delete, so re-login must fail afterwards (M11 exit criterion).
+#
+# Corrected against the real screen: the confirmation is an inline two-step inside the
+# danger zone (tap "Delete my account" → a "Yes, delete" button appears), NOT a native
+# Alert. That is easier to drive and cannot hang the run on a missed dialog tap.
+appId: net.gameground.app.preview
+name: 05 account deletion
+env:
+  EXISTING_EMAIL: ${DOOMED_EMAIL}
+  EXISTING_PASSWORD: ${DOOMED_PASSWORD}
+---
+- runFlow: subflows/login.yaml
+
+- tapOn:
+    id: "tab-home"
+- tapOn:
+    id: "profile-edit-entry"
+- extendedWaitUntil:
+    visible:
+      id: "profile-name"
+    timeout: 15000
+
+- scrollUntilVisible:
+    element:
+      id: "profile-delete"
+    direction: DOWN
+- tapOn:
+    id: "profile-delete"
+
+- extendedWaitUntil:
+    visible:
+      id: "profile-delete-confirm"
+    timeout: 10000
+- tapOn:
+    id: "profile-delete-confirm"
+
+# Deletion hard-logs-out the device.
+- extendedWaitUntil:
+    visible: "Welcome"
+    timeout: 30000
+
+# The real assertion: the credentials must no longer work. Server-side identifier rotation
+# means this must fail, not succeed into an empty profile.
+- tapOn:
+    id: "auth-email"
+- inputText: ${DOOMED_EMAIL}
+- tapOn:
+    id: "auth-password"
+- inputText: ${DOOMED_PASSWORD}
+- hideKeyboard
+- tapOn:
+    id: "auth-submit"
+
+- extendedWaitUntil:
+    visible: "Invalid|incorrect|not found"   # calibrate: exact server error copy
+    timeout: 20000
+- assertNotVisible:
+    id: "tab-games"

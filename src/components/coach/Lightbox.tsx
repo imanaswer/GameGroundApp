@@ -77,7 +77,7 @@ export function Lightbox({
   return (
     <Modal visible transparent animationType="fade" onRequestClose={onClose}>
       <View style={styles.root}>
-        <Press accessibilityRole="button" accessibilityLabel="Close" onPress={onClose} style={styles.close} scaleTo={0.9}>
+        <Press accessibilityRole="button" accessibilityLabel="Close" onPress={onClose} style={styles.close} scaleTo={0.9} hitSlop={8}>
           <CloseIcon color={color.text} />
         </Press>
         <GestureDetector gesture={composed}>
