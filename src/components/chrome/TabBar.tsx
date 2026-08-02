@@ -4,10 +4,12 @@
  * Item: 20pt icon + 9px/600 label. Active = red + icon spring.pop + 22px indicator bar + halo.
  * Selection haptic on switch. Reduced-motion holds the active state without the spring.
  *
- * Drives expo-router's <Tabs> via its `tabBar` prop; the per-route icon/title come straight
- * from each screen's `options` so the tab list stays declared in one place (app/(tabs)/_layout).
+ * Drives the tab navigator via its `tabBar` prop; the per-route icon/title come straight from
+ * each screen's `options` so the tab list stays declared in one place (app/(tabs)/_layout).
  */
-import type { BottomTabBarProps } from "expo-router/build/react-navigation/bottom-tabs/types";
+// Material-top-tabs since Decision 17 made the tab layer swipe-paged (the navigator pins this bar
+// to the bottom). Same state/descriptors/navigation shape as bottom-tabs, so only the type moved.
+import type { MaterialTopTabBarProps } from "@react-navigation/material-top-tabs";
 import { useEffect } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import Animated, {
@@ -19,7 +21,7 @@ import Animated, {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import * as haptics from "@/lib/haptics";
-import { color, font, icon as iconSize, space } from "@/lib/tokens";
+import { color, font, space } from "@/lib/tokens";
 import { spring } from "@/theme/animations";
 
 const BAR_H = 70;
@@ -36,7 +38,7 @@ export function useTabBarPadding(extra = space(4)) {
   return BAR_H + insets.bottom + extra;
 }
 
-export function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
+export function TabBar({ state, descriptors, navigation }: MaterialTopTabBarProps) {
   const insets = useSafeAreaInsets();
 
   return (
@@ -54,7 +56,7 @@ export function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
               ? options.tabBarLabel
               : (options.title ?? route.name);
           const tint = focused ? color.red : color.dim2;
-          const glyph = options.tabBarIcon?.({ focused, color: tint, size: iconSize.tab });
+          const glyph = options.tabBarIcon?.({ focused, color: tint });
 
           const onPress = () => {
             const event = navigation.emit({ type: "tabPress", target: route.key, canPreventDefault: true });
