@@ -63,10 +63,13 @@ export const color = {
   /** Input focus ring. */
   redFocus: "rgba(0,0,0,0.40)",
 
-  /** Tier/rating accents now ride the Warning ramp — the source has no gold. See Decision 20. */
+  /** Tier/rating accents ride the Warning ramp — the source has no gold. See Decision 20. */
+  /** FILL only (chips, pills, gradient stops). ~3.6:1 on white — not legible as text. */
   gold: ramp.warning[500],
   goldLight: ramp.warning[400],
   goldDeep: ramp.warning[700],
+  /** Gold as TEXT or an ICON on a light surface. Same fill-vs-text split as `successText`. */
+  goldText: ramp.warning[700],
 
   /** Success as a FILL (dots, bars, chips). Not legible as text — see `successText`. */
   success: ramp.success[400],

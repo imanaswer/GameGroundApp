@@ -46,7 +46,7 @@ export default function ForgotPassword() {
       {sent ? (
         <View style={styles.doneCard}>
           <View style={styles.doneIcon}>
-            <CheckIcon size={20} color={color.success} />
+            <CheckIcon size={20} color={color.successText} />
           </View>
           <Text style={styles.doneTitle}>Check your inbox</Text>
           <Text style={styles.doneBody}>

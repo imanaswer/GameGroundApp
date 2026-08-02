@@ -42,7 +42,7 @@ function CrownBob() {
   const s = useAnimatedStyle(() => ({ transform: [{ translateY: -2 - y.value * 3 }] }));
   return (
     <Animated.View style={[styles.crown, s]}>
-      <CrownIcon size={18} color={color.gold} />
+      <CrownIcon size={18} color={color.goldText} />
     </Animated.View>
   );
 }
@@ -134,7 +134,7 @@ const styles = StyleSheet.create({
   crown: { position: "absolute", top: -16, left: 0, right: 0, alignItems: "center", zIndex: 2 },
   podName: { ...type.caption, color: color.text, maxWidth: 90 },
   podScore: { fontFamily: type.heading.fontFamily, fontSize: 14, color: color.text },
-  podScoreGold: { fontFamily: type.heading.fontFamily, fontSize: 14, color: color.gold },
+  podScoreGold: { fontFamily: type.heading.fontFamily, fontSize: 14, color: color.goldText },
   podRank: { ...type.micro, color: color.dim },
 
   row: { flexDirection: "row", alignItems: "center", gap: space(3), paddingVertical: space(2.5), paddingHorizontal: space(2) },
@@ -143,7 +143,7 @@ const styles = StyleSheet.create({
   rowText: { flex: 1, flexDirection: "row", alignItems: "center", gap: space(2) },
   name: { ...type.bodyStrong, color: color.text, flexShrink: 1 },
   delta: { fontFamily: type.micro.fontFamily, fontSize: 10 },
-  up: { color: color.success },
+  up: { color: color.successText },
   down: { color: color.redLight },
   score: { fontFamily: type.heading.fontFamily, fontSize: 12, color: color.text },
 

@@ -47,7 +47,11 @@ export function MetaRow({ icon, text }: { icon: React.ReactNode; text: string })
 
 export const cardStyles = StyleSheet.create({
   card: {
-    backgroundColor: color.card,
+    // White, not the grey `card` wash. On the old #050505 ground a lighter fill was the ONLY way
+    // to lift a card off the page — shadows are invisible on near-black. On white that inverts:
+    // a grey fill inside a grey border is two kinds of chrome doing one job, and it muddies every
+    // photograph sitting on it. The hairline carries the separation now.
+    backgroundColor: color.elev,
     borderRadius: radius.card,
     borderWidth: 1,
     borderColor: color.border,
@@ -55,8 +59,12 @@ export const cardStyles = StyleSheet.create({
   },
   body: { padding: layout.cardPad, gap: space(2) },
   title: { ...type.heading, color: color.text },
-  price: { fontFamily: type.heading.fontFamily, fontSize: 14, color: color.gold },
-  free: { fontFamily: type.heading.fontFamily, fontSize: 14, color: color.success },
+  // Price is plain ink. It was `gold` (warning-500), which measures ~3.6:1 on a card — under AA
+  // for what is often the single most decision-relevant string on the screen. The source prices
+  // everything in plain black anyway; it has no accent to spend on money.
+  price: { fontFamily: type.heading.fontFamily, fontSize: 14, color: color.text },
+  // `success` is a fill colour: 2.2:1 as text. Same trap as StickyCTA in Phase 2.
+  free: { fontFamily: type.heading.fontFamily, fontSize: 14, color: color.successText },
 });
 
 const styles = StyleSheet.create({

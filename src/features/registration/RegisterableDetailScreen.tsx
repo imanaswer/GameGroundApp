@@ -62,7 +62,7 @@ function Bullets({ items }: { items: string[] }) {
       {items.map((it, i) => (
         <View key={i} style={[styles.bullet, i > 0 && styles.bulletDivider]}>
           <View style={styles.bulletBadge}>
-            <CheckIcon size={14} color={color.success} />
+            <CheckIcon size={14} color={color.successText} />
           </View>
           <Text style={styles.bulletText}>{it}</Text>
         </View>

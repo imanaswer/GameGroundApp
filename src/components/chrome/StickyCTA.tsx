@@ -62,7 +62,7 @@ export function StickyCTA({
 const styles = StyleSheet.create({
   wrap: { position: "absolute", left: 0, right: 0, bottom: 0, paddingHorizontal: layout.screenX, paddingTop: space(8) },
   row: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: space(4) },
-  price: { fontFamily: type.heading.fontFamily, fontSize: 16, color: color.gold },
+  price: { fontFamily: type.heading.fontFamily, fontSize: 16, color: color.goldText },
   caption: { ...type.micro, color: color.dim },
   statusRow: { flexDirection: "row", alignItems: "center", gap: space(2) },
   status: { ...type.bodyStrong, color: color.successText },

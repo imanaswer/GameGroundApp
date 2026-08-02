@@ -106,12 +106,22 @@ test("labels on filled surfaces are legible", () => {
   expect(contrast(color.inverse, ramp.success[600])).toBeGreaterThanOrEqual(3);
 });
 
-test("success reads as text only via successText, never the fill colour", () => {
+/**
+ * The fill-vs-text split, asserted in BOTH directions for each semantic pair.
+ *
+ * Direction one is obvious: the text token must be legible. Direction two is the one that matters
+ * — the fill token must *fail* as text. Without it, someone folds the pair back into one token,
+ * every call site still compiles, and the regression is invisible until a user cannot read a
+ * price. Nine call sites across the app were using the fill colour as text before this existed.
+ */
+test.each([
+  ["success", color.successText, color.success],
+  ["gold", color.goldText, color.gold],
+])("%s reads as text only via its text token, never the fill", (_name, textToken, fillToken) => {
   for (const surface of [color.bg, color.card]) {
-    expect(contrast(color.successText, surface)).toBeGreaterThanOrEqual(4.5);
+    expect(contrast(textToken, surface)).toBeGreaterThanOrEqual(4.5);
   }
-  // Guards the trap: the fill colour must NOT be mistaken for a text colour on light surfaces.
-  expect(contrast(color.success, color.bg)).toBeLessThan(4.5);
+  expect(contrast(fillToken, color.bg)).toBeLessThan(4.5);
 });
 
 test("semantic text colors are legible on their own tinted surfaces", () => {

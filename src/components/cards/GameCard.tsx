@@ -128,7 +128,7 @@ const styles = StyleSheet.create({
   },
   pricePillFree: { backgroundColor: color.successSurface, borderColor: color.successSurface },
   priceText: { fontFamily: type.heading.fontFamily, fontSize: 12, color: color.text },
-  freeText: { fontFamily: type.heading.fontFamily, fontSize: 12, color: color.success },
+  freeText: { fontFamily: type.heading.fontFamily, fontSize: 12, color: color.successText },
 
   imageBottom: { gap: space(1.5), alignItems: "flex-start" },
   spotsLeftPill: {

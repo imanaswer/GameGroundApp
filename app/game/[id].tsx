@@ -579,7 +579,7 @@ const styles = StyleSheet.create({
   attToggle: { borderRadius: 999, borderWidth: 1, borderColor: color.border2, paddingVertical: space(1.5), paddingHorizontal: space(3) },
   attToggleOn: { backgroundColor: color.successSurface, borderColor: color.success },
   attToggleText: { ...type.caption, color: color.dim },
-  attToggleTextOn: { color: color.success },
+  attToggleTextOn: { color: color.successText },
   organizer: { marginTop: space(5), gap: space(2) },
   orgRow: { flexDirection: "row", alignItems: "center", gap: space(3) },
   orgInfo: { flex: 1, gap: space(0.5) },

@@ -74,5 +74,5 @@ const styles = StyleSheet.create({
   label: { ...type.label, color: color.dim },
   stars: { flexDirection: "row", gap: space(1.5) },
   error: { ...type.caption, color: color.redLight },
-  thanks: { ...type.body, color: color.success, paddingVertical: space(2) },
+  thanks: { ...type.body, color: color.successText, paddingVertical: space(2) },
 });

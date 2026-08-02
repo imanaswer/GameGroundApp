@@ -68,7 +68,7 @@ function TickList({ items }: { items: string[] }) {
     <View style={styles.tickList}>
       {items.map((item) => (
         <View key={item} style={styles.tickRow}>
-          <CheckIcon size={14} color={color.success} />
+          <CheckIcon size={14} color={color.successText} />
           <Text style={styles.tickText}>{item}</Text>
         </View>
       ))}
@@ -164,7 +164,7 @@ export default function CoachDetail() {
                     <Text style={styles.dot}>·</Text>
                     {coach.reviewCount > 0 ? (
                       <>
-                        <StarIcon size={12} color={color.gold} />
+                        <StarIcon size={12} color={color.goldText} />
                         <Text style={styles.ratingText}>{coach.rating.toFixed(1)}</Text>
                       </>
                     ) : (
@@ -340,7 +340,7 @@ const styles = StyleSheet.create({
   metaRow: { flexDirection: "row", alignItems: "center", gap: space(1.5) },
   sport: { ...type.body, color: color.dim },
   dot: { ...type.body, color: color.dim2 },
-  ratingText: { ...type.bodyStrong, color: color.gold },
+  ratingText: { ...type.bodyStrong, color: color.goldText },
 
   section: { gap: space(2.5) },
   label: { ...type.label, color: color.dim },
