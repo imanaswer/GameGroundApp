@@ -107,7 +107,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: space(2.5),
     backgroundColor: color.scrim,
     borderWidth: 1,
-    borderColor: color.border2,
+    // Photographic border, not the page's light-grey hairline.
+    borderColor: color.inverseBorder,
   },
   pricePillFree: { backgroundColor: color.successSurface, borderColor: color.successSurface },
   // WHITE. The pill sits ON the photograph with a `scrim` fill (60% black), so this is one of
@@ -128,7 +129,9 @@ const styles = StyleSheet.create({
   // Dark label on the warm pill. `color.bg` was near-black pre-port and is now WHITE, which
   // measures ~2.5:1 on warning-400 — the urgency pill would have gone unreadable.
   spotsLeftText: { fontFamily: type.micro.fontFamily, fontSize: 10, letterSpacing: 0.4, color: color.text },
-  overlayTitle: { ...type.heading, color: color.text },
+  // WHITE — this title is rendered OVER the card image, under `imageScrim`. Same class as the
+  // price pill and the profile Edit chip: anything on imagery takes `inverse`, never `text`.
+  overlayTitle: { ...type.heading, color: color.inverse },
 
   // ── body ──
   spotsBlock: { gap: space(1.5), marginTop: space(0.5) },

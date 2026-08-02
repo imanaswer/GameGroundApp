@@ -225,11 +225,18 @@ const styles = StyleSheet.create({
     backgroundColor: color.scrim,
     borderRadius: 999,
     borderWidth: 1,
-    borderColor: color.border2,
+    // Border and label are the photographic pair, not the page pair: this chip sits on the cover
+    // image over a 60%-black scrim. `border2` is a light-grey page border and reads as a hairline
+    // smudge here.
+    borderColor: color.inverseBorder,
     paddingVertical: space(1),
     paddingHorizontal: space(2.5),
   },
-  editChipText: { fontFamily: type.bodyStrong.fontFamily, fontSize: 12, color: color.text },
+  // WHITE — the chip is over imagery on a dark scrim. `color.text` is near-black since the light
+  // port, which made the only visible "Edit" affordance on the profile invisible. Third instance
+  // of this exact pattern (see also the card price pills); overlays on imagery always take
+  // `inverse`, never `text`.
+  editChipText: { fontFamily: type.bodyStrong.fontFamily, fontSize: 12, color: color.inverse },
   // Pulled up so the avatar overlaps the cover; card-colored ring separates it from the image.
   heroBody: { padding: space(4), marginTop: -space(7), gap: space(4) },
   heroRow: { flexDirection: "row", alignItems: "flex-end", gap: space(3.5) },
