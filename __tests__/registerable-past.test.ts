@@ -5,6 +5,7 @@
  * cover the client-side backstop.
  */
 import { hasEnded, toSummaryList, type RawRegisterable } from "@/api/registerable";
+import { dropEnded, search } from "@/api/search";
 
 // registerable imports the api client, which reads env at module load.
 jest.mock("@/lib/env", () => ({
@@ -59,6 +60,76 @@ describe("toSummaryList", () => {
       expect(toSummaryList(rows, "workshop").map((s) => s.id)).toEqual(["ongoing", "future"]);
     } finally {
       spy.mockRestore();
+    }
+  });
+});
+
+describe("search: ended hits", () => {
+  test("drops ended camp/event hits, keeps in-progress, future, and dateless ones", () => {
+    const hits = [
+      { id: "ended", title: "Football Academy", subtitle: null, endDate: "2026-07-05T00:00:00.000Z" },
+      { id: "ongoing", title: "Kids Camp", subtitle: null, endDate: "2026-08-03T00:00:00.000Z" },
+      { id: "future", title: "Swim Clinic", subtitle: null, endDate: "2026-09-01T00:00:00.000Z" },
+      // Games and coaches carry no endDate — they must pass through untouched.
+      { id: "game", title: "Evening Football", subtitle: null },
+      { id: "garbage", title: "Odd row", subtitle: null, endDate: "not-a-date" },
+    ];
+
+    expect(dropEnded(hits, NOW).map((h) => h.id)).toEqual([
+      "ongoing",
+      "future",
+      "game",
+      "garbage",
+    ]);
+  });
+});
+
+/**
+ * The helper tests above pass even if `search()` forgets to call the filter — so this one exercises
+ * the wired path end to end. Found by mutation-testing: removing the call from search() left every
+ * other test green.
+ */
+describe("search() applies the filter", () => {
+  const fetchMock = jest.fn();
+  const realFetch = globalThis.fetch;
+
+  beforeAll(() => {
+    globalThis.fetch = fetchMock as unknown as typeof fetch;
+  });
+  afterAll(() => {
+    globalThis.fetch = realFetch;
+  });
+
+  test("ended camps and events never reach the caller", async () => {
+    const clock = jest.spyOn(Date, "now").mockReturnValue(NOW);
+    fetchMock.mockResolvedValue({
+      status: 200,
+      headers: { get: () => null },
+      json: async () => ({
+        ok: true,
+        data: {
+          games: [{ id: "g1", title: "Football", subtitle: null }],
+          coaches: [{ id: "c1", title: "Vijayan", subtitle: null }],
+          camps: [
+            { id: "camp-ended", title: "Old", subtitle: null, endDate: "2026-07-05T00:00:00.000Z" },
+            { id: "camp-live", title: "Kids", subtitle: null, endDate: "2026-08-03T00:00:00.000Z" },
+          ],
+          events: [
+            { id: "ev-ended", title: "Gone", subtitle: null, endDate: "2026-06-01T00:00:00.000Z" },
+          ],
+        },
+      }),
+    });
+
+    try {
+      const r = await search("foot");
+      expect(r.camps.map((h) => h.id)).toEqual(["camp-live"]);
+      expect(r.events).toEqual([]);
+      // Untouched groups still pass through.
+      expect(r.games).toHaveLength(1);
+      expect(r.coaches).toHaveLength(1);
+    } finally {
+      clock.mockRestore();
     }
   });
 });
