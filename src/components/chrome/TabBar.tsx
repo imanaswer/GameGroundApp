@@ -4,10 +4,9 @@
  * Item: 20pt icon + 9px/600 label. Active = red + icon spring.pop + 22px indicator bar + halo.
  * Selection haptic on switch. Reduced-motion holds the active state without the spring.
  *
- * Drives expo-router's <Tabs> via its `tabBar` prop; the per-route icon/title come straight
- * from each screen's `options` so the tab list stays declared in one place (app/(tabs)/_layout).
+ * Drives the tab navigator via its `tabBar` prop; the per-route icon/title come straight from
+ * each screen's `options` so the tab list stays declared in one place (app/(tabs)/_layout).
  */
-import type { BottomTabBarProps } from "expo-router/build/react-navigation/bottom-tabs/types";
 import { useEffect } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import Animated, {
@@ -19,7 +18,7 @@ import Animated, {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import * as haptics from "@/lib/haptics";
-import { color, font, icon as iconSize, space } from "@/lib/tokens";
+import { color, font, space } from "@/lib/tokens";
 import { spring } from "@/theme/animations";
 
 const BAR_H = 70;
@@ -36,7 +35,34 @@ export function useTabBarPadding(extra = space(4)) {
   return BAR_H + insets.bottom + extra;
 }
 
-export function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
+/**
+ * Exactly the surface this bar consumes, declared structurally rather than imported.
+ *
+ * Both the bottom-tab and top-tab navigators satisfy this, so the bar is portable between them —
+ * and expo-router's own `MaterialTopTabBarProps` is declared as `any & {…}`, which collapses to
+ * `any` and would silently un-type every field below. Decision 17.
+ */
+export type TabBarProps = {
+  state: { index: number; routes: { key: string; name: string; params?: object }[] };
+  descriptors: Record<
+    string,
+    {
+      options: {
+        title?: string;
+        tabBarLabel?: unknown;
+        tabBarIcon?: (props: { focused: boolean; color: string }) => React.ReactNode;
+      };
+    }
+  >;
+  navigation: {
+    emit(event: { type: "tabPress"; target: string; canPreventDefault: true }): {
+      defaultPrevented: boolean;
+    };
+    navigate(name: string, params?: object): void;
+  };
+};
+
+export function TabBar({ state, descriptors, navigation }: TabBarProps) {
   const insets = useSafeAreaInsets();
 
   return (
@@ -54,7 +80,7 @@ export function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
               ? options.tabBarLabel
               : (options.title ?? route.name);
           const tint = focused ? color.red : color.dim2;
-          const glyph = options.tabBarIcon?.({ focused, color: tint, size: iconSize.tab });
+          const glyph = options.tabBarIcon?.({ focused, color: tint });
 
           const onPress = () => {
             const event = navigation.emit({ type: "tabPress", target: route.key, canPreventDefault: true });

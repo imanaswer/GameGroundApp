@@ -1,8 +1,20 @@
-import { Redirect, Tabs } from "expo-router";
+import { Redirect } from "expo-router";
+import { TopTabs } from "expo-router/js-top-tabs";
 
-import { TabBar } from "@/components/chrome/TabBar";
+import { TabBar, type TabBarProps } from "@/components/chrome/TabBar";
 import { CoachesIcon, DiscoverIcon, GamesIcon, HomeIcon, LeadersIcon } from "@/components/ds/icons";
 import { useAuth } from "@/hooks/useAuth";
+import { icon as iconSize } from "@/lib/tokens";
+
+/**
+ * Swipe-paged tabs (Decision 17). expo-router's `<Tabs>` is bottom-tabs and cannot page
+ * horizontally, so the tab layer uses its top-tab navigator with the bar pinned to the bottom.
+ *
+ * This must come from `expo-router/js-top-tabs`, NOT `@react-navigation/material-top-tabs`:
+ * since SDK 56 expo-router vendors its own copy and hard-errors at bundle time on a direct
+ * react-navigation import. expo-router re-exports the same types, and the vendored navigator
+ * needs no react-native-pager-view.
+ */
 
 /** Tab order is fixed by Decision 5: home · games · coaches · discover · leaders. */
 const TABS = [
@@ -22,18 +34,28 @@ export default function TabsLayout() {
   if (status === "signedOut") return <Redirect href="/login" />;
 
   return (
-    <Tabs
-      // Custom bar owns the chrome (blur, spring icon, indicator, halo, haptic) per DS §5 / MOTION §2.
-      tabBar={(props) => <TabBar {...props} />}
-      screenOptions={{ headerShown: false }}
+    <TopTabs
+      // Custom bar owns the chrome (fill, spring icon, indicator, halo, haptic) per DS §5 / MOTION §2.
+      tabBar={(props: TabBarProps) => <TabBar {...props} />}
+      tabBarPosition="bottom"
+      screenOptions={{
+        swipeEnabled: true,
+        // lazy:false by explicit choice — all five tabs mount at launch so a swipe never lands on
+        // a placeholder. Costs startup work and memory; verify against M15's <2500ms cold start
+        // on a real build (docs/PERF.md) before this ships.
+        lazy: false,
+      }}
     >
       {TABS.map(({ name, title, Icon }) => (
-        <Tabs.Screen
+        <TopTabs.Screen
           key={name}
           name={name}
-          options={{ title, tabBarIcon: ({ color: tint }) => <Icon color={tint} /> }}
+          options={{
+            title,
+            tabBarIcon: ({ color: tint }: { color: string }) => <Icon color={tint} size={iconSize.tab} />,
+          }}
         />
       ))}
-    </Tabs>
+    </TopTabs>
   );
 }
