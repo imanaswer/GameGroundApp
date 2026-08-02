@@ -84,8 +84,10 @@ const styles = StyleSheet.create({
     backgroundColor: color.liveRed,
     alignSelf: "flex-start",
   },
-  dot: { width: 4, height: 4, borderRadius: 999, backgroundColor: color.text },
-  liveText: { fontFamily: type.micro.fontFamily, fontSize: 8.5, letterSpacing: 0.68, textTransform: "uppercase", color: color.text },
+  // White on the filled live chip. `color.text` is near-black since the light port and would sit
+  // at ~2:1 on the Error-500 fill — legible as a shape, unreadable as text.
+  dot: { width: 4, height: 4, borderRadius: 999, backgroundColor: color.inverse },
+  liveText: { fontFamily: type.micro.fontFamily, fontSize: 8.5, letterSpacing: 0.68, textTransform: "uppercase", color: color.inverse },
 
   featured: {
     flexDirection: "row",

@@ -17,7 +17,7 @@ import Animated, {
 } from "react-native-reanimated";
 
 import * as haptics from "@/lib/haptics";
-import { color, shadow, space, type } from "@/lib/tokens";
+import { color, radius, space, type } from "@/lib/tokens";
 import { dur } from "@/theme/animations";
 
 import { Press } from "./Press";
@@ -93,19 +93,24 @@ export function Button({
       style={[
         styles.base,
         styles[variant],
-        isPrimary && shadow.ctaRed,
-        off && styles.disabled,
+        // Disabled is a fill+label swap, not a blanket opacity fade (Decision 20): the source
+        // ships explicit disabled fills, and fading a black pill on white just makes it grey
+        // anyway — but fading an OUTLINED pill makes its border disappear entirely.
+        off && styles[`${variant}Disabled`],
         style,
       ]}
     >
       {isPrimary && !reduced && <Animated.View pointerEvents="none" style={[styles.ripple, rippleStyle]} />}
       <View style={styles.row}>
         {loading ? (
-          <ActivityIndicator color={isPrimary ? color.text : color.dim} />
+          // On a black fill the spinner must be white; on white/ghost it must be dark.
+          <ActivityIndicator color={isPrimary || variant === "mini" ? color.inverse : color.dim} />
         ) : (
           <>
             {icon}
-            <Text style={[styles.label, styles[`${variant}Label`]]}>{title}</Text>
+            <Text style={[styles.label, styles[`${variant}Label`], off && styles.labelDisabled]}>
+              {title}
+            </Text>
           </>
         )}
       </View>
@@ -113,33 +118,62 @@ export function Button({
   );
 }
 
+/**
+ * Ported from the source's CTA Button (Decision 20). Two colours — black (primary) and white
+ * (secondary, outlined) — two sizes, fully-rounded. The old radius-16 family is gone: every
+ * button in the source is a pill.
+ *
+ * Heights are the source's measured symbol sizes: md 44, sm 33.
+ */
+const H_MD = 44;
+const H_SM = 33;
+
 const styles = StyleSheet.create({
-  base: { alignItems: "center", justifyContent: "center", minHeight: 44, overflow: "hidden" },
+  base: { alignItems: "center", justifyContent: "center", minHeight: H_MD, overflow: "hidden" },
   row: { flexDirection: "row", alignItems: "center", gap: space(2) },
-  disabled: { opacity: 0.5 },
   ripple: {
     position: "absolute",
     width: RIPPLE_SIZE,
     height: RIPPLE_SIZE,
     borderRadius: RIPPLE_SIZE / 2,
-    backgroundColor: color.text,
+    // White: the ripple only fires on `primary`, which is now a BLACK fill. `color.text` here
+    // would be near-black on near-black — an invisible ripple, not a missing one.
+    backgroundColor: color.inverse,
   },
 
-  primary: { backgroundColor: color.red, borderRadius: 16, paddingVertical: space(3.5), paddingHorizontal: space(5) },
+  primary: {
+    backgroundColor: color.red,
+    borderRadius: radius.chip,
+    height: H_MD,
+    paddingHorizontal: space(6),
+  },
   secondary: {
-    backgroundColor: "transparent",
+    backgroundColor: color.bg,
     borderWidth: 1,
     borderColor: color.border2,
-    borderRadius: 16,
-    paddingVertical: space(3.5),
-    paddingHorizontal: space(5),
+    borderRadius: radius.chip,
+    height: H_MD,
+    paddingHorizontal: space(6),
   },
-  ghost: { paddingVertical: space(2), paddingHorizontal: space(2) },
-  mini: { backgroundColor: color.red, borderRadius: 11, minHeight: 34, paddingVertical: space(2.25), paddingHorizontal: space(3.75) },
+  ghost: { paddingVertical: space(2), paddingHorizontal: space(2), minHeight: 0 },
+  mini: {
+    backgroundColor: color.red,
+    borderRadius: radius.chip,
+    minHeight: H_SM,
+    height: H_SM,
+    paddingHorizontal: space(4),
+  },
+
+  // Disabled fills, per the source's disabled row.
+  primaryDisabled: { backgroundColor: color.border },
+  secondaryDisabled: { backgroundColor: color.card, borderColor: color.border },
+  ghostDisabled: { opacity: 0.5 },
+  miniDisabled: { backgroundColor: color.border },
 
   label: { ...type.heading, color: color.text },
-  primaryLabel: { color: color.text },
+  primaryLabel: { color: color.inverse },
   secondaryLabel: { color: color.text },
   ghostLabel: { color: color.dim },
-  miniLabel: { fontFamily: type.heading.fontFamily, fontSize: 11.5, color: color.text },
+  miniLabel: { fontFamily: type.heading.fontFamily, fontSize: 12, color: color.inverse },
+  labelDisabled: { color: color.dim2 },
 });

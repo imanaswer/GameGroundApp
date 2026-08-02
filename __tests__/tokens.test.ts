@@ -63,6 +63,29 @@ test("primary action carries white label at AA", () => {
   expect(contrast(color.inverse, color.red)).toBeGreaterThanOrEqual(4.5);
 });
 
+/**
+ * Filled surfaces carrying a label or glyph. Every one of these was a real bug found during the
+ * Phase 2 port: on the old #050505 ground a near-black label sat on a near-black-adjacent fill and
+ * nobody noticed, because everything was dark. On white, the fills went dark and the labels did
+ * not follow. These assert the label colour against the fill it actually sits on.
+ */
+test("labels on filled surfaces are legible", () => {
+  // Primary button / selected chip / segmented pill — all the black fill, all white labels.
+  expect(contrast(color.inverse, color.red)).toBeGreaterThanOrEqual(4.5);
+  // "Live" badge text and dot.
+  expect(contrast(color.inverse, color.liveRed)).toBeGreaterThanOrEqual(4.5);
+  // Completed checkout step: a white check glyph, held to the 3:1 non-text bar.
+  expect(contrast(color.inverse, ramp.success[600])).toBeGreaterThanOrEqual(3);
+});
+
+test("success reads as text only via successText, never the fill colour", () => {
+  for (const surface of [color.bg, color.card]) {
+    expect(contrast(color.successText, surface)).toBeGreaterThanOrEqual(4.5);
+  }
+  // Guards the trap: the fill colour must NOT be mistaken for a text colour on light surfaces.
+  expect(contrast(color.success, color.bg)).toBeLessThan(4.5);
+});
+
 test("semantic text colors are legible on their own tinted surfaces", () => {
   expect(contrast(ramp.success[700], color.successSurface)).toBeGreaterThanOrEqual(4.5);
   expect(contrast(ramp.error[700], color.redSurface)).toBeGreaterThanOrEqual(4.5);

@@ -65,7 +65,16 @@ export function SegmentedControl<T extends string>({
           }}
           style={[styles.segment, subtle && styles.segmentSubtle]}
         >
-          <Text style={[styles.label, subtle && styles.labelSubtle, s.key === value && styles.active]}>
+          <Text
+            style={[
+              styles.label,
+              subtle && styles.labelSubtle,
+              // The active label sits ON the sliding pill, so its colour follows the pill's fill:
+              // white on the black primary pill, dark on the light-grey subtle one. Before the
+              // light port both pills were dark and one rule covered both.
+              s.key === value && (subtle ? styles.activeSubtle : styles.active),
+            ]}
+          >
             {s.label}
           </Text>
         </Press>
@@ -82,5 +91,6 @@ const styles = StyleSheet.create({
   segmentSubtle: { paddingVertical: space(1.75) },
   label: { fontFamily: type.heading.fontFamily, fontSize: 12, color: color.dim },
   labelSubtle: { fontSize: 11.5 },
-  active: { color: color.text },
+  active: { color: color.inverse },
+  activeSubtle: { color: color.text },
 });

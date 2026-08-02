@@ -79,10 +79,13 @@ const styles = StyleSheet.create({
   chipSm: { paddingVertical: space(1.25), paddingHorizontal: space(2.5) },
   rest: { backgroundColor: color.card, borderColor: color.border },
   // Tinted "selected" state (matches the design-kit chip): red-wash fill, red border, bright-red text.
-  active: { backgroundColor: color.redSurface, borderColor: color.redFocus },
+  // Selected = solid black, per the source's selection language. It was a red-tinted wash before
+  // the light port; carried over literally that becomes a PINK chip (the red tokens now resolve to
+  // the Error ramp), so a selected filter would read as a validation error.
+  active: { backgroundColor: color.red, borderColor: color.red },
   disabled: { opacity: 0.5 },
   label: { fontFamily: type.bodyStrong.fontFamily, fontSize: 12.5 },
   labelSm: { fontSize: 11 },
   restLabel: { color: color.dim },
-  activeLabel: { color: color.redLight },
+  activeLabel: { color: color.inverse },
 });

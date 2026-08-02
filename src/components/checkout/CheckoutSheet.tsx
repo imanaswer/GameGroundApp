@@ -19,7 +19,7 @@ import Svg, { Path } from "react-native-svg";
 
 import { Button, CheckIcon, Confetti, Press } from "@/components/ds";
 import * as haptics from "@/lib/haptics";
-import { color, radius, space, type } from "@/lib/tokens";
+import { color, radius, ramp, space, type } from "@/lib/tokens";
 import { dur, ease, spring } from "@/theme/animations";
 
 const AnimatedPath = Animated.createAnimatedComponent(Path);
@@ -124,7 +124,7 @@ function Processing({ phase }: { phase: TimelinePhase }) {
         {STEPS.map((label, i) => (
           <View key={label} style={styles.step}>
             <View style={[styles.stepDot, i < done && styles.stepDone, i === done && styles.stepActive]}>
-              {i < done && <CheckIcon size={12} color={color.bg} />}
+              {i < done && <CheckIcon size={12} color={color.inverse} />}
             </View>
             <Text style={[styles.stepLabel, i <= done && styles.stepLabelOn]}>{label}</Text>
           </View>
@@ -248,7 +248,8 @@ const styles = StyleSheet.create({
   step: { flexDirection: "row", alignItems: "center", gap: space(3) },
   stepDot: { width: 22, height: 22, borderRadius: 999, borderWidth: 2, borderColor: color.dim2, alignItems: "center", justifyContent: "center" },
   stepActive: { borderColor: color.red },
-  stepDone: { backgroundColor: color.success, borderColor: color.success },
+  // Deeper fill so the white check clears the 3:1 non-text bar: white on success-400 is 2.2:1.
+  stepDone: { backgroundColor: ramp.success[600], borderColor: ramp.success[600] },
   stepLabel: { ...type.body, color: color.dim2 },
   stepLabelOn: { color: color.text },
 

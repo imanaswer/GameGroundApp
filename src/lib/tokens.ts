@@ -68,7 +68,14 @@ export const color = {
   goldLight: ramp.warning[400],
   goldDeep: ramp.warning[700],
 
+  /** Success as a FILL (dots, bars, chips). Not legible as text — see `successText`. */
   success: ramp.success[400],
+  /**
+   * Success as TEXT or an ICON on a light surface. `success` (ramp 400, #35C75A) measures 2.2:1
+   * on white — fine on the old #050505 ground, and below both the 4.5:1 text bar and the 3:1
+   * non-text bar now. Any success glyph or label on `bg`/`card` must use this instead.
+   */
+  successText: ramp.success[700],
   infoSurface: gray[100],
 
   // Tinted surfaces. On white these are the ramp's 100 step, not an alpha wash of the accent.

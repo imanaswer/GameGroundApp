@@ -44,7 +44,7 @@ export function StickyCTA({
       <View style={styles.row}>
         {status ? (
           <View style={styles.statusRow}>
-            <CheckIcon size={16} color={color.success} />
+            <CheckIcon size={16} color={color.successText} />
             <Text style={styles.status}>{status}</Text>
           </View>
         ) : (
@@ -65,6 +65,6 @@ const styles = StyleSheet.create({
   price: { fontFamily: type.heading.fontFamily, fontSize: 16, color: color.gold },
   caption: { ...type.micro, color: color.dim },
   statusRow: { flexDirection: "row", alignItems: "center", gap: space(2) },
-  status: { ...type.bodyStrong, color: color.success },
+  status: { ...type.bodyStrong, color: color.successText },
   cta: { flexShrink: 0 },
 });
