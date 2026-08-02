@@ -14,6 +14,7 @@
  * ⚠️ Still requires a physical-device pass (test-mode payment + Android UPI intent + one
  * live ₹1) — that is an exit criterion for ANY payment integration, not a gap in this one.
  */
+import { allowScreenCaptureAsync, preventScreenCaptureAsync } from "expo-screen-capture";
 import { useEffect, useRef, useState } from "react";
 import { Modal, StyleSheet, View } from "react-native";
 import { WebView, type WebViewMessageEvent } from "react-native-webview";
@@ -100,6 +101,20 @@ export function RazorpayHost() {
   }, []);
 
   const close = () => setPending(null);
+
+  // FLAG_SECURE (§9.5 / S1.6) belongs here and nowhere else: the gateway WebView is the only
+  // surface a card number or UPI id is ever visible on. The CheckoutSheet before it shows a radio
+  // pair and a server-issued amount — nothing worth blocking a screenshot of.
+  //
+  // Skipped under __DEV__ deliberately. FLAG_SECURE blanks the window on any non-secure display —
+  // emulator, scrcpy/mirroring, Expo Go — and a black unresponsive app is indistinguishable from a
+  // hang. Setting it from useCheckout meant that happened the moment "Book" was tapped.
+  const gatewayOpen = !!pending;
+  useEffect(() => {
+    if (__DEV__ || !gatewayOpen) return;
+    preventScreenCaptureAsync().catch(() => {});
+    return () => void allowScreenCaptureAsync().catch(() => {});
+  }, [gatewayOpen]);
 
   const onMessage = (e: WebViewMessageEvent) => {
     if (!pending || settled.current) return;

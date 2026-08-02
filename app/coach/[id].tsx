@@ -1,6 +1,7 @@
 /**
- * Coach detail (M8). One scroll: head → Batches (book → M6 checkout) → Facility gallery (pinch-zoom
- * lightbox) → About → Reviews (server-eligibility gated). Sticky footer = session price + WhatsApp.
+ * Coach detail (M8). One scroll: head → where/when → Batches (book → M6 checkout) → Facility
+ * gallery (pinch-zoom lightbox) → About → focus + certifications → Reviews (server-eligibility
+ * gated). Sticky footer = session price + WhatsApp.
  */
 import { Image } from "expo-image";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -11,7 +12,19 @@ import Animated, { useAnimatedScrollHandler, useSharedValue } from "react-native
 import type { CoachBatch } from "@/api/types";
 import { ErrorState, HeroNav, ParallaxHero, Screen, Sheet, StickyCTA } from "@/components/chrome";
 import { CheckoutSheet } from "@/components/checkout";
-import { Avatar, Button, Press, Skeleton, StarIcon, Stars } from "@/components/ds";
+import {
+  Avatar,
+  Badge,
+  Button,
+  CheckIcon,
+  ChevronRightIcon,
+  ClockIcon,
+  MapPinIcon,
+  Press,
+  Skeleton,
+  StarIcon,
+  Stars,
+} from "@/components/ds";
 import { useCoach } from "@/hooks/queries";
 import { useCheckout } from "@/hooks/useCheckout";
 import { useIsOnline } from "@/hooks/useIsOnline";
@@ -27,6 +40,42 @@ const Lightbox = lazy(() =>
   import("@/components/coach/Lightbox").then((m) => ({ default: m.Lightbox })),
 );
 
+/** Same tile as the game detail's meta list — kept local to each screen rather than promoted to
+ *  the DS, which would be a §10 governance change. */
+function MetaTile({ icon, label, sub, onPress }: { icon: React.ReactNode; label: string; sub?: string; onPress?: () => void }) {
+  const content = (
+    <>
+      <View style={styles.metaIcon}>{icon}</View>
+      <View style={styles.metaText}>
+        <Text style={styles.metaLabel}>{label}</Text>
+        {!!sub && <Text style={styles.metaSub}>{sub}</Text>}
+      </View>
+      {!!onPress && <ChevronRightIcon size={16} color={color.dim2} />}
+    </>
+  );
+  return onPress ? (
+    <Press accessibilityRole="button" accessibilityLabel={sub ? `${label}. ${sub}` : label} onPress={onPress} style={styles.meta}>
+      {content}
+    </Press>
+  ) : (
+    <View style={styles.meta}>{content}</View>
+  );
+}
+
+/** A "· item" list — the shape both `features` and `certifications` arrive in. */
+function TickList({ items }: { items: string[] }) {
+  return (
+    <View style={styles.tickList}>
+      {items.map((item) => (
+        <View key={item} style={styles.tickRow}>
+          <CheckIcon size={14} color={color.success} />
+          <Text style={styles.tickText}>{item}</Text>
+        </View>
+      ))}
+    </View>
+  );
+}
+
 export default function CoachDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
@@ -39,7 +88,7 @@ export default function CoachDetail() {
     scrollY.value = e.contentOffset.y;
   });
 
-  const checkout = useCheckout("coach", id, booking ? { batchId: booking.id } : {}, !!booking);
+  const checkout = useCheckout("coach", id, booking ? { batchId: booking.id } : {});
   const online = useIsOnline();
   const { promptForPush } = usePush();
 
@@ -51,6 +100,12 @@ export default function CoachDetail() {
   const onSupport = () => {
     const subject = encodeURIComponent(`Payment help — coach ${id}`);
     Linking.openURL(`mailto:support@gameground.net?subject=${subject}`).catch(() => {});
+  };
+
+  const openDirections = () => {
+    if (!coach) return;
+    const q = encodeURIComponent(coach.address || coach.area || coach.name);
+    Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${q}`).catch(() => {});
   };
 
   // First successful booking → offer reminders (shown once, §10.2).
@@ -119,6 +174,31 @@ export default function CoachDetail() {
                 </View>
               </View>
 
+              {/* Practice shape + skill band — free text from the admin form, so both are optional. */}
+              {(!!coach.coachType || !!coach.skillLevel) && (
+                <View style={styles.badges}>
+                  {!!coach.coachType && <Badge label={coach.coachType} tone="red" />}
+                  {!!coach.skillLevel && <Badge label={coach.skillLevel} />}
+                </View>
+              )}
+
+              {/* Where and when. `area` is the venue name, `address` the street line. */}
+              {(!!coach.area || !!coach.address || !!coach.timing) && (
+                <View style={styles.metaList}>
+                  {(!!coach.area || !!coach.address) && (
+                    <MetaTile
+                      icon={<MapPinIcon size={17} color={color.redLight} />}
+                      label={coach.area || coach.address || ""}
+                      sub={coach.area && coach.address ? coach.address : "Get directions"}
+                      onPress={openDirections}
+                    />
+                  )}
+                  {!!coach.timing && (
+                    <MetaTile icon={<ClockIcon size={17} color={color.redLight} />} label={coach.timing} sub="Available" />
+                  )}
+                </View>
+              )}
+
               {/* Batches */}
               <View style={styles.section}>
                 <Text style={styles.label}>Batches</Text>
@@ -130,7 +210,7 @@ export default function CoachDetail() {
                       <View style={styles.batchText}>
                         <Text style={styles.batchName}>{b.name}</Text>
                         <Text style={styles.muted}>
-                          {[b.schedule, `${b.spotsLeft} seats left`].filter(Boolean).join(" · ")}
+                          {[b.schedule, b.level, `${b.spotsLeft} seats left`].filter(Boolean).join(" · ")}
                         </Text>
                       </View>
                       {/* Ranged-price coaches are request-only — the server refuses their
@@ -147,9 +227,12 @@ export default function CoachDetail() {
                     </View>
                   ))
                 )}
+                {/* Ranged-price coaches are request-only and the server refuses their checkout, so
+                    there is no in-app path to a booking — and with messaging now gated behind one,
+                    no contact path either. Say that plainly rather than point at a locked button. */}
                 {coach.batches.length > 0 && !coach.instantPayEligible && (
                   <Text style={styles.muted}>
-                    This coach takes bookings by request — message them to arrange a session.
+                    This coach takes bookings by request — booking isn’t available in the app yet.
                   </Text>
                 )}
               </View>
@@ -176,6 +259,20 @@ export default function CoachDetail() {
                 </View>
               )}
 
+              {coach.features.length > 0 && (
+                <View style={styles.section}>
+                  <Text style={styles.label}>What you’ll work on</Text>
+                  <TickList items={coach.features} />
+                </View>
+              )}
+
+              {coach.certifications.length > 0 && (
+                <View style={styles.section}>
+                  <Text style={styles.label}>Certifications</Text>
+                  <TickList items={coach.certifications} />
+                </View>
+              )}
+
               {/* Reviews */}
               {(coach.viewerCanReview || coach.reviews.length > 0) && (
                 <View style={styles.section}>
@@ -198,12 +295,15 @@ export default function CoachDetail() {
         </View>
       </Animated.ScrollView>
 
+      {/* WhatsApp is a post-booking channel: the coach's number is earned by booking, not by
+          browsing. `viewerHasBooking` is the server's answer, so the gate can't be faked client-side. */}
       {coach && !booking && (
         <StickyCTA
           price={sessionLabel}
+          caption={coach.viewerHasBooking ? undefined : "Unlocks once you book a batch"}
           ctaLabel="Message on WhatsApp"
           onPress={() => coach.whatsapp && Linking.openURL(`https://wa.me/${coach.whatsapp}`)}
-          disabled={!coach.whatsapp}
+          disabled={!coach.viewerHasBooking || !coach.whatsapp}
         />
       )}
 
@@ -246,6 +346,28 @@ const styles = StyleSheet.create({
   label: { ...type.label, color: color.dim },
   muted: { ...type.body, color: color.dim },
   bio: { ...type.body, color: color.dim, lineHeight: 20 },
+
+  badges: { flexDirection: "row", flexWrap: "wrap", gap: space(1.5) },
+
+  metaList: { gap: space(3) },
+  meta: { flexDirection: "row", alignItems: "center", gap: space(3) },
+  metaIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: radius.tile,
+    backgroundColor: color.card,
+    borderWidth: 1,
+    borderColor: color.border,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  metaText: { flex: 1, gap: space(0.5) },
+  metaLabel: { ...type.bodyStrong, color: color.text, flexShrink: 1 },
+  metaSub: { ...type.caption, color: color.dim },
+
+  tickList: { gap: space(2) },
+  tickRow: { flexDirection: "row", alignItems: "center", gap: space(2.5) },
+  tickText: { ...type.body, color: color.dim, flex: 1 },
 
   batch: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", backgroundColor: color.card, borderRadius: radius.input, borderWidth: 1, borderColor: color.border, padding: space(3.5), gap: space(3) },
   batchText: { flex: 1, gap: space(1) },

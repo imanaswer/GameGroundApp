@@ -156,6 +156,8 @@ export interface CoachBatch {
   id: string;
   name: string;
   schedule: string;
+  /** Batch-level skill band ("Beginner", "All Levels") — may differ from the coach's own. */
+  level: string | null;
   pricePaise: number;
   spotsLeft: number;
 }
@@ -170,12 +172,29 @@ export interface CoachReview {
 
 export interface CoachDetail extends CoachSummary {
   bio: string;
+  /** Practice shape — "Personal Trainer", "Academy", "Sports Club". Free text from the admin form. */
+  coachType: string | null;
+  /** Skill band the coach takes ("Beginner", "All Levels"). */
+  skillLevel: string | null;
+  /** The coach's overall availability line, e.g. "Mon-Sat 6AM-9AM, 4PM-8PM". */
+  timing: string | null;
+  /** Street address; `area` (from CoachSummary) is the short venue name. */
+  address: string | null;
+  /** What the coaching covers — "Footwork training", "Tournament preparation". */
+  features: string[];
+  certifications: string[];
   batches: CoachBatch[];
   photos: string[];
   reviews: CoachReview[];
   whatsapp: string | null;
   /** Server eligibility: can the viewer post a review right now? */
   viewerCanReview: boolean;
+  /**
+   * Does the viewer hold a booking with this coach? Gates the WhatsApp CTA — contact details are
+   * earned by booking, not by browsing. Shares a source with `viewerCanReview` today, but they are
+   * separate questions (reviewing may later require a *completed* session).
+   */
+  viewerHasBooking: boolean;
   /**
    * Whether "pay & book" is available. False for coaches with a price range or no price — those
    * are request-only, and the server refuses their checkout.

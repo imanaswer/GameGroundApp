@@ -13,7 +13,6 @@
  */
 import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { preventScreenCaptureAsync, allowScreenCaptureAsync } from "expo-screen-capture";
 
 import * as paymentsApi from "@/api/payments";
 import type { EntityType } from "@/api/types";
@@ -37,8 +36,6 @@ export function useCheckout(
   entityType: EntityType,
   entityId: string,
   registration: Record<string, unknown> = {},
-  /** True only while the checkout sheet is actually presented — gates FLAG_SECURE (see below). */
-  active = false,
 ) {
   const queryClient = useQueryClient();
   const { user } = useAuth();
@@ -48,26 +45,30 @@ export function useCheckout(
   const mounted = useRef(true);
   useEffect(() => () => void (mounted.current = false), []);
 
-  // FLAG_SECURE while the sheet is active in a paying state (§9.5 / S1.6).
-  //
-  // `active` is required because `state` starts at "methods": without it this turned screen-capture
-  // prevention on the moment the hook mounted, i.e. for the whole time a user merely *browsed* a
-  // coach or game page. That is both wider than §9.5 asks for and, on iOS, a rendering hazard —
-  // prevention wraps content in a secure layer, which paints differently from the plain view.
-  const secure = active && (state === "methods" || state === "processing");
-  useEffect(() => {
-    if (secure) preventScreenCaptureAsync().catch(() => {});
-    return () => void allowScreenCaptureAsync().catch(() => {});
-  }, [secure]);
+  // FLAG_SECURE (§9.5 / S1.6) is NOT set here — it lives on the gateway WebView in lib/razorpay.
+  // Toggling it from this hook flipped the flag on the live window the instant the sheet opened,
+  // which blanks the whole app on any non-secure display. See the note in RazorpayHost.
 
   const settleSuccess = useCallback(async () => {
     await storage.remove("gg.pendingOrder");
-    // Narrow invalidation (§6.1): the entity detail, its list, me, and payments history.
-    queryClient.invalidateQueries({ queryKey: keys.games.detail(entityId) });
-    queryClient.invalidateQueries({ queryKey: keys.games.all });
+    // Narrow invalidation (§6.1): the entity detail, its list, and me.
+    //
+    // Keyed off entityType. This used to invalidate keys.games.* whatever was bought, so a coach
+    // booking left the coach detail stale — and its `userBooking` is what unlocks the WhatsApp CTA,
+    // so the thing you just paid for stayed locked until the query aged out.
+    if (entityType === "coach") {
+      queryClient.invalidateQueries({ queryKey: keys.coaches.detail(entityId) });
+      queryClient.invalidateQueries({ queryKey: keys.coaches.all });
+    } else if (entityType === "game") {
+      queryClient.invalidateQueries({ queryKey: keys.games.detail(entityId) });
+      queryClient.invalidateQueries({ queryKey: keys.games.all });
+    } else {
+      queryClient.invalidateQueries({ queryKey: keys.registerables.detail(entityType, entityId) });
+      queryClient.invalidateQueries({ queryKey: ["registerables", entityType] });
+    }
     queryClient.invalidateQueries({ queryKey: keys.me });
     if (mounted.current) setState("success");
-  }, [entityId, queryClient]);
+  }, [entityType, entityId, queryClient]);
 
   const beginReconcile = useCallback(
     async (orderId: string) => {

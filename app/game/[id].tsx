@@ -75,7 +75,7 @@ export default function GameDetail() {
   });
 
   const paid = !!game && game.pricePaise !== null && game.pricePaise > 0;
-  const checkout = useCheckout("game", id, {}, sheetOpen);
+  const checkout = useCheckout("game", id, {});
   const online = useIsOnline();
   const { promptForPush } = usePush();
   const { show } = useToast();

@@ -54,8 +54,17 @@ function PendingPaymentBridge() {
     if (status !== "signedIn" || started.current) return;
     started.current = true;
     resumePendingReconciliation((pending) => {
-      queryClient.invalidateQueries({ queryKey: keys.games.detail(pending.entityId) });
-      queryClient.invalidateQueries({ queryKey: keys.games.all });
+      // Same entityType keying as useCheckout's settleSuccess — a coach order confirmed on resume
+      // has to refetch the coach, since that response carries the booking that unlocks messaging.
+      if (pending.entityType === "coach") {
+        queryClient.invalidateQueries({ queryKey: keys.coaches.detail(pending.entityId) });
+        queryClient.invalidateQueries({ queryKey: keys.coaches.all });
+      } else if (pending.entityType === "game") {
+        queryClient.invalidateQueries({ queryKey: keys.games.detail(pending.entityId) });
+        queryClient.invalidateQueries({ queryKey: keys.games.all });
+      } else {
+        queryClient.invalidateQueries({ queryKey: ["registerables", pending.entityType] });
+      }
       queryClient.invalidateQueries({ queryKey: keys.me });
       queryClient.invalidateQueries({ queryKey: ["payments", "history"] });
       show({

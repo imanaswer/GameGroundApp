@@ -32,6 +32,12 @@ type RawCoach = {
   priceMin?: number | null;
   priceMax?: number | null;
   location?: string | null;
+  address?: string | null;
+  type?: string | null;
+  skillLevel?: string | null;
+  timing?: string | null;
+  features?: string[];
+  certifications?: string[];
   description?: string;
   phone?: string | null;
   photos?: string[];
@@ -39,6 +45,17 @@ type RawCoach = {
   reviews?: RawReview[];
   userBooking?: unknown;
 };
+
+/** Admin free-text fields arrive as "" as often as they do absent — treat both as missing. */
+function text(v: string | null | undefined): string | null {
+  const s = (v ?? "").trim();
+  return s.length > 0 ? s : null;
+}
+
+/** Same, for the string lists: drop blank entries rather than render an empty chip. */
+function textList(v: string[] | null | undefined): string[] {
+  return (v ?? []).map((s) => (s ?? "").trim()).filter((s) => s.length > 0);
+}
 
 function toSummary(c: RawCoach): CoachSummary {
   // Card backdrop = the coach's own cover when set, else a sport-themed image; the coach's photo
@@ -68,6 +85,7 @@ function toBatch(b: RawBatch, sessionRupees: number | null | undefined): CoachBa
     id: b.id,
     name: (b.time ?? "Batch").trim(),
     schedule: (b.day ?? "").trim(),
+    level: text(b.level),
     pricePaise: sessionRupees ? sessionRupees * 100 : 0,
     spotsLeft: b.seats ?? 0,
   };
@@ -104,11 +122,18 @@ function toDetail(c: RawCoach): CoachDetail {
     ...toSummary(c),
     instantPayEligible: isInstantPayEligible(c),
     bio: c.description ?? "",
+    coachType: text(c.type),
+    skillLevel: text(c.skillLevel),
+    timing: text(c.timing),
+    address: text(c.address),
+    features: textList(c.features),
+    certifications: textList(c.certifications),
     batches: (c.batches ?? []).map((b) => toBatch(b, c.priceMin)),
     photos: c.photos ?? [],
     reviews: (c.reviews ?? []).map(toReview),
     whatsapp: toWhatsAppNumber(c.phone),
     viewerCanReview: c.userBooking != null,
+    viewerHasBooking: c.userBooking != null,
   };
 }
 
