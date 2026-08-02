@@ -107,7 +107,7 @@ function Methods({ amount, onPay }: { amount: string; onPay?: () => void }) {
           );
         })}
       </View>
-      <Button title={`Pay ${amount}`} onPress={onPay ?? (() => {})} />
+      <Button testID="checkout-pay" title={`Pay ${amount}`} onPress={onPay ?? (() => {})} />
       <Text style={styles.footnote}>Amount is confirmed by GameGround’s server.</Text>
     </>
   );

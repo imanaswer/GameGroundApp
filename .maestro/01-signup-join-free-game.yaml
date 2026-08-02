@@ -1,8 +1,8 @@
 # Flow 1/5 (§14): signup → browse → join a free game.
 # The core acquisition path. If this breaks, nothing else matters.
 #
-# Needs a fresh email every run — signup rejects duplicates:
-#   -e EMAIL="e2e+$(date +%s)@example.com" -e PASSWORD="..."
+# Needs a fresh email + username every run — signup rejects duplicates:
+#   -e EMAIL="e2e+$(date +%s)@example.com" -e USERNAME="e2e_$(date +%s)" -e PASSWORD="..."
 appId: net.gameground.app.preview
 name: 01 signup and join a free game
 ---
@@ -10,7 +10,7 @@ name: 01 signup and join a free game
 - launchApp
 
 # Onboarding shows exactly once per install (M4); clearState puts us back to first-run.
-# Optional because the copy may differ — calibrate against the real onboarding CTA.
+# Optional: calibrate the CTA copy against app/onboarding.tsx on first run.
 - tapOn:
     text: "Get started"
     optional: true
@@ -20,38 +20,56 @@ name: 01 signup and join a free game
     optional: true
 - assertVisible: "Create your"
 
-- tapOn: "Full name"
+- tapOn:
+    id: "signup-name"
 - inputText: "E2E Tester"
-- tapOn: "Username"
+- tapOn:
+    id: "signup-username"
 - inputText: ${USERNAME}
-- tapOn: "Email"
+- tapOn:
+    id: "auth-email"
 - inputText: ${EMAIL}
-- tapOn: "Password"
+- tapOn:
+    id: "auth-password"
 - inputText: ${PASSWORD}
 - hideKeyboard
-- tapOn: "Create account"
+- tapOn:
+    id: "auth-submit"
 
 # Signup lands on the tabs. Allow for the network plus the entrance stagger.
 - extendedWaitUntil:
-    visible: "Games"
+    visible:
+      id: "tab-games"
     timeout: 20000
-- tapOn: "Games"
-
-# calibrate: open the first game card. Cards have no testID, so there is no honest
-# selector to write here yet — use `maestro studio` on a running build to fill this in.
-# Until then this line is a deliberate placeholder and the flow stops here.
 - tapOn:
-    text: ${GAME_TITLE}
+    id: "tab-games"
 
+# First card in the list. Every GameCard carries testID="game-card", so index selects
+# within the list rather than depending on any game's title.
 - extendedWaitUntil:
-    visible: "Join game"
+    visible:
+      id: "game-card"
+    timeout: 20000
+- tapOn:
+    id: "game-card"
+    index: 0
+
+# The detail CTA is a single StickyCTA whose label varies (Join game / Join waitlist /
+# Leave game). Match the id and assert the label separately so a copy change fails loudly
+# on the assertion instead of silently not finding the button.
+- extendedWaitUntil:
+    visible:
+      id: "game-cta"
     timeout: 15000
+- assertVisible: "Join game"
 
-# Free game only — a paid one opens checkout, which is flow 02's job.
-- tapOn: "Join game"
+# Free game only — a paid one opens the checkout sheet, which is flow 02's job.
+- assertNotVisible: "Pay ₹"
+- tapOn:
+    id: "game-cta"
 
-# The server decides join vs waitlist on overflow (audit #21/#27), so accept either —
-# both prove the mutation round-tripped and the detail refetched.
+# The server decides join vs waitlist on overflow (audit #21/#27); both prove the mutation
+# round-tripped and the detail refetched real server state rather than caching a receipt.
 - extendedWaitUntil:
-    visible: "Leave game"
+    visible: "Leave game|in line"
     timeout: 20000

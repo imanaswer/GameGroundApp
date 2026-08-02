@@ -32,6 +32,8 @@ type Props = {
   disabled?: boolean;
   icon?: React.ReactNode;
   style?: StyleProp<ViewStyle>;
+  /** E2E hook (.maestro/). Press extends PressableProps so it forwards this natively. */
+  testID?: string;
 };
 
 /** §3 ripple: white 35% expanding-fading disc from the touch point over 500ms (primary only). */
@@ -46,6 +48,7 @@ export function Button({
   disabled = false,
   icon,
   style,
+  testID,
 }: Props) {
   const isPrimary = variant === "primary";
   const off = disabled || loading;
@@ -75,6 +78,7 @@ export function Button({
 
   return (
     <Press
+      testID={testID}
       accessibilityRole="button"
       accessibilityState={{ disabled: off, busy: loading }}
       disabled={off}

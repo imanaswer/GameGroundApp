@@ -38,7 +38,7 @@ export const CoachCard = memo(function CoachCard({
   const amount = hasUnit ? data.price.replace("/session", "") : data.price;
 
   return (
-    <Press accessibilityRole="button" accessibilityLabel={data.name} onPress={onPress} brighten style={cardStyles.card}>
+    <Press testID="coach-card" accessibilityRole="button" accessibilityLabel={data.name} onPress={onPress} brighten style={cardStyles.card}>
       <CardImage uri={data.facilityImageUrl} height={100} />
       <View style={styles.avatarPerch}>
         <Avatar name={data.name} uri={data.avatarUrl} size={48} />
@@ -80,7 +80,7 @@ export const CoachCard = memo(function CoachCard({
 const CompactCoachCard = memo(function CompactCoachCard({ data, onPress }: { data: CoachCardData; onPress: () => void }) {
   const rated = data.rating > 0 || data.reviewCount > 0;
   return (
-    <Press accessibilityRole="button" accessibilityLabel={`${data.name}, ${data.sport} coach`} onPress={onPress} brighten style={styles.compact}>
+    <Press testID="coach-card" accessibilityRole="button" accessibilityLabel={`${data.name}, ${data.sport} coach`} onPress={onPress} brighten style={styles.compact}>
       <CardImage uri={data.facilityImageUrl} height={84} />
       <View style={styles.compactAvatar}>
         <Avatar name={data.name} uri={data.avatarUrl} size={44} />

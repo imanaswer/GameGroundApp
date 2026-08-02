@@ -10,19 +10,29 @@
 > a pass) is the reviewed part, and it is faster to fix selectors against a running app than to
 > author flows from scratch during a release crunch.
 
-## The blocker you should fix first: there are no testIDs
+## Selector contract
 
-`grep -rn testID app src` returns **0**. There are 47 `accessibilityLabel`s, so these flows lean on
-visible text and a11y labels, which means:
+The app now carries `testID`s on everything these flows touch, so the suite matches on stable ids
+rather than copy. **Renaming or removing one of these breaks E2E** — treat them as API.
 
-- Every copy change can break a flow.
-- Text matching is ambiguous where the same word appears twice on screen (e.g. "Games" is both a
-  tab and a heading).
-- `id:` selectors — the stable kind — aren't available at all.
+| testID | Where |
+|---|---|
+| `tab-home` `tab-games` `tab-coaches` `tab-discover` `tab-leaders` | `chrome/TabBar` — derived from the route name, not the label |
+| `auth-email` `auth-password` `auth-submit` | login **and** signup (shared ids — the subflow works on either) |
+| `signup-name` `signup-username` | signup only |
+| `game-card` `coach-card` `registerable-card` | list cards; select with `index:` |
+| `game-cta` `registerable-cta` | the detail `StickyCTA` — one id, label varies by state |
+| `coach-book` | per-batch mini Button; only rendered when `coach.instantPayEligible` |
+| `checkout-pay` | `CheckoutSheet` "Pay ₹X" |
+| `registration-<fieldKey>` `registration-submit` | form engine; keys come from `entities.ts` |
+| `profile-edit-entry` `profile-name` `profile-bio` `profile-phone` `profile-save` `profile-delete` `profile-delete-confirm` | profile + edit |
 
-Adding `testID` to the ~20 elements these flows touch (CTAs, tab bar items, the first list card,
-form inputs, the delete-account button) would make the suite durable. That is a deliberate app
-change, not a test-only one, so it is left as a decision rather than done silently.
+`Press` forwards `testID` natively (it extends `PressableProps`) and `Input` forwards it through
+`TextInputProps`; `Button`, `StickyCTA` and `TabBar` needed the prop added explicitly.
+
+Where a CTA's label carries meaning (Join game vs Leave game vs Fully booked), the flows tap the
+**id** and assert the **label** separately — so a copy change fails on a clear assertion instead of
+silently failing to find a button.
 
 ## Running
 
@@ -65,11 +75,16 @@ Flow 05 permanently deletes its account. Run it last, and only with an account y
 
 ## Known fragilities to expect on first run
 
-- **Native alerts.** Log out and delete-account both go through `Alert.alert`. Maestro taps these
-  by button text; if the tap misses, the flow hangs rather than fails cleanly.
 - **The Razorpay WebView** (flow 02) is a webview, not native views. Maestro's text matching inside
   webviews is less reliable; that flow may need `extendedWaitUntil` bumps or an explicit webview
-  wait.
+  wait. It is the least reliable section of the suite by some margin.
+- **Flow 02 needs an instant-pay-eligible coach.** The per-batch Book button only renders when
+  `coach.instantPayEligible` is true — ranged-price coaches are request-only. Index 0 of the coach
+  list is not guaranteed to qualify; pin a known-good coach by name once you have one.
+- **Log out** still goes through a native `Alert.alert` (`app/profile/index.tsx`). No flow depends
+  on it today; if you add one, note Maestro taps alert buttons by text and a missed tap hangs the
+  run rather than failing it. Account deletion does **not** use an Alert — it is an inline
+  two-step confirm.
 - **Entrance animations.** The app staggers list entrances (MOTION.md); assertions that fire before
   the stagger settles will flake. The flows use `extendedWaitUntil` where that is likely.
 - **Empty states.** 01/02/03 assume live content exists (an open free game, a bookable coach, an

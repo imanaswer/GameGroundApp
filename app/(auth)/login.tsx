@@ -80,6 +80,7 @@ export default function Login() {
 
       <FormError error={formError} />
       <Input
+        testID="auth-email"
         label="Email"
         value={email}
         onChangeText={(v) => {
@@ -98,6 +99,7 @@ export default function Login() {
       />
       <Input
         ref={passwordRef}
+        testID="auth-password"
         label="Password"
         value={password}
         onChangeText={(v) => {
@@ -121,7 +123,7 @@ export default function Login() {
         <Text style={styles.forgotText}>Forgot password?</Text>
       </Press>
 
-      <Button title="Log in" onPress={submit} loading={busy} />
+      <Button testID="auth-submit" title="Log in" onPress={submit} loading={busy} />
 
       <View style={styles.spacer} />
       <SwitchLink

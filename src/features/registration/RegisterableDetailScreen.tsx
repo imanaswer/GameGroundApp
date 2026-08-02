@@ -308,6 +308,7 @@ export function RegisterableDetailScreen({ config, id }: { config: EntityConfig;
 
       {item && !registering && (
         <StickyCTA
+          testID="registerable-cta"
           price={reg ? undefined : price}
           status={regStatus}
           caption={!online ? "Offline — reconnect to register" : !reg && price ? "per registration" : undefined}

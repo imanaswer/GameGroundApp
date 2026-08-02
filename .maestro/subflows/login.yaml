@@ -13,13 +13,17 @@ appId: net.gameground.app.preview
     optional: true
 
 - assertVisible: "Welcome"
-- tapOn: "Email"
+- tapOn:
+    id: "auth-email"
 - inputText: ${EXISTING_EMAIL}
-- tapOn: "Password"
+- tapOn:
+    id: "auth-password"
 - inputText: ${EXISTING_PASSWORD}
 - hideKeyboard
-- tapOn: "Log in"
+- tapOn:
+    id: "auth-submit"
 
 - extendedWaitUntil:
-    visible: "Games"
+    visible:
+      id: "tab-games"
     timeout: 20000

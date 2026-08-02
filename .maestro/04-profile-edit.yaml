@@ -1,46 +1,51 @@
 # Flow 4/5 (§14): profile edit.
 #
-# Also covers the WhatsApp-number requirement audit #25 added — game creation now demands a
-# phone on the profile, so this screen became load-bearing for a second flow.
+# Also guards audit #25: game creation now requires a WhatsApp number on the profile, so the
+# phone field on this screen became load-bearing for a second flow.
+#
+# Entry point: on your own profile the hero card itself is the edit affordance
+# (testID profile-edit-entry) — there is no separate "Edit" button.
 appId: net.gameground.app.preview
 name: 04 profile edit
 ---
 - runFlow: subflows/login.yaml
 
-- tapOn: "Home"
 - tapOn:
-    id: "profile"              # calibrate: the header avatar has no testID; use studio
-    optional: true
+    id: "tab-home"
 - tapOn:
-    text: "Profile"
-    optional: true
+    id: "profile-edit-entry"
+    # calibrate: reachable from Home's header avatar. If the header route differs, navigate
+    # via the profile screen first.
 
 - extendedWaitUntil:
-    visible: "Edit"
+    visible:
+      id: "profile-name"
     timeout: 15000
-- tapOn: "Edit"
+- assertVisible: "Edit profile"
 
-- assertVisible: "Your full name"
-
-# Write a value we can assert on afterwards. Timestamped so a rerun cannot pass on stale state.
-- tapOn: "Your full name"
+# Write values we can assert on afterwards. ${maestro.rand} keeps a rerun from passing on
+# stale state.
+- tapOn:
+    id: "profile-name"
 - eraseText
 - inputText: "E2E ${maestro.rand}"
-- tapOn: "Favourite courts, the teams you follow…"
+- tapOn:
+    id: "profile-bio"
 - eraseText
 - inputText: "Edited by Maestro"
 - hideKeyboard
 
-- tapOn: "Save"                # calibrate: exact save CTA copy
-
+- tapOn:
+    id: "profile-save"
 - extendedWaitUntil:
-    visible: "Saved|Profile updated"
+    visible: "Saved|updated"
     timeout: 20000
 
-# Round-trip: leave the screen and come back, so we assert the server's value and not
-# an optimistic cache write.
+# Round-trip: leave and re-enter so we assert the server's value, not an optimistic
+# cache write.
 - back
-- tapOn: "Edit"
+- tapOn:
+    id: "profile-edit-entry"
 - extendedWaitUntil:
     visible: "Edited by Maestro"
     timeout: 15000

@@ -45,7 +45,7 @@ export const GameCard = memo(function GameCard({
   const low = left > 0 && left <= 2;
 
   return (
-    <Press accessibilityRole="button" accessibilityLabel={data.title} onPress={onPress} brighten style={cardStyles.card}>
+    <Press testID="game-card" accessibilityRole="button" accessibilityLabel={data.title} onPress={onPress} brighten style={cardStyles.card}>
       <CardImage uri={data.imageUrl} height={172}>
         <View style={styles.imageTop}>
           <View style={styles.badges}>
@@ -94,7 +94,7 @@ export const GameCard = memo(function GameCard({
 
 const CompactGameCard = memo(function CompactGameCard({ data, onPress }: { data: GameCardData; onPress: () => void }) {
   return (
-    <Press accessibilityRole="button" accessibilityLabel={data.title} onPress={onPress} brighten style={styles.compact}>
+    <Press testID="game-card" accessibilityRole="button" accessibilityLabel={data.title} onPress={onPress} brighten style={styles.compact}>
       <CardImage uri={data.imageUrl} height={88}>
         {data.fillingFast ? <LiveChip label="Filling fast" /> : <View />}
       </CardImage>

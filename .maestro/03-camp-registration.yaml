@@ -3,44 +3,68 @@
 # Exercises the shared registerable form engine (src/features/registration/*) — the same code
 # path camps, workshops and events all run through, so this flow covers three entities' worth
 # of risk. Audit #28/#30 changed this path recently (free registration now uses its real
-# endpoint, userRegistration is honoured), which is exactly why it is worth an E2E.
+# endpoint, userRegistration is honoured), which is exactly why it earns an E2E.
+#
+# Form fields come from entities.ts and are keyed, so the testIDs are stable regardless of
+# label copy: registration-childName / registration-childAge / registration-phone.
+# (Those keys are asserted against entities.ts by __tests__/maestro-selectors.test.ts.)
 appId: net.gameground.app.preview
 name: 03 camp registration
 ---
 - runFlow: subflows/login.yaml
 
-- tapOn: "Discover"
+- tapOn:
+    id: "tab-discover"
 - extendedWaitUntil:
     visible: "Camps"
     timeout: 20000
 - tapOn: "Camps"
 
 - extendedWaitUntil:
-    visible: ${CAMP_NAME}      # calibrate: an open camp with slots left
+    visible:
+      id: "registerable-card"
     timeout: 20000
-- tapOn: ${CAMP_NAME}
+- tapOn:
+    id: "registerable-card"
+    index: 0
+
+# The detail CTA label varies (Register / Fully booked / Cancel registration). Assert the
+# label so a fully-booked fixture fails with a clear message instead of a stuck tap.
+- extendedWaitUntil:
+    visible:
+      id: "registerable-cta"
+    timeout: 15000
+- assertVisible: "Register"
+- tapOn:
+    id: "registerable-cta"
 
 - extendedWaitUntil:
-    visible: "Register"
-    timeout: 15000
-- tapOn: "Register"
-
-# Camp form fields come from entities.ts: childName, age, phone.
-- tapOn: "Child’s name"        # note the curly apostrophe — it is U+2019 in entities.ts
+    visible:
+      id: "registration-childName"
+    timeout: 10000
+- tapOn:
+    id: "registration-childName"
 - inputText: "E2E Child"
-- tapOn: "Contact number"
+- tapOn:
+    id: "registration-childAge"
+- inputText: "11"
+- tapOn:
+    id: "registration-phone"
 - inputText: ${PHONE}
 - hideKeyboard
 
-- tapOn: "Continue"            # calibrate: RegistrationForm submit copy
+# Free camp → "Confirm registration". Paid → "Continue · ₹X" and a handoff to checkout,
+# which is flow 02's territory. Prefer a free camp fixture here.
+- tapOn:
+    id: "registration-submit"
 
-# A free camp completes here; a paid one hands off to checkout (covered by flow 02).
 - extendedWaitUntil:
-    visible: "Registered|You're registered"
+    visible: "Registered|You're registered|Cancel registration"
     timeout: 30000
 
 # Prove it persisted server-side rather than trusting the success state.
-- tapOn: "Home"
+- tapOn:
+    id: "tab-home"
 - extendedWaitUntil:
-    visible: ${CAMP_NAME}
+    visible: "Upcoming|Up next"
     timeout: 20000

@@ -91,6 +91,7 @@ export default function Signup() {
 
       <FormError error={formError} />
       <Input
+        testID="signup-name"
         label="Full name"
         value={form.name}
         onChangeText={update("name")}
@@ -104,6 +105,7 @@ export default function Signup() {
       />
       <Input
         ref={usernameRef}
+        testID="signup-username"
         label="Username"
         value={form.username}
         onChangeText={update("username")}
@@ -119,6 +121,7 @@ export default function Signup() {
       />
       <Input
         ref={emailRef}
+        testID="auth-email"
         label="Email"
         value={form.email}
         onChangeText={update("email")}
@@ -134,6 +137,7 @@ export default function Signup() {
       />
       <Input
         ref={passwordRef}
+        testID="auth-password"
         label="Password"
         value={form.password}
         onChangeText={update("password")}
@@ -146,7 +150,7 @@ export default function Signup() {
         onSubmitEditing={submit}
       />
 
-      <Button title="Create account" onPress={submit} loading={busy} />
+      <Button testID="auth-submit" title="Create account" onPress={submit} loading={busy} />
       <Text style={styles.terms}>
         By continuing you agree to our{" "}
         <Text accessibilityRole="link" style={styles.termsLink} onPress={() => Linking.openURL(TERMS_URL)}>

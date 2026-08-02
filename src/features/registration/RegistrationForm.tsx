@@ -121,6 +121,7 @@ export function RegistrationForm({
         ) : (
           <Input
             key={f.key}
+            testID={`registration-${f.key}`}
             label={f.label}
             value={values[f.key] ?? ""}
             onChangeText={set(f.key)}
@@ -131,6 +132,7 @@ export function RegistrationForm({
         ),
       )}
       <Button
+        testID="registration-submit"
         title={isFree ? "Confirm registration" : `Continue · ${formatAmount(amountPaise)}`}
         onPress={submit}
         loading={registerFree.isPending}

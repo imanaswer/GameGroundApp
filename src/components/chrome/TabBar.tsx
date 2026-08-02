@@ -67,6 +67,8 @@ export function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
           return (
             <TabItem
               key={route.key}
+              // Route name, not label — copy changes must not break E2E selectors.
+              testID={`tab-${route.name}`}
               focused={focused}
               label={label}
               tint={tint}
@@ -86,12 +88,14 @@ function TabItem({
   tint,
   glyph,
   onPress,
+  testID,
 }: {
   focused: boolean;
   label: string;
   tint: string;
   glyph: React.ReactNode;
   onPress: () => void;
+  testID?: string;
 }) {
   const p = useSharedValue(focused ? 1 : 0);
   const reduced = useReducedMotion();
@@ -106,6 +110,7 @@ function TabItem({
 
   return (
     <Pressable
+      testID={testID}
       style={styles.item}
       onPress={onPress}
       accessibilityRole="button"

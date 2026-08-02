@@ -18,6 +18,7 @@ export function StickyCTA({
   buttonVariant = "primary",
   loading = false,
   disabled = false,
+  testID,
 }: {
   /** Rendered as "FREE" when null. Ignored when `status` is set. */
   price?: string | null;
@@ -30,6 +31,8 @@ export function StickyCTA({
   buttonVariant?: "primary" | "secondary";
   loading?: boolean;
   disabled?: boolean;
+  /** E2E hook (.maestro/) — lands on the CTA button, not the gradient wrapper. */
+  testID?: string;
 }) {
   const insets = useSafeAreaInsets();
   return (
@@ -50,7 +53,7 @@ export function StickyCTA({
             {!!caption && <Text style={styles.caption}>{caption}</Text>}
           </View>
         )}
-        <Button title={ctaLabel} variant={buttonVariant} onPress={onPress} loading={loading} disabled={disabled} style={styles.cta} />
+        <Button testID={testID} title={ctaLabel} variant={buttonVariant} onPress={onPress} loading={loading} disabled={disabled} style={styles.cta} />
       </View>
     </LinearGradient>
   );

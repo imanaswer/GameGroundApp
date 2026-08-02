@@ -476,6 +476,7 @@ export default function GameDetail() {
 
       {game && !sheetOpen && (
         <StickyCTA
+          testID="game-cta"
           price={confirmed ? undefined : price}
           caption={stickyCaption}
           status={ctaStatus}

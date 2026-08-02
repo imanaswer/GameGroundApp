@@ -75,6 +75,7 @@ export default function Profile() {
           <>
             {isSelf ? (
               <Press
+                testID="profile-edit-entry"
                 accessibilityRole="button"
                 accessibilityLabel="Edit profile"
                 onPress={() => router.push("/profile/edit")}

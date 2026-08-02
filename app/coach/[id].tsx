@@ -137,6 +137,7 @@ export default function CoachDetail() {
                           checkout, so offering Book would walk the user into a 400. */}
                       {coach.instantPayEligible && (
                         <Button
+                          testID="coach-book"
                           title="Book"
                           variant="mini"
                           onPress={() => setBooking(b)}

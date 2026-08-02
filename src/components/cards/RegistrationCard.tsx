@@ -45,7 +45,7 @@ export const RegistrationCard = memo(function RegistrationCard({
   const low = capped && left > 0 && left <= 5;
 
   return (
-    <Press accessibilityRole="button" accessibilityLabel={data.title} onPress={onPress} brighten style={cardStyles.card}>
+    <Press testID="registerable-card" accessibilityRole="button" accessibilityLabel={data.title} onPress={onPress} brighten style={cardStyles.card}>
       <CardImage uri={data.imageUrl} height={172}>
         <View style={styles.imageTop}>
           <View style={styles.badges}>

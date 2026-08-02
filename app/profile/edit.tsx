@@ -182,7 +182,7 @@ function EditForm({ profile }: { profile: UserProfile }) {
 
           <SectionCard icon={<UserIcon size={16} color={color.red} />} title="Basic information" hint="This is what other players see.">
             <Field label="Full name">
-              <Input value={name} onChangeText={setName} placeholder="Your full name" error={fieldErrors.name} />
+              <Input testID="profile-name" value={name} onChangeText={setName} placeholder="Your full name" error={fieldErrors.name} />
             </Field>
             <Field label="Username">
               <Input
@@ -197,6 +197,7 @@ function EditForm({ profile }: { profile: UserProfile }) {
             </Field>
             <Field label={`Bio · ${bio.length}/${BIO_MAX}`}>
               <TextInput
+                testID="profile-bio"
                 value={bio}
                 onChangeText={setBio}
                 maxLength={BIO_MAX}
@@ -214,6 +215,7 @@ function EditForm({ profile }: { profile: UserProfile }) {
             </Field>
             <Field label="Phone (WhatsApp)">
               <Input
+                testID="profile-phone"
                 value={phone}
                 onChangeText={setPhone}
                 placeholder="+91 98765 43210"
@@ -242,12 +244,12 @@ function EditForm({ profile }: { profile: UserProfile }) {
               Deleting your account is permanent. Your profile, game history and bookings will be removed.
             </Text>
             {!confirmingDelete ? (
-              <Press accessibilityRole="button" onPress={() => setConfirmingDelete(true)} style={styles.dangerOutline}>
+              <Press testID="profile-delete" accessibilityRole="button" onPress={() => setConfirmingDelete(true)} style={styles.dangerOutline}>
                 <Text style={styles.dangerOutlineText}>Delete my account</Text>
               </Press>
             ) : (
               <View style={styles.dangerConfirm}>
-                <Button title="Yes, delete" onPress={onDelete} loading={del.isPending} style={styles.dangerConfirmBtn} />
+                <Button testID="profile-delete-confirm" title="Yes, delete" onPress={onDelete} loading={del.isPending} style={styles.dangerConfirmBtn} />
                 <Press accessibilityRole="button" onPress={() => setConfirmingDelete(false)} style={styles.dangerCancel}>
                   <Text style={styles.dangerCancelText}>Cancel</Text>
                 </Press>
@@ -262,7 +264,7 @@ function EditForm({ profile }: { profile: UserProfile }) {
           <Press accessibilityRole="button" onPress={router.back} style={styles.cancel}>
             <Text style={styles.cancelText}>Cancel</Text>
           </Press>
-          <Button title="Save changes" onPress={save} loading={update.isPending} style={styles.saveBtn} />
+          <Button testID="profile-save" title="Save changes" onPress={save} loading={update.isPending} style={styles.saveBtn} />
         </View>
       </KeyboardAvoidingView>
     </Screen>
