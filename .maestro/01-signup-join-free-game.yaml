@@ -43,7 +43,8 @@ name: 01 signup and join a free game
 - tapOn:
     id: "auth-submit"
 
-# Step three is an acknowledgement screen, not a gate -- the session is already live.
+# Step three is an acknowledgement screen; tapping Continue enters the brand loader, which holds
+# briefly before the tabs appear. The extendedWaitUntil below already absorbs that.
 - extendedWaitUntil:
     visible:
       id: "signup-continue"

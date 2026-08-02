@@ -113,6 +113,19 @@ export default function Signup() {
       .finally(() => setAppleBusy(false));
   };
 
+  /**
+   * Hold the loader for one full ring revolution before handing off. The tab tree really is
+   * mounting behind this — five tabs mount at launch (Decision 17) and fire their queries — so
+   * this covers genuine work rather than inventing a pause. The floor exists because that work
+   * may finish faster than the eye can register a screen, and a loader nobody sees is worse than
+   * no loader: it reads as a flicker.
+   */
+  useEffect(() => {
+    if (step !== "handoff") return;
+    const timer = setTimeout(() => router.replace("/home"), dur.moment);
+    return () => clearTimeout(timer);
+  }, [step, router]);
+
   // Declared BEFORE the `done` early return: these are hooks, and a return above them makes
   // them conditional — React would tear down state the moment signup succeeded.
   const reducedMotion = useReducedMotion();
@@ -135,8 +148,7 @@ export default function Signup() {
     transform: [{ translateX: (1 - enter.value) * STEP_SLIDE * dir }],
   }));
 
-  // Source's Sign up 09. Shown while the tab tree mounts and its queries fire — a real wait, not
-  // a staged one. `replace` runs immediately; the loader simply covers the frames until it lands.
+  // Source's Sign up 09, between the acknowledgement and the app.
   if (step === "handoff") return <BrandLoader />;
 
   if (step === "done") {
@@ -150,10 +162,10 @@ export default function Signup() {
         <Button
           testID="signup-continue"
           title="Continue"
-          onPress={() => {
-            setStep("handoff");
-            router.replace("/home");
-          }}
+          // Enter the loader only; the navigation is scheduled by the effect below. Calling
+          // `replace` here unmounts this screen — and the loader with it — in the same commit, so
+          // the loader would flash for a frame or two and never actually be seen.
+          onPress={() => setStep("handoff")}
         />
       </AuthShell>
     );
