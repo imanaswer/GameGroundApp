@@ -16,6 +16,34 @@ test("every tier has an accent and a chip background", () => {
   }
 });
 
+/**
+ * `tier.fg` serves three roles at once and each imposes its own floor — see the note in tokens.ts.
+ * A "silver" light enough to look like silver passes as text on its own tint and fails the other
+ * two, so these are asserted together: it is the combination that makes the palette possible.
+ */
+test("every tier accent satisfies all three of its roles", () => {
+  for (const t of Object.values(tier)) {
+    // (2) ring/accent on the page.
+    expect(contrast(t.fg, color.bg)).toBeGreaterThanOrEqual(4.5);
+    // (3) solid fill under a white glyph (TierUp badge).
+    expect(contrast(color.inverse, t.fg)).toBeGreaterThanOrEqual(3);
+  }
+});
+
+test("tier badge text is legible on its own chip tint", () => {
+  // (1) TierBadge draws fg on bg. bg is a 10% tint of fg over white, so compose it explicitly
+  // rather than trusting the rgba() string — that composition is where a tint like this fails.
+  const overWhite = (hex: string, alpha: number) => {
+    const m = hex.replace("#", "");
+    const mixed = [0, 2, 4].map((i) => Math.round(parseInt(m.slice(i, i + 2), 16) * alpha + 255 * (1 - alpha)));
+    return `#${mixed.map((c) => c.toString(16).padStart(2, "0")).join("")}`;
+  };
+  for (const [name, t] of Object.entries(tier)) {
+    const alpha = name === "pro" ? 0.06 : name === "elite" ? 0.08 : 0.1;
+    expect(contrast(t.fg, overWhite(t.fg, alpha))).toBeGreaterThanOrEqual(4.5);
+  }
+});
+
 /** Decision 20 — the ported system has no serif; the type scale must be single-family. */
 test("no type role uses the serif", () => {
   for (const style of Object.values(type)) {

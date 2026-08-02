@@ -118,17 +118,30 @@ export const avatarIdentity = {
 } as const;
 
 /**
- * Tier accent + chip background.
+ * Tier accent + chip background (Decision 20 follow-up — resolves the gap left by the port).
  *
- * UNRESOLVED (Decision 20): the source has no metallics, so bronze/silver/gold no longer have a
- * colour language — they read as three barely-distinguishable warm greys on white. This is an
- * interim encoding using the Warning ramp for warm tiers and greys for the rest; it is NOT a
- * designed answer and tiers will not be clearly distinguishable until one exists.
+ * `fg` does three jobs at once, which is what constrains the whole design:
+ *   1. text on its own `bg` (TierBadge)      → needs ≥ 4.5:1 against `bg`
+ *   2. a ring/accent on the page (Leaderboard, Profile gradient) → needs ≥ 4.5:1 on white
+ *   3. a SOLID FILL under a white trophy glyph (TierUp) → needs ≥ 3:1 against white
+ * A light "silver" or "bronze" satisfies (1) and fails (2) and (3) outright — which is why the
+ * obvious metallic palette cannot work here, not merely why it looks wrong.
+ *
+ * The encoding: the three metal tiers keep a HUE (brown / grey / amber) so they stay nameable,
+ * and the two tiers beyond metal drop to ink — near-black, then black. Rank therefore reads as
+ * "coloured, then absolute", which is the only ordinal move available in a system whose whole
+ * accent vocabulary is black, white and grey. `bg` is a 10% tint of `fg` in every case.
+ *
+ * KNOWN WEAKNESS: elite (#101828) and pro (#000000) are nearly indistinguishable side by side.
+ * Separating them needs a treatment difference — a filled chip versus an outlined one — which
+ * this token shape (fg/bg only) cannot express. Fixing it properly means giving TierBadge a
+ * variant, not picking different colours. Left as-is rather than faked with a colour that would
+ * misrepresent the hierarchy.
  */
 export const tier = {
-  bronze: { fg: "#8A5A2B", bg: "rgba(138,90,43,0.10)" },
-  silver: { fg: gray[600], bg: "rgba(118,118,118,0.10)" },
-  gold: { fg: ramp.warning[600], bg: "rgba(217,70,1,0.10)" },
+  bronze: { fg: "#7A4A21", bg: "rgba(122,74,33,0.10)" },
+  silver: { fg: gray[700], bg: "rgba(87,89,91,0.10)" },
+  gold: { fg: ramp.warning[700], bg: "rgba(163,53,1,0.10)" },
   elite: { fg: gray[900], bg: "rgba(16,24,40,0.08)" },
   pro: { fg: "#000000", bg: "rgba(0,0,0,0.06)" },
 } as const;
