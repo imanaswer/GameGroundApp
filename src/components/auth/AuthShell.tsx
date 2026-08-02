@@ -57,14 +57,19 @@ type ShellProps = {
 export function AuthShell({ title, accent, subtitle, onBack, children }: ShellProps) {
   const insets = useSafeAreaInsets();
   return (
-    <Screen padded={false}>
+    // Full-bleed so the red glow reaches the top of the display instead of starting below the
+    // status bar; the scroll content is inset by hand so the back button still clears the notch.
+    <Screen padded={false} fullBleed>
       <AuthGlow />
       <KeyboardAvoidingView
         style={styles.flex}
         behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
         <ScrollView
-          contentContainerStyle={[styles.scroll, { paddingBottom: space(7) + insets.bottom }]}
+          contentContainerStyle={[
+            styles.scroll,
+            { paddingTop: insets.top + space(2), paddingBottom: space(7) + insets.bottom },
+          ]}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
