@@ -13,11 +13,9 @@ import { EmptyState, ErrorState, Header, OfflineBanner, Screen, useTabBarPadding
 import { Appear, CardSkeleton, ChipRow, CoachesIcon, SearchIcon } from "@/components/ds";
 import { toCoachCard, useCoaches } from "@/hooks/queries";
 import { useAuth } from "@/hooks/useAuth";
+import { prettySport } from "@/lib/format";
 import * as haptics from "@/lib/haptics";
 import { color, icon as iconSize, layout, space } from "@/lib/tokens";
-
-/** "BOXING/KICK" → "Boxing/Kick", "table tennis" → "Table Tennis". */
-const prettify = (s: string) => s.toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase());
 
 export default function CoachesTab() {
   const router = useRouter();
@@ -26,8 +24,15 @@ export default function CoachesTab() {
   const { data, isLoading, isError, error, refetch, isRefetching, isPaused } = useCoaches({});
 
   const chips = useMemo(() => {
-    const unique = Array.from(new Set((data ?? []).map((c) => c.sport))).sort();
-    return [{ key: "all", label: "All" }, ...unique.map((s) => ({ key: s, label: prettify(s) }))];
+    const unique = Array.from(new Set((data ?? []).map((c) => c.sport).filter(Boolean)));
+    return [
+      { key: "all", label: "All" },
+      // Sort on the LABEL, not the raw value: server casing is inconsistent, and a plain sort()
+      // puts "BOXING/KICK" before "Badminton" because uppercase sorts first in ASCII.
+      ...unique
+        .map((s) => ({ key: s, label: prettySport(s) }))
+        .sort((a, b) => a.label.localeCompare(b.label)),
+    ];
   }, [data]);
 
   const coaches = useMemo(
@@ -70,7 +75,7 @@ export default function CoachesTab() {
       ) : empty ? (
         <EmptyState
           icon={<CoachesIcon size={iconSize.empty} color={color.red} />}
-          headline={sport === "all" ? "No coaches yet." : `No ${prettify(sport)} coaches yet.`}
+          headline={sport === "all" ? "No coaches yet." : `No ${prettySport(sport)} coaches yet.`}
           body="Try another sport."
         />
       ) : (

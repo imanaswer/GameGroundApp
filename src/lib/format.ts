@@ -112,3 +112,12 @@ export function formatWhen(iso: string, now: Date = new Date()): string {
   if (d.toDateString() === tomorrow.toDateString()) return `Tomorrow ${time}`;
   return `${DAY[d.getDay()]} ${d.getDate()} ${MON[d.getMonth()]} · ${time}`;
 }
+
+/**
+ * Display label for a sport value coming from the server, whose casing is inconsistent
+ * ("Badminton", "BOXING/KICK", "Table Tennis"). Title-cases each word so filter chips read as one
+ * family. Shared by the games and coaches tabs, which both derive their chips from live data.
+ */
+export function prettySport(s: string): string {
+  return s.toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase());
+}
