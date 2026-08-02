@@ -1,3 +1,7 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+
+import { RegisterSchema } from "@/api/schemas";
 import { color, gray, layout, ramp, space, tier, type } from "@/lib/tokens";
 
 test("space is the 4pt scale", () => {
@@ -152,4 +156,25 @@ test("wrapping roles have leading above 1.2x", () => {
 test("label tracking is positive", () => {
   expect(type.label.letterSpacing).toBeGreaterThan(0);
   expect(type.label.textTransform).toBe("uppercase");
+});
+
+/**
+ * The password checklist must only assert rules the API actually enforces. Nike's own screen lists
+ * two; our RegisterSchema requires length alone. Telling a user their valid password is invalid is
+ * worse than showing no rules, so this pins the checklist to the schema rather than to the design.
+ */
+test("password rules shown to the user match what the schema enforces", () => {
+  const rulesSrc = readFileSync(join(__dirname, "..", "src/components/auth/fields.tsx"), "utf8");
+  const shown = [...rulesSrc.matchAll(/label: "([^"]+)", test:/g)].map((m) => m[1]);
+  expect(shown).toHaveLength(1);
+  expect(shown[0]).toMatch(/8 characters/i);
+
+  // A password meeting every shown rule must actually pass the schema.
+  const ok = RegisterSchema.safeParse({
+    name: "Test User",
+    username: "test_user",
+    email: "a@b.com",
+    password: "abcdefgh",
+  });
+  expect(ok.success).toBe(true);
 });

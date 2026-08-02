@@ -4,7 +4,7 @@ import { Linking, StyleSheet, Text, TextInput, View } from "react-native";
 
 import { RegisterSchema } from "@/api/schemas";
 import { AppleButton, AuthShell, Divider, GoogleButton, SwitchLink } from "@/components/auth/AuthShell";
-import { FormError, fieldErrorsFrom } from "@/components/auth/fields";
+import { FormError, PasswordRules, fieldErrorsFrom } from "@/components/auth/fields";
 import { Button, Input } from "@/components/ds";
 import { useAppleAvailable, useAuth, useGoogleLogin } from "@/hooks/useAuth";
 import { color, space, type } from "@/lib/tokens";
@@ -149,6 +149,7 @@ export default function Signup() {
         returnKeyType="go"
         onSubmitEditing={submit}
       />
+      <PasswordRules value={form.password} />
 
       <Button testID="auth-submit" title="Create account" onPress={submit} loading={busy} />
       <Text style={styles.terms}>
