@@ -228,6 +228,18 @@ export default function Signup() {
           </>
         )}
 
+        <Text style={styles.terms}>
+          By continuing you agree to our{" "}
+          <Text accessibilityRole="link" style={styles.termsLink} onPress={() => Linking.openURL(TERMS_URL)}>
+            Terms
+          </Text>{" "}
+          &{" "}
+          <Text accessibilityRole="link" style={styles.termsLink} onPress={() => Linking.openURL(PRIVACY_URL)}>
+            Privacy Policy
+          </Text>
+          .
+        </Text>
+
         {/* Two buttons rather than one with a computed testID: the E2E selector contract can only
             verify STATIC testIDs, and a ternary silently opts out of that check. */}
         {onEmailStep ? (
@@ -236,18 +248,6 @@ export default function Signup() {
           <Button testID="auth-submit" title="Create account" onPress={submit} loading={busy} />
         )}
       </Animated.View>
-
-      <Text style={styles.terms}>
-        By continuing you agree to our{" "}
-        <Text accessibilityRole="link" style={styles.termsLink} onPress={() => Linking.openURL(TERMS_URL)}>
-          Terms
-        </Text>{" "}
-        &{" "}
-        <Text accessibilityRole="link" style={styles.termsLink} onPress={() => Linking.openURL(PRIVACY_URL)}>
-          Privacy Policy
-        </Text>
-        .
-      </Text>
 
       {onEmailStep && hasSocial && <Divider />}
       {onEmailStep && google.available && (
@@ -271,7 +271,9 @@ const STEP_SLIDE = 28;
 const styles = StyleSheet.create({
   // Left-aligned like the source. Centred legal copy reads as a footer; theirs is part of the
   // form column, set flush with the fields above it.
-  terms: { ...type.caption, color: color.dim, lineHeight: 16, marginTop: -space(1), marginBottom: space(4) },
+  // No negative margin. It previously tucked upward by 4px, which was fine under a field and an
+  // actual overlap once this sat under the Continue button.
+  terms: { ...type.caption, color: color.dim, lineHeight: 16, marginBottom: space(4) },
   // Underlined black, as in every legal link in the source's frames. `primarySoft` grey with no
   // underline did not read as tappable at all.
   termsLink: { color: color.text, textDecorationLine: "underline" },
