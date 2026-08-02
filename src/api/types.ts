@@ -77,6 +77,8 @@ export interface RegisterableSummary {
   capacity: number;
   /** Server-flagged highlight — surfaces a "Featured" badge on cards (matches web). */
   featured: boolean;
+  /** Deadline passed — the item still runs, but nobody new can join. */
+  registrationClosed: boolean;
 }
 
 export interface Announcement {

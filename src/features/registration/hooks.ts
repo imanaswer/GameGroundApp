@@ -77,5 +77,6 @@ export function toRegistrationCard(s: RegisterableSummary): RegistrationCardData
     registered: s.registered,
     capacity: s.capacity,
     featured: s.featured,
+    registrationClosed: s.registrationClosed,
   };
 }

@@ -63,16 +63,57 @@ export type RawRegisterable = {
  * running 20 Jul–3 Aug) stays listed throughout. Items with no usable date are kept rather than
  * guessed at; hiding real content is the worse failure.
  */
+/**
+ * `endDate` is a date-only stamp at midnight UTC ("2026-08-03T00:00:00.000Z"), and it means the
+ * item runs THROUGH that day. Comparing it directly to `now` treats it as exclusive and hides a
+ * camp at 05:30 IST on its own final day. One day of grace makes the end date inclusive.
+ *
+ * Errs toward showing: a listing that lingers a few hours past its last day is a much smaller
+ * failure than one that vanishes while it is still running.
+ */
+const END_DATE_GRACE_MS = 24 * 60 * 60_000;
+
 export function hasEnded(r: RawRegisterable, now: number = Date.now()): boolean {
   const end = r.endDate ?? r.startDate;
   if (!end) return false;
   const t = new Date(end).getTime();
+  return Number.isFinite(t) && t + END_DATE_GRACE_MS < now;
+}
+
+/** True once the registration deadline has passed — the item still runs, you just can't join. */
+export function registrationClosed(r: RawRegisterable, now: number = Date.now()): boolean {
+  if (!r.registrationDeadline) return false;
+  const t = new Date(r.registrationDeadline).getTime();
   return Number.isFinite(t) && t < now;
 }
 
-/** Convenience for the list endpoints: map the rows that haven't ended. */
+/**
+ * How far ahead Discover looks. Anything starting beyond this is real but not yet actionable, and
+ * pushes the things happening soon down the feed.
+ */
+export const DISCOVER_WINDOW_DAYS = 31;
+
+/** True when the item starts further out than the Discover window. */
+export function startsBeyondWindow(r: RawRegisterable, now: number = Date.now()): boolean {
+  if (!r.startDate) return false;
+  const t = new Date(r.startDate).getTime();
+  if (!Number.isFinite(t)) return false;
+  return t > now + DISCOVER_WINDOW_DAYS * 24 * 60 * 60_000;
+}
+
+/**
+ * The list endpoints map only what Discover should show: nothing that has ended, and nothing
+ * starting more than a month out.
+ *
+ * Registration-closed items are deliberately KEPT — Discover is the only surface for camps,
+ * workshops and events (the profile lists games only), so hiding them would strand anyone already
+ * registered, with no route to the schedule, venue, announcements or the cancel action. They are
+ * flagged instead, and the card and detail CTA say so.
+ */
 export function toSummaryList(rows: RawRegisterable[], kind: RegisterableKind) {
-  return rows.filter((r) => !hasEnded(r)).map((r) => toSummary(r, kind));
+  return rows
+    .filter((r) => !hasEnded(r) && !startsBeyondWindow(r))
+    .map((r) => toSummary(r, kind));
 }
 
 export function toSummary(r: RawRegisterable, kind: RegisterableKind): RegisterableSummary {
@@ -90,6 +131,7 @@ export function toSummary(r: RawRegisterable, kind: RegisterableKind): Registera
     registered: r.registeredCount ?? r.participants ?? 0,
     capacity: r.maxParticipants ?? 0,
     featured: r.featured ?? false,
+    registrationClosed: registrationClosed(r),
   };
 }
 

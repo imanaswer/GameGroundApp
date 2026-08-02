@@ -153,6 +153,7 @@ export function useGoogleLogin(onError: (e: unknown) => void) {
   const [request, response, promptAsync] = Google.useIdTokenAuthRequest({
     iosClientId: env.googleIosClientId,
     androidClientId: env.googleAndroidClientId,
+    webClientId: env.googleWebClientId,
   });
 
   useEffect(() => {
@@ -164,7 +165,11 @@ export function useGoogleLogin(onError: (e: unknown) => void) {
   }, [response]);
 
   const configured =
-    Platform.OS === "ios" ? !!env.googleIosClientId : !!env.googleAndroidClientId;
+    Platform.OS === "ios"
+      ? !!env.googleIosClientId
+      : Platform.OS === "android"
+        ? !!env.googleAndroidClientId
+        : !!env.googleWebClientId;
   return { available: configured && !!request, prompt: () => promptAsync() };
 }
 
