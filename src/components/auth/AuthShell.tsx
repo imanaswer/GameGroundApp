@@ -1,8 +1,14 @@
 /**
- * Shared chrome for the auth screens (Login / Signup), ported from the GameGround
- * design-system mock (ui_kits/mobile-app/parts/screens-auth.jsx): a top red radial glow,
- * the brand mark, a heavy heading with a serif-italic accent word, white Google + dark Apple
- * social buttons, an "or" divider, and the bottom switch link. Screens supply the form.
+ * Shared chrome for the auth screens (Login / Signup / reset).
+ *
+ * DECISION 20 — ported to the source's auth pattern (its Login 02 / Sign up screens): a plain
+ * white ground, the brand mark small and black at the top-left, then one heavy left-aligned
+ * headline over the form. The red radial glow and the serif-italic accent word are gone; the
+ * source has neither a brand accent nor a serif, and a coloured glow on white reads as a
+ * rendering artefact rather than atmosphere.
+ *
+ * `accent` is retained as a prop and simply continues the headline, so callers did not have to
+ * change. It no longer carries its own styling.
  */
 import type { ReactNode } from "react";
 import {
@@ -13,54 +19,31 @@ import {
   StyleSheet,
   Text,
   View,
-  useWindowDimensions,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import Svg, { Defs, RadialGradient, Rect, Stop } from "react-native-svg";
 
 import { Screen } from "@/components/chrome/Screen";
 import { AppleGlyph, BackIcon, GoogleGlyph } from "@/components/ds";
 import { Press } from "@/components/ds/Press";
-import { color, font, google, space, type } from "@/lib/tokens";
+import { color, google, radius, space, type } from "@/lib/tokens";
 
 const MARK = require("@/assets/images/logo-mark.png");
 
-/** Top-anchored red radial glow (mock: radial-gradient ellipse at 50% 0%). */
-function AuthGlow() {
-  const { width } = useWindowDimensions();
-  const height = 300;
-  return (
-    <View pointerEvents="none" style={styles.glow}>
-      <Svg width={width} height={height}>
-        <Defs>
-          <RadialGradient id="authGlow" cx="50%" cy="0%" rx="72%" ry="100%" fx="50%" fy="0%">
-            <Stop offset="0" stopColor={color.red} stopOpacity={0.18} />
-            <Stop offset="1" stopColor={color.red} stopOpacity={0} />
-          </RadialGradient>
-        </Defs>
-        <Rect x="0" y="0" width={width} height={height} fill="url(#authGlow)" />
-      </Svg>
-    </View>
-  );
-}
-
 type ShellProps = {
   title: string;
-  /** Serif-italic accent word rendered in red at the end of the heading. */
+  /** Trailing word of the heading. Kept as a separate prop for callers; no longer styled. */
   accent: string;
   subtitle: string;
   onBack: () => void;
   children: ReactNode;
 };
 
-/** Scrolls, keyboard-avoids, and lays out glow → back → mark → heading → children. */
+/** Scrolls, keyboard-avoids, and lays out back → mark → heading → children. */
 export function AuthShell({ title, accent, subtitle, onBack, children }: ShellProps) {
   const insets = useSafeAreaInsets();
   return (
-    // Full-bleed so the red glow reaches the top of the display instead of starting below the
-    // status bar; the scroll content is inset by hand so the back button still clears the notch.
+    // Full-bleed with the scroll content inset by hand, so the back button clears the notch.
     <Screen padded={false} fullBleed>
-      <AuthGlow />
       <KeyboardAvoidingView
         style={styles.flex}
         behavior={Platform.OS === "ios" ? "padding" : undefined}
@@ -97,7 +80,7 @@ export function AuthShell({ title, accent, subtitle, onBack, children }: ShellPr
   );
 }
 
-/** White Google button with the 4-color mark (mock's primary social action). */
+/** White Google button with the 4-color mark. Bordered since the page ground is now white. */
 export function GoogleButton({ label, onPress, disabled }: { label: string; onPress: () => void; disabled?: boolean }) {
   return (
     <Press accessibilityRole="button" accessibilityState={{ disabled }} disabled={disabled} onPress={onPress} style={[styles.social, styles.google, disabled && styles.socialDisabled]}>
@@ -107,12 +90,12 @@ export function GoogleButton({ label, onPress, disabled }: { label: string; onPr
   );
 }
 
-/** Dark Apple button — kept for iOS alongside Google (glyph inherits text color). */
+/** Black Apple button — kept for iOS alongside Google. */
 export function AppleButton({ label, onPress, disabled }: { label: string; onPress: () => void; disabled?: boolean }) {
   return (
     <Press accessibilityRole="button" accessibilityState={{ disabled }} disabled={disabled} onPress={onPress} style={[styles.social, styles.apple, disabled && styles.socialDisabled]}>
-      <AppleGlyph size={18} color={color.text} />
-      <Text style={styles.socialLabel}>{label}</Text>
+      <AppleGlyph size={18} color={color.inverse} />
+      <Text style={[styles.socialLabel, styles.appleLabel]}>{label}</Text>
     </Press>
   );
 }
@@ -152,7 +135,6 @@ const SOCIAL_H = 50;
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
-  glow: { position: "absolute", top: 0, left: 0, right: 0 },
   scroll: { flexGrow: 1, paddingHorizontal: 24, paddingTop: space(2), paddingBottom: space(7) },
 
   back: {
@@ -167,7 +149,8 @@ const styles = StyleSheet.create({
   },
   mark: { width: 46, height: 46, marginTop: space(6), marginBottom: space(4) },
   heading: { ...type.authTitle, color: color.text },
-  accent: { fontFamily: font.serif, fontStyle: "italic", color: color.redLight },
+  // Continues the headline in the same face and colour — see the header note.
+  accent: { color: color.text },
   sub: { ...type.body, color: color.dim, marginTop: space(3), marginBottom: space(6) },
 
   social: {
@@ -176,14 +159,20 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: space(2.5),
     height: SOCIAL_H,
-    // Matches the primary Button radius (16) so the social buttons and the CTA below read as one family.
-    borderRadius: 16,
+    // Pill, matching Button since the port — the source has no rounded-rectangle buttons, so a
+    // radius-16 social button beside a pill CTA read as two different systems.
+    borderRadius: radius.chip,
     marginBottom: space(3),
   },
-  google: { backgroundColor: google.surface },
-  apple: { backgroundColor: color.card, borderWidth: 1, borderColor: color.border2 },
+  // A white button on a white page needs a border to exist at all; on the old dark ground the
+  // surface alone was the separation.
+  google: { backgroundColor: google.surface, borderWidth: 1, borderColor: color.border },
+  // Black fill, per Apple's own light-mode guidance and the source's filled-action language.
+  // Was a near-black card fill on a dark ground; on white that became grey-on-white mush.
+  apple: { backgroundColor: color.red },
   socialDisabled: { opacity: 0.5 },
   socialLabel: { ...type.bodyStrong, color: color.text },
+  appleLabel: { color: color.inverse },
   googleLabel: { color: google.onSurface },
 
   divider: { flexDirection: "row", alignItems: "center", gap: space(3.5), marginVertical: space(5) },
@@ -192,5 +181,5 @@ const styles = StyleSheet.create({
 
   switch: { flexDirection: "row", justifyContent: "center", alignItems: "center", marginTop: space(6) },
   switchPrompt: { ...type.body, color: color.dim },
-  switchAction: { ...type.bodyStrong, color: color.redLight },
+  switchAction: { ...type.bodyStrong, color: color.text, textDecorationLine: "underline" },
 });

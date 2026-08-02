@@ -238,9 +238,6 @@ const FAMILY = {
 } as const;
 
 export const font = {
-  /** DEPRECATED by Decision 20 — the source system has no serif. Remaining uses (Home greeting, */
-  /** AuthShell accent) are removed in Phase 4; kept only so those files still compile. */
-  serif: "InstrumentSerif_400Regular",
   sans: FAMILY.regular,
   sansMedium: FAMILY.medium,
   sansSemi: FAMILY.semi,

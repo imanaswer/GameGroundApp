@@ -19,7 +19,7 @@ import { toCoachCard, toGameCard, toUpNext, useGamePlayers, useHome, useProfile 
 import { useAuth } from "@/hooks/useAuth";
 import * as haptics from "@/lib/haptics";
 import * as storage from "@/lib/storage";
-import { color, font, icon as iconSize, layout, radius, space, type } from "@/lib/tokens";
+import { color, icon as iconSize, layout, radius, space, type } from "@/lib/tokens";
 
 const AnimatedScrollView = Animated.createAnimatedComponent(ScrollView);
 
@@ -261,7 +261,10 @@ const styles = StyleSheet.create({
   scroll: { flexGrow: 1, paddingBottom: space(28) },
   greetWrap: { paddingHorizontal: layout.screenX, marginTop: space(1), marginBottom: space(4) },
   greeting: { ...type.title1, color: color.text },
-  greetingName: { fontFamily: font.serif, fontStyle: "italic", fontSize: 24, color: color.redLight },
+  // The last serif-italic holdout (Decision 20 removed the serif from the scale). The name now
+  // carries emphasis by WEIGHT within the same face, which is how the source separates a
+  // greeting from a name — it has one family and no accent colour to lean on.
+  greetingName: { fontFamily: type.display.fontFamily, fontSize: 20, color: color.text },
   subtitle: { ...type.body, color: color.dim, marginTop: space(1.5) },
 
   setup: { marginHorizontal: layout.screenX, marginBottom: space(5) },

@@ -102,10 +102,14 @@ function ClientHandlerBridge() {
 }
 
 export default function RootLayout() {
-  // Vendored rather than pulled from @expo-google-fonts — those packages ship every
-  // weight and italic (~14MB) and metro bundles the lot. Six files is all we use.
+  // Vendored rather than pulled from @expo-google-fonts — those packages ship every weight and
+  // italic (~14MB) and metro bundles the lot.
+  //
+  // Instrument Serif was dropped by Decision 20: the ported system is single-family and nothing
+  // renders a serif any more. The .ttf stays in assets/ (git-tracked, so revertible) but is no
+  // longer required, which keeps it out of the bundle. These five map to `FAMILY` in tokens.ts —
+  // swapping to the licensed Helvetica Now means changing this map and that constant, nothing else.
   const [fontsLoaded, fontError] = useFonts({
-    InstrumentSerif_400Regular: require("@/assets/fonts/InstrumentSerif_400Regular.ttf"),
     Inter_400Regular: require("@/assets/fonts/Inter_400Regular.ttf"),
     Inter_500Medium: require("@/assets/fonts/Inter_500Medium.ttf"),
     Inter_600SemiBold: require("@/assets/fonts/Inter_600SemiBold.ttf"),
