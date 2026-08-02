@@ -104,9 +104,11 @@ export default function Onboarding() {
   };
 
   return (
-    <Screen padded={false}>
+    // Full-bleed so the red glow reaches the top of the display instead of starting below the
+    // status bar; Skip is inset by hand so it still clears the notch.
+    <Screen padded={false} fullBleed>
       <OnboardingGlow />
-      <View style={styles.topBar}>
+      <View style={[styles.topBar, { paddingTop: insets.top + space(2) }]}>
         <Button title="Skip" variant="ghost" onPress={finish} />
       </View>
       <FlatList
