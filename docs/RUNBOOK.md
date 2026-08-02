@@ -49,18 +49,35 @@ even when the bug is in the shipped bundle.
 `app/upgrade-required.tsx`, a no-dismiss, no-back wall. Every request sends `X-App-Version`
 (`src/api/client.ts:73`).
 
-**Server side is NOT implemented.** As of 2026-08-02 there is no `MIN_MOBILE_VERSION` check in
-`../GG`. **Until that ships, you have no kill switch.** See §7.
-
-Once implemented:
+**Server side shipped 2026-08-02** — `../GG/src/lib/mobileVersion.ts`, wired into `src/proxy.ts`
+ahead of rate limiting. Gate is off while `MIN_MOBILE_VERSION` is unset.
 
 ```bash
-# In the web repo's host (Vercel): set the minimum acceptable app version, then redeploy.
+# In the web repo's host (Vercel): set the minimum acceptable app version…
 MIN_MOBILE_VERSION=1.0.2
+# …then REDEPLOY. Vercel only hands new env values to new deployments — setting the variable
+# alone changes nothing on the running one.
 ```
 
-Effect: every install below `1.0.2` hits the upgrade wall on its next request. Irreversible for
-users until they update from the store — use it for data-corruption or money bugs, not cosmetics.
+Effect: every install below `1.0.2` gets `426` on its next API call and hits the upgrade wall.
+Irreversible for users until they update from the store — use it for data-corruption or money
+bugs, not cosmetics. To lift it, clear the variable and redeploy.
+
+Behaviour, verified against a running server on 2026-08-02:
+
+| Request | Result |
+|---|---|
+| `X-Client: mobile`, version below the floor | `426` + `{"ok":false,"error":"Please update Game Ground to continue."}` |
+| version equal to or above the floor | passes through |
+| `X-Client: mobile`, no `X-App-Version` | `426` (fails closed) |
+| no `X-Client` header (browser) | passes through — the web app is never gated |
+| `MIN_MOBILE_VERSION` unset or unparseable | everything passes — a typo cannot lock users out |
+
+The 426 carries `Cache-Control: no-store` so a CDN can never replay it to a client that has since
+updated, and echoes `x-request-id` for support.
+
+**Rehearse it on preview before you ever need it in production:** set the variable in the preview
+environment above the installed build's version, redeploy, confirm the wall appears, then clear it.
 
 ---
 
@@ -157,7 +174,8 @@ already-tested `scrubEvent` into `beforeSend`, then prove launch on a dev client
 
 Written honestly so nobody discovers these mid-incident:
 
-- **No kill switch.** `MIN_MOBILE_VERSION` is unimplemented server-side (§2).
+- **Kill switch is implemented but never fired in anger.** Unit-tested and exercised against a dev
+  server (§2); never rehearsed on a deployed environment against a real build. Do that on preview.
 - **No crash telemetry.** Sentry disabled (§6).
 - **Never rehearsed.** No OTA rollback has been performed on this project. Until the rehearsal
   below is done, treat §3 as untested.
