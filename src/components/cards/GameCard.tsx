@@ -127,7 +127,12 @@ const styles = StyleSheet.create({
     borderColor: color.border2,
   },
   pricePillFree: { backgroundColor: color.successSurface, borderColor: color.successSurface },
-  priceText: { fontFamily: type.heading.fontFamily, fontSize: 12, color: color.text },
+  // WHITE. The pill sits ON the photograph with a `scrim` fill (60% black), so this is one of
+  // the few places `color.text` is wrong by construction — near-black on near-black. The static
+  // surface-contrast audit cannot see this: `scrim` is an rgba() it refuses to judge, which is
+  // exactly the limitation that test documents. The FREE variant keeps dark text, because its
+  // pill swaps to the light `successSurface` fill.
+  priceText: { fontFamily: type.heading.fontFamily, fontSize: 12, color: color.inverse },
   freeText: { fontFamily: type.heading.fontFamily, fontSize: 12, color: color.successText },
 
   imageBottom: { gap: space(1.5), alignItems: "flex-start" },
@@ -150,14 +155,8 @@ const styles = StyleSheet.create({
   spotsCountLow: { color: color.goldLight },
   footer: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: space(0.5) },
 
-  compact: {
-    width: 210,
-    backgroundColor: color.card,
-    borderRadius: radius.card,
-    borderWidth: 1,
-    borderColor: color.border,
-    overflow: "hidden",
-  },
+  // Editorial, matching cardStyles.card — image and type, no box. See parts.tsx.
+  compact: { width: 210, borderRadius: radius.card, overflow: "hidden" },
   compactBody: { padding: space(3), gap: space(2) },
   compactFoot: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: space(1) },
   joined: { ...type.caption, color: color.dim, fontVariant: ["tabular-nums"] },

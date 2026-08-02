@@ -3,7 +3,7 @@ import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { StyleSheet, Text, View } from "react-native";
 
-import { color, gradient, layout, radius, space, type } from "@/lib/tokens";
+import { color, gradient, radius, space, type } from "@/lib/tokens";
 
 export function CardImage({
   uri,
@@ -46,18 +46,26 @@ export function MetaRow({ icon, text }: { icon: React.ReactNode; text: string })
 }
 
 export const cardStyles = StyleSheet.create({
+  /**
+   * EDITORIAL card (Phase 5). No fill, no border — the photograph and the type are the card.
+   *
+   * This is the shape change the port had not yet made. The box treatment (fill + hairline +
+   * padding) existed because on `#050505` a card had to announce itself: a dark box on a dark
+   * page is invisible without an edge. On white the opposite is true — the image already has
+   * enormous contrast against the page, so a border around it is chrome drawing a line next to
+   * something that was already a clear edge.
+   *
+   * `overflow: hidden` + radius still clips the image corners; the rounding now belongs to the
+   * photograph rather than to a container around it.
+   */
   card: {
-    // White, not the grey `card` wash. On the old #050505 ground a lighter fill was the ONLY way
-    // to lift a card off the page — shadows are invisible on near-black. On white that inverts:
-    // a grey fill inside a grey border is two kinds of chrome doing one job, and it muddies every
-    // photograph sitting on it. The hairline carries the separation now.
-    backgroundColor: color.elev,
+    backgroundColor: "transparent",
     borderRadius: radius.card,
-    borderWidth: 1,
-    borderColor: color.border,
     overflow: "hidden",
   },
-  body: { padding: layout.cardPad, gap: space(2) },
+  // Type sits flush to the image edge — no horizontal inset, because there is no longer a box for
+  // it to be inset FROM. Vertical rhythm is kept so stacked cards do not collide.
+  body: { paddingTop: space(2.5), paddingBottom: space(2), gap: space(1.5) },
   title: { ...type.heading, color: color.text },
   // Price is plain ink. It was `gold` (warning-500), which measures ~3.6:1 on a card — under AA
   // for what is often the single most decision-relevant string on the screen. The source prices

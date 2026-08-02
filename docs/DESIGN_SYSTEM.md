@@ -235,7 +235,9 @@ Card bg, radius 14, 12.5px/600 head + rotating chevron (spring), max-height body
 
 ## 6. Component library — content cards
 
-All cards: card bg, hairline border, card radius, imageScrim on images, press physics (MOTION.md §3), image placeholder-color #141414 → fade-in.
+All cards are **editorial**: no fill, no border. The photograph and the type are the card; the radius belongs to the image, not to a container around it. Type sits flush to the image edge. The box treatment (fill + hairline + inset) existed because a dark card on a dark page is invisible without an edge — on white the image already has enormous contrast against the page, so a border is chrome drawing a line beside an edge that already reads. imageScrim on images, press physics (MOTION.md §3), placeholder Gray/200 → fade-in.
+
+**Overlay pills on card images** (price, spots-left) sit on the `scrim` fill and therefore carry `inverse` text, not `text`. This is one of the few places `color.text` is wrong by construction, and the static contrast audit cannot see it — `scrim` is an rgba() it will not judge. Check overlays by eye.
 
 | Card | Size/anatomy | Notes |
 |---|---|---|

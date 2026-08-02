@@ -106,7 +106,8 @@ const CompactCoachCard = memo(function CompactCoachCard({ data, onPress }: { dat
 });
 
 const styles = StyleSheet.create({
-  compact: { width: 150, backgroundColor: color.card, borderRadius: radius.card, borderWidth: 1, borderColor: color.border, overflow: "hidden" },
+  // Editorial, matching cardStyles.card — image and type, no box. See parts.tsx.
+  compact: { width: 150, borderRadius: radius.card, overflow: "hidden" },
   // Avatar overlaps the image by 22px, centered (DS §6). 84 image − 22 = 62.
   compactAvatar: { position: "absolute", top: 84 - 22, left: 0, right: 0, alignItems: "center" },
   compactBody: { paddingTop: space(6), paddingBottom: space(3.5), paddingHorizontal: space(3), gap: space(1.5), alignItems: "center" },
