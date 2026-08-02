@@ -1,6 +1,12 @@
 import { useRouter } from "expo-router";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Linking, StyleSheet, Text, TextInput, View } from "react-native";
+import Animated, {
+  useAnimatedStyle,
+  useReducedMotion,
+  useSharedValue,
+  withTiming,
+} from "react-native-reanimated";
 
 import { RegisterSchema } from "@/api/schemas";
 import { AppleButton, AuthShell, Divider, GoogleButton, SwitchLink } from "@/components/auth/AuthShell";
@@ -8,6 +14,7 @@ import { FormError, PasswordRules, fieldErrorsFrom } from "@/components/auth/fie
 import { Button, Input } from "@/components/ds";
 import { useAppleAvailable, useAuth, useGoogleLogin } from "@/hooks/useAuth";
 import { color, space, type } from "@/lib/tokens";
+import { dur, ease } from "@/theme/animations";
 
 const TERMS_URL = "https://www.gameground.net/terms";
 const PRIVACY_URL = "https://www.gameground.net/privacy";
@@ -22,6 +29,8 @@ export default function Signup() {
    * borrows the pacing, not the verification, and nothing is sent until step two completes.
    */
   const [step, setStep] = useState<"email" | "details" | "done">("email");
+  /** +1 advancing, -1 going back — the panel slides in from the side you came from. */
+  const [dir, setDir] = useState(1);
   const [form, setForm] = useState({ name: "", username: "", email: "", password: "" });
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [formError, setFormError] = useState<unknown>(null);
@@ -48,13 +57,17 @@ export default function Signup() {
     const parsed = RegisterSchema.shape.email.safeParse(email);
     if (!parsed.success) return setFieldErrors({ email: parsed.error.issues[0].message });
     setFieldErrors({});
+    setDir(1);
     setStep("details");
   };
 
   // Back steps WITHIN the form before leaving it, so a mistyped email is one tap away rather than
   // a full restart.
   const back = () => {
-    if (step === "details") return setStep("email");
+    if (step === "details") {
+      setDir(-1);
+      return setStep("email");
+    }
     return router.canGoBack() ? router.back() : router.replace("/onboarding");
   };
 
@@ -99,6 +112,28 @@ export default function Signup() {
       .finally(() => setAppleBusy(false));
   };
 
+  // Declared BEFORE the `done` early return: these are hooks, and a return above them makes
+  // them conditional — React would tear down state the moment signup succeeded.
+  const reducedMotion = useReducedMotion();
+  const enter = useSharedValue(1);
+
+  useEffect(() => {
+    if (reducedMotion) {
+      enter.value = 1;
+      return;
+    }
+    // Restart from just-off-screen on every step change; `step` is the only trigger.
+    enter.value = 0;
+    enter.value = withTiming(1, { duration: dur.base, easing: ease.exit });
+  }, [step, reducedMotion, enter]);
+
+  const panelStyle = useAnimatedStyle(() => ({
+    opacity: enter.value,
+    // Travel is deliberately short (STEP_SLIDE): this is one form changing its contents, not a
+    // screen push. A full-width slide would claim more navigational weight than the step has.
+    transform: [{ translateX: (1 - enter.value) * STEP_SLIDE * dir }],
+  }));
+
   if (step === "done") {
     return (
       <AuthShell
@@ -132,78 +167,80 @@ export default function Signup() {
       {onEmailStep && hasSocial && <Divider />}
 
       <FormError error={formError} />
-      {onEmailStep ? (
-        <Input
-          ref={emailRef}
-          testID="auth-email"
-          label="Email"
-          value={form.email}
-          onChangeText={update("email")}
-          error={fieldErrors.email}
-          autoCapitalize="none"
-          autoComplete="email"
-          textContentType="emailAddress"
-          keyboardType="email-address"
-          placeholder="you@email.com"
-          returnKeyType="go"
-          onSubmitEditing={advance}
-        />
-      ) : (
-        <>
-        <Input
-          testID="signup-name"
-          label="Full name"
-          value={form.name}
-          onChangeText={update("name")}
-          error={fieldErrors.name}
-          autoComplete="name"
-          textContentType="name"
-          placeholder="Ananya Suresh"
-          returnKeyType="next"
-          blurOnSubmit={false}
-          onSubmitEditing={() => usernameRef.current?.focus()}
-        />
-        <Input
-          ref={usernameRef}
-          testID="signup-username"
-          label="Username"
-          value={form.username}
-          onChangeText={update("username")}
-          error={fieldErrors.username}
-          hint="Lowercase letters, numbers and underscores."
-          autoCapitalize="none"
-          autoCorrect={false}
-          textContentType="username"
-          placeholder="ananya_s"
-          returnKeyType="next"
-          blurOnSubmit={false}
-          onSubmitEditing={() => emailRef.current?.focus()}
-        />
-        <Input
-          ref={passwordRef}
-          testID="auth-password"
-          label="Password"
-          value={form.password}
-          onChangeText={update("password")}
-          error={fieldErrors.password}
-          secureTextEntry
-          autoComplete="new-password"
-          textContentType="newPassword"
-          placeholder="At least 8 characters"
-          returnKeyType="go"
-          onSubmitEditing={submit}
-        />
-        <PasswordRules value={form.password} />
-        </>
-      )}
+      <Animated.View style={panelStyle}>
+        {onEmailStep ? (
+          <Input
+            ref={emailRef}
+            testID="auth-email"
+            label="Email"
+            value={form.email}
+            onChangeText={update("email")}
+            error={fieldErrors.email}
+            autoCapitalize="none"
+            autoComplete="email"
+            textContentType="emailAddress"
+            keyboardType="email-address"
+            placeholder="you@email.com"
+            returnKeyType="go"
+            onSubmitEditing={advance}
+          />
+        ) : (
+          <>
+          <Input
+            testID="signup-name"
+            label="Full name"
+            value={form.name}
+            onChangeText={update("name")}
+            error={fieldErrors.name}
+            autoComplete="name"
+            textContentType="name"
+            placeholder="Ananya Suresh"
+            returnKeyType="next"
+            blurOnSubmit={false}
+            onSubmitEditing={() => usernameRef.current?.focus()}
+          />
+          <Input
+            ref={usernameRef}
+            testID="signup-username"
+            label="Username"
+            value={form.username}
+            onChangeText={update("username")}
+            error={fieldErrors.username}
+            hint="Lowercase letters, numbers and underscores."
+            autoCapitalize="none"
+            autoCorrect={false}
+            textContentType="username"
+            placeholder="ananya_s"
+            returnKeyType="next"
+            blurOnSubmit={false}
+            onSubmitEditing={() => emailRef.current?.focus()}
+          />
+          <Input
+            ref={passwordRef}
+            testID="auth-password"
+            label="Password"
+            value={form.password}
+            onChangeText={update("password")}
+            error={fieldErrors.password}
+            secureTextEntry
+            autoComplete="new-password"
+            textContentType="newPassword"
+            placeholder="At least 8 characters"
+            returnKeyType="go"
+            onSubmitEditing={submit}
+          />
+          <PasswordRules value={form.password} />
+          </>
+        )}
 
-      {/* Two buttons rather than one with a computed testID: the E2E selector contract can only
-          verify STATIC testIDs, and a ternary silently opts out of that check. */}
-      {onEmailStep ? (
-        <Button testID="signup-continue-email" title="Continue" onPress={advance} />
-      ) : (
-        <Button testID="auth-submit" title="Create account" onPress={submit} loading={busy} />
-      )}
+        {/* Two buttons rather than one with a computed testID: the E2E selector contract can only
+            verify STATIC testIDs, and a ternary silently opts out of that check. */}
+        {onEmailStep ? (
+          <Button testID="signup-continue-email" title="Continue" onPress={advance} />
+        ) : (
+          <Button testID="auth-submit" title="Create account" onPress={submit} loading={busy} />
+        )}
+      </Animated.View>
       <Text style={styles.terms}>
         By continuing you agree to our{" "}
         <Text accessibilityRole="link" style={styles.termsLink} onPress={() => Linking.openURL(TERMS_URL)}>
@@ -225,6 +262,9 @@ export default function Signup() {
     </AuthShell>
   );
 }
+
+/** MOTION §2 — a step change inside one form, not a screen push. Short travel on purpose. */
+const STEP_SLIDE = 28;
 
 const styles = StyleSheet.create({
   terms: { ...type.caption, color: color.dim2, textAlign: "center", lineHeight: 16, marginTop: space(3.5) },
