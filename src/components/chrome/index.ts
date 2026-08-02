@@ -15,3 +15,4 @@ export { Sheet } from "./Sheet";
 export { ErrorState, OfflineBanner } from "./states";
 export { ToastProvider, useToast, type ToastInput } from "./Toast";
 export { SplashGate } from "./SplashGate";
+export { BrandLoader } from "./BrandLoader";

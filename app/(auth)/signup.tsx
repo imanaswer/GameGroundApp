@@ -10,6 +10,7 @@ import Animated, {
 
 import { RegisterSchema } from "@/api/schemas";
 import { AppleButton, AuthShell, Divider, GoogleButton, SwitchLink } from "@/components/auth/AuthShell";
+import { BrandLoader } from "@/components/chrome";
 import { FormError, PasswordRules, fieldErrorsFrom } from "@/components/auth/fields";
 import { Button, Input } from "@/components/ds";
 import { useAppleAvailable, useAuth, useGoogleLogin } from "@/hooks/useAuth";
@@ -28,7 +29,7 @@ export default function Signup() {
    * address with an emailed code between the steps, which needs endpoints we do not have. So this
    * borrows the pacing, not the verification, and nothing is sent until step two completes.
    */
-  const [step, setStep] = useState<"email" | "details" | "done">("email");
+  const [step, setStep] = useState<"email" | "details" | "done" | "handoff">("email");
   /** +1 advancing, -1 going back — the panel slides in from the side you came from. */
   const [dir, setDir] = useState(1);
   const [form, setForm] = useState({ name: "", username: "", email: "", password: "" });
@@ -134,15 +135,26 @@ export default function Signup() {
     transform: [{ translateX: (1 - enter.value) * STEP_SLIDE * dir }],
   }));
 
+  // Source's Sign up 09. Shown while the tab tree mounts and its queries fire — a real wait, not
+  // a staged one. `replace` runs immediately; the loader simply covers the frames until it lands.
+  if (step === "handoff") return <BrandLoader />;
+
   if (step === "done") {
     return (
       <AuthShell
-        title="You're in."
+        title="You have been signed in successfully."
         accent=""
-        subtitle="Your account is ready. Let's find you a game."
+        subtitle=""
         onBack={() => router.replace("/home")}
       >
-        <Button testID="signup-continue" title="Continue" onPress={() => router.replace("/home")} />
+        <Button
+          testID="signup-continue"
+          title="Continue"
+          onPress={() => {
+            setStep("handoff");
+            router.replace("/home");
+          }}
+        />
       </AuthShell>
     );
   }

@@ -69,9 +69,10 @@ export function AuthShell({ title, accent, subtitle, onBack, children }: ShellPr
 
           <Image source={MARK} style={styles.mark} resizeMode="contain" tintColor={color.primary} />
           <Text style={styles.heading}>
-            {title} <Text style={styles.accent}>{accent}</Text>
+            {title}
+            {!!accent && <Text style={styles.accent}> {accent}</Text>}
           </Text>
-          <Text style={styles.sub}>{subtitle}</Text>
+          {!!subtitle && <Text style={styles.sub}>{subtitle}</Text>}
 
           {children}
         </ScrollView>
@@ -156,14 +157,15 @@ const styles = StyleSheet.create({
    * roughly a third of that area and sits clear of the type, which is what lets the headline lead.
    */
   mark: { width: 44, height: 33, marginTop: space(7), marginBottom: space(5) },
-  heading: { ...type.authTitle, color: color.text },
+  heading: { ...type.authTitle, color: color.text, marginBottom: space(7) },
   accent: { color: color.text },
   /**
    * Caption weight, not body. The source has no subtitle at all — just a small meta line
    * ("United States · Change"). A full body-size paragraph under the headline halves its impact,
    * which is most of why this did not read as the reference.
    */
-  sub: { ...type.caption, color: color.dim, marginTop: space(2), marginBottom: space(7) },
+  // Sits between headline and form; the headline owns the gap when there is no subtitle.
+  sub: { ...type.caption, color: color.dim, marginTop: -space(5), marginBottom: space(7) },
 
   social: {
     flexDirection: "row",

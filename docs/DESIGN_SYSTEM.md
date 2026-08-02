@@ -225,6 +225,9 @@ Floating icon tile (66pt circle, `card` bg, `primary` icon, idle float, tap-reac
 ### MapPreview
 96pt card, dark blue-gray gradient, grid overlay, road stroke, bouncing pin, red "Directions" mini-button bottom-right. Placeholder in prototype; static map image + intent link in app.
 
+### BrandLoader (handoff)
+Full-bleed **black** field (`onInverse`), white mark centred at 52×39, with a 108pt ring at 1.5 stroke turning around it — a 0.72 arc so the rotation is legible, `dur.moment` per revolution, linear. Reduced motion keeps the ring static rather than removing it. Deliberately dark in a light app: like the splash, it is a moment where no content is on screen yet, so it belongs to the brand rather than the UI — the source's own file has exactly two black screens and these are both of them. Covers a real wait (post-signup handoff to the tabs); never shown on a timer for effect. See Decision 22.
+
 ### SplashGate (launch)
 Full-bleed `bg` field, white brand mark centered at the same width as the native splash (`imageWidth` 140pt, 100 on Android — Android 12+ masks the outer third of its system splash). That puts the artwork at ~28.5% of a 393pt screen, deliberately under the reference's 33.5%: the reference mark is a thin ribbon and ours is a solid arrow, so equal bbox width reads oversized. Note `imageWidth` sizes the square canvas, not the artwork — this asset's alpha bbox is 79.9% of its canvas, so the two are not interchangeable. The value lives in `app.config.js` and `SplashGate.tsx` and must move in both. Mounts opaque, dismisses the native splash on its first layout, holds to a 1200ms floor measured from bundle evaluation, then fades on dur.base + ease.exit and unmounts. Blocks touches while up. Cold start only — no AppState listener, so it never replays on resume. Reduced motion drops the fade, keeps the hold. See Decision 18.
 
