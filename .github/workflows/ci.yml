@@ -38,6 +38,16 @@ jobs:
       - name: Bundle secret-grep
         # EXPO_PUBLIC_API_URL is required at import time by src/lib/env.ts, so the
         # export needs it set. It is a public value, not a secret.
+        #
+        # APP_ENV=production makes the gate judge the bundle by release rules: a placeholder or
+        # test Razorpay key becomes a failure rather than a warning.
+        #
+        # EXPO_PUBLIC_RAZORPAY_KEY_ID is the publishable key id (safe as a repo *variable*, not a
+        # secret). Set it once the live key exists and the gate additionally asserts the bundle
+        # ships exactly that key. While unset, the key-id assertion is skipped — the secret scan
+        # and the wrong-environment checks still run.
         env:
           EXPO_PUBLIC_API_URL: https://www.gameground.net
+          APP_ENV: production
+          EXPO_PUBLIC_RAZORPAY_KEY_ID: ${{ vars.EXPO_PUBLIC_RAZORPAY_KEY_ID }}
         run: bash scripts/release-check.sh
