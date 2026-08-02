@@ -237,11 +237,6 @@ export default function Signup() {
         )}
       </Animated.View>
 
-      {onEmailStep && hasSocial && <Divider />}
-      {onEmailStep && google.available && (
-        <GoogleButton label="Sign up with Google" onPress={google.prompt} disabled={busy || appleBusy} />
-      )}
-      {onEmailStep && appleAvailable && <AppleButton label="Sign up with Apple" onPress={onApple} disabled={busy || appleBusy} />}
       <Text style={styles.terms}>
         By continuing you agree to our{" "}
         <Text accessibilityRole="link" style={styles.termsLink} onPress={() => Linking.openURL(TERMS_URL)}>
@@ -253,6 +248,12 @@ export default function Signup() {
         </Text>
         .
       </Text>
+
+      {onEmailStep && hasSocial && <Divider />}
+      {onEmailStep && google.available && (
+        <GoogleButton label="Sign up with Google" onPress={google.prompt} disabled={busy || appleBusy} />
+      )}
+      {onEmailStep && appleAvailable && <AppleButton label="Sign up with Apple" onPress={onApple} disabled={busy || appleBusy} />}
 
       <View style={styles.spacer} />
       <SwitchLink
@@ -268,7 +269,11 @@ export default function Signup() {
 const STEP_SLIDE = 28;
 
 const styles = StyleSheet.create({
-  terms: { ...type.caption, color: color.dim2, textAlign: "center", lineHeight: 16, marginTop: space(3.5) },
-  termsLink: { color: color.primarySoft },
+  // Left-aligned like the source. Centred legal copy reads as a footer; theirs is part of the
+  // form column, set flush with the fields above it.
+  terms: { ...type.caption, color: color.dim, lineHeight: 16, marginTop: -space(1), marginBottom: space(4) },
+  // Underlined black, as in every legal link in the source's frames. `primarySoft` grey with no
+  // underline did not read as tappable at all.
+  termsLink: { color: color.text, textDecorationLine: "underline" },
   spacer: { flex: 1, minHeight: space(6) },
 });
