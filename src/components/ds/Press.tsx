@@ -48,12 +48,17 @@ export const Press = forwardRef<typeof Pressable, Props>(function Press(
 
     const p = pressed.value;
     const scale = 1 - p * (1 - scaleTo);
-    // Single literal shape keeps the transform union inferable; perspective with a 0° tilt is a no-op.
-    const transform = [
-      { perspective: PERSPECTIVE },
-      { rotateX: `${(tilt ? p : 0) * TILT_DEG}deg` },
-      { scale },
-    ];
+    const angle = (tilt ? p : 0) * TILT_DEG;
+
+    // Perspective is applied ONLY while the press is in flight. It is a geometric no-op at 0°, but
+    // not a rendering one: a perspective transform promotes the view into a 3D compositing layer
+    // whatever the angle, and on iOS those layers rasterize separately inside a ScrollView and
+    // flicker. Resting controls therefore stay on the plain 2D path. (Reported on device 2 Aug
+    // 2026 — every Press in the app was permanently 3D for a tilt that only exists mid-press.)
+    const transform: ({ perspective: number } | { rotateX: string } | { scale: number })[] =
+      angle === 0
+        ? [{ scale }]
+        : [{ perspective: PERSPECTIVE }, { rotateX: `${angle}deg` }, { scale }];
 
     return brighten
       ? { transform, borderColor: interpolateColor(p, [0, 1], [color.border, color.border2]) }

@@ -82,6 +82,11 @@ export function Button({
       accessibilityRole="button"
       accessibilityState={{ disabled: off, busy: loading }}
       disabled={off}
+      // Scale-only compress: no perspective tilt on buttons. A 2.4° rotateX is imperceptible at
+      // button size, but the 3D layer it requires tears on iOS — reported on device 2 Aug 2026 as
+      // a coach batch row splitting into top and bottom halves mid-press. Cards keep the §3 tilt,
+      // where the effect is both visible and on a larger, static surface.
+      tilt={false}
       onPressIn={onPressIn}
       onPress={() => {
         haptics.buttonPress();
