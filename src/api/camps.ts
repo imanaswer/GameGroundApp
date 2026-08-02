@@ -4,7 +4,7 @@ import {
   cancelRegistration as cancelReg,
   registerFree,
   toDetail,
-  toSummary,
+  toSummaryList,
   type RawRegisterable,
 } from "./registerable";
 import type { RegisterableDetail, RegisterableSummary } from "./types";
@@ -12,7 +12,7 @@ import type { RegisterableDetail, RegisterableSummary } from "./types";
 export async function list(params: { q?: string } = {}): Promise<RegisterableSummary[]> {
   const s = params.q ? `?q=${encodeURIComponent(params.q)}` : "";
   const rows = await api.get<RawRegisterable[]>(`/camps${s}`);
-  return rows.map((r) => toSummary(r, "camp"));
+  return toSummaryList(rows, "camp");
 }
 
 export async function detail(id: string): Promise<RegisterableDetail> {

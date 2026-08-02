@@ -51,6 +51,30 @@ export type RawRegisterable = {
   } | null;
 };
 
+/**
+ * Drops anything whose end date has passed.
+ *
+ * The server is meant to do this, and now does (`endDate >= now` on the list routes, plus the
+ * nightly completion cron). This is a client-side backstop, added 2 Aug 2026 after four workshops
+ * that ended in July were listed in Discover well into August: the cron had never covered
+ * workshops, so nothing ever moved them off `status: "open"`.
+ *
+ * The rule matches the server's exactly — filter on END date, so an in-progress item (a camp
+ * running 20 Jul–3 Aug) stays listed throughout. Items with no usable date are kept rather than
+ * guessed at; hiding real content is the worse failure.
+ */
+export function hasEnded(r: RawRegisterable, now: number = Date.now()): boolean {
+  const end = r.endDate ?? r.startDate;
+  if (!end) return false;
+  const t = new Date(end).getTime();
+  return Number.isFinite(t) && t < now;
+}
+
+/** Convenience for the list endpoints: map the rows that haven't ended. */
+export function toSummaryList(rows: RawRegisterable[], kind: RegisterableKind) {
+  return rows.filter((r) => !hasEnded(r)).map((r) => toSummary(r, kind));
+}
+
 export function toSummary(r: RawRegisterable, kind: RegisterableKind): RegisterableSummary {
   return {
     id: r.id,
