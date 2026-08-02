@@ -24,7 +24,14 @@ const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 type Props = PressableProps & {
   /** Icon buttons compress harder (.90 vs .965) per §3. */
   scaleTo?: number;
-  /** §3 3D compress: perspective tilt on press. On by default; flat controls can opt out. */
+  /**
+   * §3 perspective tilt on press. **Off by default (Decision 16, 2 Aug 2026) — opt in, don't opt
+   * out.** A perspective transform promotes the view into a 3D compositing layer, and on iOS those
+   * layers rasterize in tiles and tear: reported on device against a coach batch row and again
+   * against the Discover segmented control, both splitting into halves mid-press. Nothing currently
+   * sets it. Provisional — the evidence so far is from Expo Go (Reanimated 4.1); re-test on a real
+   * development build before deciding whether the §3 tilt can come back for cards.
+   */
   tilt?: boolean;
   /** §3 cards brighten their border on press (border → border2). Consumer sets borderWidth;
    *  Press owns the animated borderColor, so don't also set a static borderColor in `style`. */
@@ -36,7 +43,7 @@ const TILT_DEG = 2.4;
 const PERSPECTIVE = 600;
 
 export const Press = forwardRef<typeof Pressable, Props>(function Press(
-  { scaleTo = 0.965, tilt = true, brighten = false, onPressIn, onPressOut, style, children, ...rest },
+  { scaleTo = 0.965, tilt = false, brighten = false, onPressIn, onPressOut, style, children, ...rest },
   ref,
 ) {
   const pressed = useSharedValue(0);
