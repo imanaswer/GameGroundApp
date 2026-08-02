@@ -13,6 +13,51 @@ const variant = {
   production: { name: "Game Ground", id: "net.gameground.app" },
 }[profile];
 
+const sentryDsn = process.env.SENTRY_DSN ?? null;
+
+const canResolve = (id) => {
+  try {
+    require.resolve(id);
+    return true;
+  } catch {
+    return false;
+  }
+};
+
+/**
+ * Crash reporting (§13) — enabled ONLY when a DSN is set AND the package resolves.
+ *
+ * Commit 4e8c579: `@sentry/react-native` 7.11's native Expo auto-init threw
+ * NSInvalidArgumentException at launch *while `extra.sentryDsn` was null* — the signature of an
+ * empty DSN reaching `SentrySDKWrapper setupWithDictionary`. Gating the plugin on SENTRY_DSN makes
+ * that configuration unreachable by construction: no DSN, no plugin, no native init, no crash.
+ *
+ * To turn it on: create the Sentry project, `npx expo install @sentry/react-native`, then set
+ * SENTRY_DSN (+ SENTRY_ORG / SENTRY_PROJECT for source-map upload, and SENTRY_AUTH_TOKEN at build
+ * time — without the token the plugin warns and skips the upload rather than failing the build).
+ */
+const sentryPlugin = (() => {
+  if (!sentryDsn) return [];
+  // Config-plugin entry point for RN SDK 5+; the bare package name is not a plugin.
+  if (!canResolve("@sentry/react-native/expo")) {
+    console.warn(
+      "[app.config] SENTRY_DSN is set but @sentry/react-native is not installed — " +
+        "skipping the Sentry plugin. Run: npx expo install @sentry/react-native",
+    );
+    return [];
+  }
+  return [
+    [
+      "@sentry/react-native/expo",
+      {
+        url: process.env.SENTRY_URL ?? "https://sentry.io/",
+        ...(process.env.SENTRY_ORG ? { organization: process.env.SENTRY_ORG } : {}),
+        ...(process.env.SENTRY_PROJECT ? { project: process.env.SENTRY_PROJECT } : {}),
+      },
+    ],
+  ];
+})();
+
 module.exports = {
   name: variant.name,
   slug: "gameground-mobile",
@@ -67,15 +112,13 @@ module.exports = {
     // Push (M12): brand-red accent + monochrome icon; the plugin adds the iOS APNs entitlement
     // and Android POST_NOTIFICATIONS permission at build time.
     ["expo-notifications", { color: "#e63946", icon: "./assets/images/android-icon-monochrome.png" }],
-    // Crash reporting (§13) — DISABLED. The @sentry/react-native config plugin is intentionally
-    // omitted: the package isn't installed and its native auto-init threw an NSException on launch
-    // (commit 4e8c579). Re-enabling means: `npx expo install @sentry/react-native`, resolving the
-    // launch crash, then restoring the ["@sentry/react-native", { url, organization, project }] entry.
+    // Crash reporting — see `sentryPlugin` above. Empty unless SENTRY_DSN is set.
+    ...sentryPlugin,
   ],
   experiments: { typedRoutes: true, reactCompiler: true },
   extra: {
     appEnv: profile,
-    sentryDsn: process.env.SENTRY_DSN ?? null,
+    sentryDsn,
     // Linked EAS project (eas init). Env override kept for CI / alternate accounts.
     eas: { projectId: process.env.EAS_PROJECT_ID ?? "c51e7b53-2f3f-4556-b1c7-4e539836f90a" },
   },
