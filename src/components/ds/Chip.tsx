@@ -84,8 +84,8 @@ const styles = StyleSheet.create({
   // the Error ramp), so a selected filter would read as a validation error.
   active: { backgroundColor: color.red, borderColor: color.red },
   disabled: { opacity: 0.5 },
-  label: { fontFamily: type.bodyStrong.fontFamily, fontSize: 12.5 },
-  labelSm: { fontSize: 11 },
+  label: { fontFamily: type.bodyStrong.fontFamily, fontSize: 12 },
+  labelSm: { fontSize: 12 },
   restLabel: { color: color.dim },
   activeLabel: { color: color.inverse },
 });

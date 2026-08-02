@@ -120,10 +120,10 @@ const styles = StyleSheet.create({
   sportRow: { flexDirection: "row", marginTop: space(0.5) },
   ratingRow: { flexDirection: "row", alignItems: "center", gap: space(1.5) },
   // Only the stars are yellow; the number reads as plain text with a dim count in parens.
-  rating: { fontFamily: t.heading.fontFamily, fontSize: 13, color: color.text },
+  rating: { fontFamily: t.heading.fontFamily, fontSize: 14, color: color.text },
   ratingCount: { fontFamily: t.body.fontFamily, fontSize: 12, color: color.dim },
   ratingNew: { ...t.caption, color: color.dim },
-  price: { fontFamily: t.bodyStrong.fontFamily, fontSize: 13, color: color.redLight },
-  priceUnit: { fontFamily: t.caption.fontFamily, fontSize: 11, color: color.dim },
+  price: { fontFamily: t.bodyStrong.fontFamily, fontSize: 14, color: color.redLight },
+  priceUnit: { fontFamily: t.caption.fontFamily, fontSize: 12, color: color.dim },
   priceMuted: { ...t.caption, color: color.dim },
 });

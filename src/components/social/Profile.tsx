@@ -229,7 +229,7 @@ const styles = StyleSheet.create({
     paddingVertical: space(1),
     paddingHorizontal: space(2.5),
   },
-  editChipText: { fontFamily: type.bodyStrong.fontFamily, fontSize: 11, color: color.text },
+  editChipText: { fontFamily: type.bodyStrong.fontFamily, fontSize: 12, color: color.text },
   // Pulled up so the avatar overlaps the cover; card-colored ring separates it from the image.
   heroBody: { padding: space(4), marginTop: -space(7), gap: space(4) },
   heroRow: { flexDirection: "row", alignItems: "flex-end", gap: space(3.5) },
@@ -248,8 +248,8 @@ const styles = StyleSheet.create({
   strip: { flexDirection: "row", backgroundColor: color.card, borderRadius: radius.input, borderWidth: 1, borderColor: color.border, paddingVertical: space(3) },
   cell: { flex: 1, alignItems: "center", gap: space(1) },
   cellDivider: { borderLeftWidth: 1, borderLeftColor: color.border },
-  cellValue: { fontFamily: type.heading.fontFamily, fontSize: 18, color: color.text },
-  cellUnit: { fontFamily: type.caption.fontFamily, fontSize: 11, color: color.dim },
+  cellValue: { fontFamily: type.heading.fontFamily, fontSize: 16, color: color.text },
+  cellUnit: { fontFamily: type.caption.fontFamily, fontSize: 12, color: color.dim },
   cellLabel: { ...type.micro, color: color.dim, textTransform: "uppercase" },
 
   week: { flexDirection: "row", alignItems: "flex-end", gap: space(1.5), height: 44 },

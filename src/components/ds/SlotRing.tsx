@@ -62,6 +62,6 @@ export function SlotRing({ joined, total, size = 52 }: { joined: number; total: 
 
 const styles = StyleSheet.create({
   center: { position: "absolute", top: 0, left: 0, right: 0, bottom: 0, alignItems: "center", justifyContent: "center" },
-  num: { fontFamily: font.sansExtra, fontSize: 15, color: color.text, fontVariant: ["tabular-nums"], lineHeight: 16 },
-  unit: { fontFamily: font.sansExtra, fontSize: 7, color: color.dim, letterSpacing: 0.8 },
+  num: { fontFamily: font.sansExtra, fontSize: 14, color: color.text, fontVariant: ["tabular-nums"], lineHeight: 16 },
+  unit: { fontFamily: font.sansExtra, fontSize: 10, color: color.dim, letterSpacing: 0.8 },
 });

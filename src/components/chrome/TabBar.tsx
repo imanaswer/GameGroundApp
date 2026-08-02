@@ -151,5 +151,5 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     backgroundColor: color.redSurface,
   },
-  label: { fontFamily: font.sansSemi, fontSize: 9, lineHeight: 12 },
+  label: { fontFamily: font.sansSemi, fontSize: 10, lineHeight: 12 },
 });

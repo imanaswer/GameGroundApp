@@ -219,7 +219,7 @@ const styles = StyleSheet.create({
   topRow: { flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between" },
   eyebrowRow: { flexDirection: "row", alignItems: "center", gap: space(1.5) },
   dot: { width: 6, height: 6, borderRadius: 999, backgroundColor: color.redLight },
-  eyebrow: { fontFamily: font.sansExtra, fontSize: 9, letterSpacing: 1.3, color: color.redLight },
+  eyebrow: { fontFamily: font.sansExtra, fontSize: 10, letterSpacing: 1.3, color: color.redLight },
 
   bottomRow: { flexDirection: "row", alignItems: "flex-end", justifyContent: "space-between", gap: space(3) },
   bottomLeft: { flex: 1, gap: space(1) },
@@ -238,7 +238,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: space(2.5),
     alignSelf: "flex-end",
   },
-  farText: { fontFamily: font.sansExtra, fontSize: 11, color: color.text, letterSpacing: 0.3 },
+  farText: { fontFamily: font.sansExtra, fontSize: 12, color: color.text, letterSpacing: 0.3 },
   cell: {
     backgroundColor: color.countdownTile,
     borderWidth: 1,
@@ -249,6 +249,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     minWidth: 34,
   },
-  cellValue: { fontFamily: font.sansExtra, fontSize: 13, color: color.text, fontVariant: ["tabular-nums"] },
-  cellUnit: { fontFamily: font.sansSemi, fontSize: 7.5, color: color.dim, letterSpacing: 0.6, marginTop: 1 },
+  cellValue: { fontFamily: font.sansExtra, fontSize: 14, color: color.text, fontVariant: ["tabular-nums"] },
+  cellUnit: { fontFamily: font.sansSemi, fontSize: 10, color: color.dim, letterSpacing: 0.6, marginTop: 1 },
 });

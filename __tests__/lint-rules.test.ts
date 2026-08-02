@@ -1,3 +1,6 @@
+import { readFileSync, readdirSync } from "node:fs";
+import { join } from "node:path";
+
 import { ESLint } from "eslint";
 
 /**
@@ -64,4 +67,37 @@ test("src/api/client.ts is allowed to call fetch", async () => {
     "src/api/client.ts",
   );
   expect(messages.map((m) => m.ruleId)).not.toContain("no-restricted-globals");
+});
+
+/**
+ * DECISION 20 — every hardcoded `fontSize` must land on a step of the ported scale.
+ *
+ * Before the port the app carried 43 hardcoded sizes tuned against the old 13px body: 7, 7.5,
+ * 8.5, 9, 9.5, 11, 11.5, 12.5, 13, 15, 18, 30. Several sat BELOW the source scale's 10px floor.
+ * They were invisible to typecheck and lint, and each one silently opted its component out of the
+ * type system — which is exactly how a ported scale rots back into a pile of magic numbers.
+ *
+ * ESLint cannot express this (it is a value constraint, not a syntax one), so it is asserted here.
+ * Prefer a `type.*` role over a raw size; this is the backstop for the cases that genuinely need
+ * a one-off, not permission to add them.
+ */
+test("hardcoded fontSize values stay on the ported type scale", () => {
+  const SCALE = new Set([10, 12, 14, 16, 20, 28, 32]);
+  const roots = [join(__dirname, "..", "src"), join(__dirname, "..", "app")];
+
+  const walk = (dir: string): string[] =>
+    readdirSync(dir, { withFileTypes: true }).flatMap((e) => {
+      const p = join(dir, e.name);
+      return e.isDirectory() ? walk(p) : p.endsWith(".tsx") ? [p] : [];
+    });
+
+  const offenders: string[] = [];
+  for (const file of roots.flatMap(walk)) {
+    const text = readFileSync(file, "utf8");
+    for (const [, raw] of text.matchAll(/fontSize: ([0-9.]+)/g)) {
+      if (!SCALE.has(Number(raw))) offenders.push(`${file.split(/[\/]/).pop()}: ${raw}`);
+    }
+  }
+
+  expect(offenders).toEqual([]);
 });

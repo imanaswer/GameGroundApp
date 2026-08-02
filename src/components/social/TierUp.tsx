@@ -126,7 +126,7 @@ const styles = StyleSheet.create({
   fill: { flex: 1 },
   center: { flex: 1, alignItems: "center", justifyContent: "center", gap: space(3), paddingHorizontal: space(6) },
   badgeWrap: { width: 104, height: 104, borderRadius: 999, alignItems: "center", justifyContent: "center" },
-  headline: { ...type.title1, fontSize: 30, color: color.text, textAlign: "center", marginTop: space(4) },
+  headline: { ...type.title1, fontSize: 28, color: color.text, textAlign: "center", marginTop: space(4) },
   sub: { ...type.body, color: color.dim, textAlign: "center" },
   hint: { ...type.caption, color: color.dim2, marginTop: space(4) },
 });

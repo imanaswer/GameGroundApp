@@ -84,7 +84,7 @@ const styles = StyleSheet.create({
   subtitle: { ...type.body, color: color.dim, marginTop: space(1) },
   brand: { flexDirection: "row", alignItems: "center", gap: space(1.5) },
   brandMark: { width: 26, height: 19.5 },
-  brandText: { fontFamily: font.sansExtra, fontSize: 18, lineHeight: 22, color: color.text, letterSpacing: -0.3 },
+  brandText: { fontFamily: font.sansExtra, fontSize: 16, lineHeight: 22, color: color.text, letterSpacing: -0.3 },
   screenName: { ...type.title1 },
   right: { flexDirection: "row", alignItems: "center", gap: space(2) },
   iconBtn: {

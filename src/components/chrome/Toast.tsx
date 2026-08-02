@@ -132,7 +132,7 @@ const styles = StyleSheet.create({
   // ordinary notification would have arrived wearing a pink error tint.
   iconTile: { width: 32, height: 32, borderRadius: 9, backgroundColor: color.card, alignItems: "center", justifyContent: "center" },
   text: { flex: 1, gap: space(0.5) },
-  title: { fontFamily: type.heading.fontFamily, fontSize: 12.5, color: color.text },
+  title: { fontFamily: type.heading.fontFamily, fontSize: 12, color: color.text },
   body: { ...type.caption, color: color.dim },
   track: { position: "absolute", left: 0, right: 0, bottom: 0, height: 2, backgroundColor: color.border },
   bar: { height: 2, backgroundColor: color.red },
