@@ -120,7 +120,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: space(2),
     backgroundColor: color.goldLight,
   },
-  spotsLeftText: { fontFamily: type.micro.fontFamily, fontSize: 9.5, letterSpacing: 0.4, color: color.bg },
+  // Dark label on the warm pill. `color.bg` was near-black pre-port and is now WHITE, which
+  // measures ~2.5:1 on warning-400 — the urgency pill would have gone unreadable.
+  spotsLeftText: { fontFamily: type.micro.fontFamily, fontSize: 9.5, letterSpacing: 0.4, color: color.text },
   overlayTitle: { ...type.heading, color: color.text },
 
   // ── body ──

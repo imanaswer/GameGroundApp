@@ -67,8 +67,11 @@ module.exports = {
   // Distinct from the original's "gameground://" — two apps registering the same scheme on one
   // device makes which one opens a deep link undefined.
   scheme: "ggredesign",
-  userInterfaceStyle: "dark",
-  backgroundColor: "#050505",
+  // Decision 20 — the app ground is white. Locked to "light" rather than "automatic" because
+  // there is no dark variant of the ported system yet; letting the OS pick would hand system
+  // chrome a dark scheme the app itself cannot honour.
+  userInterfaceStyle: "light",
+  backgroundColor: "#FFFFFF",
   // EAS Update is deliberately NOT configured. This project shares no OTA channel with the
   // original: inheriting its `updates.url` + projectId would push the ORIGINAL app's JS bundle
   // onto this one. Run `eas init` (then re-add `updates`) when this app needs its own project.

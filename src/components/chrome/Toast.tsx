@@ -128,7 +128,9 @@ const styles = StyleSheet.create({
     overflow: "hidden",
     ...shadow.sheet,
   },
-  iconTile: { width: 32, height: 32, borderRadius: 9, backgroundColor: color.redSurface, alignItems: "center", justifyContent: "center" },
+  // Neutral grey tile. `redSurface` resolves to the Error ramp's 100 step after the port, so an
+  // ordinary notification would have arrived wearing a pink error tint.
+  iconTile: { width: 32, height: 32, borderRadius: 9, backgroundColor: color.card, alignItems: "center", justifyContent: "center" },
   text: { flex: 1, gap: space(0.5) },
   title: { fontFamily: type.heading.fontFamily, fontSize: 12.5, color: color.text },
   body: { ...type.caption, color: color.dim },

@@ -135,7 +135,9 @@ export default function RootLayout() {
                 <ClientHandlerBridge />
                 <PendingPaymentBridge />
                 <RazorpayHost />
-                <StatusBar style="light" />
+                {/* Dark glyphs: the app ground is white since Decision 20. "light" here means
+                    light-coloured TEXT, which is invisible on the ported surfaces. */}
+                <StatusBar style="dark" />
                 <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: color.bg } }}>
                   <Stack.Screen name="(tabs)" />
                   <Stack.Screen name="game/create" options={{ presentation: "modal" }} />
