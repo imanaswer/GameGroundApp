@@ -283,6 +283,12 @@ export interface SearchHit {
   id: string;
   title: string;
   subtitle: string | null;
+  /**
+   * ISO end date, sent for camp and event hits only (added server-side 2 Aug 2026). Lets the app
+   * drop hits that have already ended instead of trusting the server's status sweep — the same
+   * backstop the Discover lists have. Absent for games and coaches, which have no end date here.
+   */
+  endDate?: string | null;
 }
 
 /** Grouped results — each group renders under its own header (web ⌘K parity). */
