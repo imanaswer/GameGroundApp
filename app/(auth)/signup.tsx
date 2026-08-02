@@ -160,11 +160,6 @@ export default function Signup() {
       }
       onBack={back}
     >
-      {onEmailStep && google.available && (
-        <GoogleButton label="Sign up with Google" onPress={google.prompt} disabled={busy || appleBusy} />
-      )}
-      {onEmailStep && appleAvailable && <AppleButton label="Sign up with Apple" onPress={onApple} disabled={busy || appleBusy} />}
-      {onEmailStep && hasSocial && <Divider />}
 
       <FormError error={formError} />
       <Animated.View style={panelStyle}>
@@ -241,6 +236,12 @@ export default function Signup() {
           <Button testID="auth-submit" title="Create account" onPress={submit} loading={busy} />
         )}
       </Animated.View>
+
+      {onEmailStep && hasSocial && <Divider />}
+      {onEmailStep && google.available && (
+        <GoogleButton label="Sign up with Google" onPress={google.prompt} disabled={busy || appleBusy} />
+      )}
+      {onEmailStep && appleAvailable && <AppleButton label="Sign up with Apple" onPress={onApple} disabled={busy || appleBusy} />}
       <Text style={styles.terms}>
         By continuing you agree to our{" "}
         <Text accessibilityRole="link" style={styles.termsLink} onPress={() => Linking.openURL(TERMS_URL)}>

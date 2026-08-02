@@ -72,11 +72,6 @@ export default function Login() {
       subtitle="Log in to pick up right where you left off."
       onBack={back}
     >
-      {google.available && (
-        <GoogleButton label="Continue with Google" onPress={google.prompt} disabled={busy || appleBusy} />
-      )}
-      {appleAvailable && <AppleButton label="Continue with Apple" onPress={onApple} disabled={busy || appleBusy} />}
-      {hasSocial && <Divider />}
 
       <FormError error={formError} />
       <Input
@@ -124,6 +119,12 @@ export default function Login() {
       </Press>
 
       <Button testID="auth-submit" title="Log in" onPress={submit} loading={busy} />
+
+      {hasSocial && <Divider />}
+      {google.available && (
+        <GoogleButton label="Continue with Google" onPress={google.prompt} disabled={busy || appleBusy} />
+      )}
+      {appleAvailable && <AppleButton label="Continue with Apple" onPress={onApple} disabled={busy || appleBusy} />}
 
       <View style={styles.spacer} />
       <SwitchLink

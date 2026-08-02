@@ -137,21 +137,27 @@ const styles = StyleSheet.create({
   flex: { flex: 1 },
   scroll: { flexGrow: 1, paddingHorizontal: 24, paddingTop: space(2), paddingBottom: space(7) },
 
-  back: {
-    width: 40,
-    height: 40,
-    borderRadius: 999,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: color.card,
-    borderWidth: 1,
-    borderColor: color.border2,
-  },
-  mark: { width: 46, height: 46, marginTop: space(6), marginBottom: space(4) },
+  /**
+   * Bare chevron, no chrome. The filled 40pt circle was a dark-theme device: on #050505 a button
+   * needed a fill and a border to be findable at all. On white it is a heavy grey token competing
+   * with the headline, and the source's frame has no such control — its back affordance lives in
+   * browser chrome, so the screen itself opens on the mark.
+   */
+  back: { width: 32, height: 32, marginLeft: -space(1), alignItems: "flex-start", justifyContent: "center" },
+  /**
+   * Small and WIDE, like the source's swoosh — a mark, not a logo tile. At 46² ours read as a
+   * third heavyweight element above the headline; the source's is roughly a third of that area
+   * and sits well clear of the type, which is what lets the headline dominate.
+   */
+  mark: { width: 44, height: 33, marginTop: space(7), marginBottom: space(5) },
   heading: { ...type.authTitle, color: color.text },
-  // Continues the headline in the same face and colour — see the header note.
   accent: { color: color.text },
-  sub: { ...type.body, color: color.dim, marginTop: space(3), marginBottom: space(6) },
+  /**
+   * Caption weight, not body. The source has no subtitle at all — just a small meta line
+   * ("United States · Change"). A full body-size paragraph under the headline halves its impact,
+   * which is most of why this did not read as the reference.
+   */
+  sub: { ...type.caption, color: color.dim, marginTop: space(2), marginBottom: space(7) },
 
   social: {
     flexDirection: "row",
