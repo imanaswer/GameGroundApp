@@ -49,10 +49,9 @@ export function BrandLoader() {
 
   return (
     <View style={styles.field} accessibilityRole="progressbar" accessibilityLabel="Loading">
-      <View style={styles.center}>
         {/* Reduced motion keeps the ring as a static outline rather than removing it: it is part
             of the composition, not decoration on top of it (§9). */}
-        <Animated.View style={[styles.ring, !reduced && ringStyle]}>
+      <Animated.View style={[styles.ring, !reduced && ringStyle]}>
           <Svg width={RING} height={RING}>
             <Circle
               cx={RING / 2}
@@ -67,17 +66,23 @@ export function BrandLoader() {
               opacity={0.9}
             />
           </Svg>
-        </Animated.View>
-        <Image source={MARK} style={styles.mark} resizeMode="contain" />
-      </View>
+      </Animated.View>
+      <Image source={MARK} style={styles.mark} resizeMode="contain" />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  // `onInverse` is the token for true black. Not `bg` — this screen is deliberately not the page.
-  field: { ...StyleSheet.absoluteFillObject, backgroundColor: color.onInverse, zIndex: 300 },
-  center: { flex: 1, alignItems: "center", justifyContent: "center" },
+  /**
+   * `flex: 1`, NOT absoluteFill. This is returned as an entire screen, and an absolutely
+   * positioned root contributes no size to its parent — if the container does not already
+   * establish one, the view collapses and renders nothing at all. It was invisible on device for
+   * exactly that reason, while every static check passed: nothing is wrong with the markup, it
+   * simply had no height.
+   *
+   * `onInverse` is the token for true black. Not `bg` — this screen is deliberately not the page.
+   */
+  field: { flex: 1, backgroundColor: color.onInverse, alignItems: "center", justifyContent: "center" },
   ring: { position: "absolute", width: RING, height: RING },
   mark: { width: 52, height: 39 },
 });
