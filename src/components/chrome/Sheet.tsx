@@ -1,5 +1,5 @@
 /**
- * DESIGN_SYSTEM.md §7 — the bottom-sheet chrome: a scrim backdrop, a spring slide-up, and
+ * DESIGN_SYSTEM.md §7 — the bottom-sheet chrome: a scrim backdrop, a curve-driven slide-up, and
  * drag-to-dismiss. A `dismissible={false}` guard blocks the backdrop tap and the drag-release
  * (warning haptic instead) so payment verification can't be swiped away mid-flight.
  *
@@ -23,13 +23,12 @@ import Animated, {
   useAnimatedStyle,
   useReducedMotion,
   useSharedValue,
-  withSpring,
   withTiming,
 } from "react-native-reanimated";
 
 import * as haptics from "@/lib/haptics";
 import { color } from "@/lib/tokens";
-import { spring } from "@/theme/animations";
+import { dur, ease } from "@/theme/animations";
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 const DRAG_DISMISS = 140; // px dragged past which a release closes the sheet
@@ -53,13 +52,17 @@ export function Sheet({
   const drag = useSharedValue(0); // downward drag offset — the ONLY writer is the pan gesture
 
   useEffect(() => {
+    // Timing, not spring (MOTION.md §1, revised 2026-08-02). Any underdamped spring overshoots by
+    // definition — spring.pop by ~19%, spring.sheet by ~5% — and over a full screen-height travel
+    // even 5% reads as a bounce. dur.base + ease.exit decelerates into rest with zero overshoot.
+    // Exit is dur.fast: dismissal should feel quicker than arrival.
     open.value = visible
       ? reduced
         ? 1
-        : withSpring(1, spring.pop)
+        : withTiming(1, { duration: dur.base, easing: ease.exit })
       : reduced
         ? 0
-        : withTiming(0, { duration: 220 });
+        : withTiming(0, { duration: dur.fast, easing: ease.exit });
   }, [visible, reduced, open]);
 
   const warnBlocked = () => haptics.warning();
@@ -74,11 +77,13 @@ export function Sheet({
     .onEnd((e) => {
       const past = e.translationY > DRAG_DISMISS || e.velocityY > FLING_DISMISS;
       if (past && dismissible) {
-        drag.value = withTiming(0, { duration: 200 });
+        drag.value = withTiming(0, { duration: dur.fast, easing: ease.exit });
         runOnJS(onDismiss)();
       } else {
         if (past && !dismissible) runOnJS(warnBlocked)();
-        drag.value = withSpring(0, spring.pop);
+        // Curve, not spring, for the same reason as the open animation: a snap-back that bounces
+        // would contradict the slide the sheet arrived with.
+        drag.value = withTiming(0, { duration: dur.base, easing: ease.exit });
       }
     });
 
