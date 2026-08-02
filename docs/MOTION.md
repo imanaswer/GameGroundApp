@@ -38,7 +38,7 @@ Rule: no duration or spring config anywhere except these tokens.
 ## 3. Touch feedback (universal)
 
 - Every Pressable: compress to scale .965 via spring.press; release springs back. Cards add border-brighten (border → 12% white). Icon buttons scale .90.
-- **The perspective tilt (~2.4° rotateX) is CARDS ONLY** (revised 2 Aug 2026 — see Decision 15). Buttons compress on scale alone. A perspective transform promotes a view into a 3D compositing layer whatever the angle, and on iOS those layers tear: a coach batch row was reported splitting into top and bottom halves mid-press. At button size the tilt is imperceptible anyway, so it was pure cost. `Press` also drops perspective entirely at rest, so an untouched control is never in a 3D layer.
+- **The perspective tilt (~2.4° rotateX) is SUSPENDED app-wide** (2 Aug 2026 — Decision 16, superseding the cards-only carve-out of Decision 15). `Press`'s `tilt` prop is now opt-in and nothing sets it. A perspective transform promotes a view into a 3D compositing layer whatever the angle, and on iOS those layers rasterize in tiles and tear — reported on device against a coach batch row, then again against the Discover segmented control, both splitting into halves mid-press. `Press` also drops perspective at rest, so an untouched control is never in a 3D layer. **Provisional:** all evidence is from Expo Go (Reanimated 4.1). Re-test on a real development build before deciding whether the tilt returns for cards.
 - Primary CTAs additionally emit a touch-point ripple (white 35%, 500ms expand-fade).
 - Destructive actions: confirm sheets. Swipe: back-swipe iOS-native, sheet drag everywhere; no hidden swipe actions in v1.
 
