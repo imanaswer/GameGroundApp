@@ -61,7 +61,13 @@ export const cardStyles = StyleSheet.create({
 
 const styles = StyleSheet.create({
   imageWrap: { backgroundColor: color.imagePlaceholder },
-  overlay: { ...StyleSheet.absoluteFill, padding: space(2.5), justifyContent: "space-between" },
+  // absoluteFillObject, not absoluteFill: only the former is typed as a plain object, so it is
+  // the one that can be spread. (RN 0.86 typed both loosely enough; 0.81 does not.)
+  overlay: {
+    ...StyleSheet.absoluteFillObject,
+    padding: space(2.5),
+    justifyContent: "space-between",
+  },
   meta: { flexDirection: "row", alignItems: "center", gap: space(1.5) },
   metaText: { ...type.caption, color: color.dim, flexShrink: 1 },
 });

@@ -7,7 +7,9 @@
  * Drives expo-router's <Tabs> via its `tabBar` prop; the per-route icon/title come straight
  * from each screen's `options` so the tab list stays declared in one place (app/(tabs)/_layout).
  */
-import type { BottomTabBarProps } from "expo-router/build/react-navigation/bottom-tabs/types";
+// From the navigator package directly: expo-router 6 does not re-export this type, and its
+// internal build path (`expo-router/build/react-navigation/bottom-tabs/types`) exists only in 7.
+import type { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 import { useEffect } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import Animated, {

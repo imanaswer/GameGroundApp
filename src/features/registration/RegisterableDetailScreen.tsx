@@ -5,8 +5,8 @@
  * checkout are identical across all three (§9 — if a new payment branch appears here, the design is wrong).
  */
 import { useRouter } from "expo-router";
-import { useEffect, useRef, useState } from "react";
-import { Alert, Linking, ScrollView as RNScrollView, StyleSheet, Text, View } from "react-native";
+import { type ComponentRef, useEffect, useRef, useState } from "react";
+import { Alert, Linking, StyleSheet, Text, View } from "react-native";
 import Animated, { useAnimatedScrollHandler, useSharedValue } from "react-native-reanimated";
 
 import { DateBadge, ErrorState, HeroNav, ParallaxHero, Screen, StickyCTA, useToast } from "@/components/chrome";
@@ -87,7 +87,11 @@ export function RegisterableDetailScreen({ config, id }: { config: EntityConfig;
   const cancelReg = useCancelRegistration(config, id);
   const toast = useToast();
   const online = useIsOnline();
-  const scrollRef = useRef<RNScrollView>(null);
+  // Typed from the animated component itself. Reanimated 4.1 types Animated.ScrollView's ref as
+  // AnimatedScrollView (a plain ScrollView ref does not satisfy it), and useAnimatedRef is not
+  // an alternative here — its call signature returns a node, which React 19 rejects as a ref
+  // callback. `.current` still exposes scrollToEnd.
+  const scrollRef = useRef<ComponentRef<typeof Animated.ScrollView>>(null);
 
   const scrollY = useSharedValue(0);
   const onScroll = useAnimatedScrollHandler((e) => {
