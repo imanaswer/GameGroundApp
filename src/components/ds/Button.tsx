@@ -16,6 +16,8 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 
+import { cloneElement, isValidElement } from "react";
+
 import * as haptics from "@/lib/haptics";
 import { color, radius, space, type } from "@/lib/tokens";
 import { dur } from "@/theme/animations";
@@ -52,6 +54,22 @@ export function Button({
 }: Props) {
   const isPrimary = variant === "primary";
   const off = disabled || loading;
+
+  /**
+   * The button owns its icon's colour, because only the button knows its own fill.
+   *
+   * Call sites were passing `color.text` — correct on the old dark ground, and invisible on the
+   * black pill the primary variant became. The Games FAB shipped a black plus on a black fill.
+   * Overriding rather than defaulting is deliberate: a caller that "knows better" here is the
+   * exact bug, and this failure mode is silent — a missing glyph reads as a design choice.
+   */
+  const onColor = off
+    ? color.dim2
+    : isPrimary || variant === "mini"
+      ? color.inverse
+      : variant === "ghost"
+        ? color.dim
+        : color.text;
   const reduced = useReducedMotion();
 
   // Ripple state (worklet-driven). Only primary emits it.
@@ -104,10 +122,10 @@ export function Button({
       <View style={styles.row}>
         {loading ? (
           // On a black fill the spinner must be white; on white/ghost it must be dark.
-          <ActivityIndicator color={isPrimary || variant === "mini" ? color.inverse : color.dim} />
+          <ActivityIndicator color={onColor} />
         ) : (
           <>
-            {icon}
+            {isValidElement<{ color?: string }>(icon) ? cloneElement(icon, { color: onColor }) : icon}
             <Text style={[styles.label, styles[`${variant}Label`], off && styles.labelDisabled]}>
               {title}
             </Text>

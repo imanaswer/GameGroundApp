@@ -15,7 +15,7 @@ import { useAuth } from "@/hooks/useAuth";
 import type { GameSummary } from "@/api/types";
 import { isToday, prettySport } from "@/lib/format";
 import * as haptics from "@/lib/haptics";
-import { color, icon as iconSize, layout, space } from "@/lib/tokens";
+import { color, elevation, icon as iconSize, layout, space } from "@/lib/tokens";
 
 /** One feed card. Pulls the real joinee avatars from the detail cache when the game has players. */
 function GameFeedCard({ game, onPress }: { game: GameSummary; onPress: () => void }) {
@@ -138,7 +138,7 @@ export default function GamesTab() {
       {showFab && (
         <Button
           title="Host a game"
-          icon={<PlusIcon size={iconSize.meta} color={color.text} />}
+          icon={<PlusIcon size={iconSize.meta} />}
           onPress={hostGame}
           style={[styles.fab, { bottom: fabBottom }]}
         />
@@ -153,5 +153,11 @@ const styles = StyleSheet.create({
   list: { paddingHorizontal: layout.screenX, paddingBottom: space(24) },
   rowGap: { marginBottom: space(3) },
   sep: { height: space(3) },
-  fab: { position: "absolute", right: layout.screenX, borderRadius: 999, paddingHorizontal: space(5) },
+  /**
+   * Floating over scrolling content, so it needs elevation to read as floating rather than as
+   * something stuck to the list. On the old dark ground the primary button carried a red glow;
+   * the light port dropped it, which left this pill sitting flat on top of moving content with
+   * nothing separating the two. Radius and padding come from Button — not restated here.
+   */
+  fab: { position: "absolute", right: layout.screenX, ...elevation.lg },
 });
