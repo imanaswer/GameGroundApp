@@ -1,5 +1,5 @@
 import { useRouter } from "expo-router";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { StyleSheet, Text, TextInput, View } from "react-native";
 
 import { LoginSchema } from "@/api/schemas";
@@ -12,7 +12,7 @@ import { color, space, type } from "@/lib/tokens";
 
 export default function Login() {
   const router = useRouter();
-  const { login, loginWithApple } = useAuth();
+  const { login, loginWithApple, status: authStatus } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
@@ -28,6 +28,16 @@ export default function Login() {
   // Clear a field's error the moment the user starts fixing it, so the red line never
   // contradicts the value being typed.
   const clearError = (k: string) => setFieldErrors((e) => (e[k] ? { ...e, [k]: "" } : e));
+
+  /**
+   * Google sign-in never navigates from its hook — it relied on the entry route redirecting once
+   * the status flipped, which no longer happens now that route latches its decision (see
+   * app/index.tsx). Without this, a successful Google login would leave the user on this screen.
+   * Email/password and Apple navigate from their own handlers and reach this as a no-op.
+   */
+  useEffect(() => {
+    if (authStatus === "signedIn") router.replace("/home");
+  }, [authStatus, router]);
 
   const back = () => (router.canGoBack() ? router.back() : router.replace("/onboarding"));
 

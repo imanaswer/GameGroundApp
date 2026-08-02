@@ -22,7 +22,7 @@ const PRIVACY_URL = "https://www.gameground.net/privacy";
 
 export default function Signup() {
   const router = useRouter();
-  const { register, loginWithApple } = useAuth();
+  const { register, loginWithApple, status: authStatus } = useAuth();
   /**
    * Two-step signup, ported from the source's Sign up 04→06 flow: email alone, then the rest.
    * Purely client-side sequencing of the SAME single /auth/register call — the source verifies the
@@ -105,13 +105,28 @@ export default function Signup() {
     if (appleBusy) return;
     setAppleBusy(true);
     loginWithApple()
-      .then(() => router.replace("/home"))
+      // No navigation here — the effect below drives every successful auth on this screen
+      // through the same acknowledgement → loader → home sequence.
+      .then(() => {})
       // ERR_REQUEST_CANCELED = user dismissed the native sheet — an intentional exit, not an error.
       .catch((e) => {
         if ((e as { code?: string })?.code !== "ERR_REQUEST_CANCELED") setFormError(e);
       })
       .finally(() => setAppleBusy(false));
   };
+
+  /**
+   * ANY successful auth on this screen enters the acknowledgement, whatever produced it.
+   *
+   * Email/password reaches it through `submit`, but Apple used to call `router.replace("/home")`
+   * itself and Google never navigated at all — it relied on the entry route redirecting once the
+   * status flipped. Both bypassed the success screen, which is why it appeared to be skipped even
+   * after the entry-route fix. Keying off the auth status instead of the individual handlers means
+   * a future sign-in path cannot silently opt out of the flow.
+   */
+  useEffect(() => {
+    if (authStatus === "signedIn" && (step === "email" || step === "details")) setStep("done");
+  }, [authStatus, step]);
 
   /**
    * Hold the loader for one full ring revolution before handing off. The tab tree really is
