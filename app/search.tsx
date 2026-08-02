@@ -8,19 +8,22 @@ import { ScrollView, StyleSheet, Text, View } from "react-native";
 
 import type { SearchHit, SearchResults } from "@/api/types";
 import { Screen } from "@/components/chrome";
-import { Chip, CloseIcon, Press, SearchBar } from "@/components/ds";
+import { Chip, CloseIcon, Press, SearchBar, Skeleton } from "@/components/ds";
 import { useSearch } from "@/hooks/queries";
 import { useDebounce } from "@/hooks/useDebounce";
 import * as storage from "@/lib/storage";
 import { color, layout, space, type } from "@/lib/tokens";
 
+/**
+ * Only the four groups the server actually searches. The web `/search` route queries coaches,
+ * games, camps and events — workshops and players are NOT indexed, so listing them here promised
+ * results that could never arrive. Add them back when the server does.
+ */
 const GROUPS: { key: keyof SearchResults; label: string; route: string }[] = [
   { key: "games", label: "Games", route: "game" },
   { key: "coaches", label: "Coaches", route: "coach" },
   { key: "camps", label: "Camps", route: "camp" },
-  { key: "workshops", label: "Workshops", route: "workshop" },
   { key: "events", label: "Events", route: "event" },
-  { key: "players", label: "Players", route: "profile" },
 ];
 
 const TRENDING = ["Football", "Cricket", "Badminton", "This weekend"];
@@ -42,6 +45,11 @@ export default function SearchModal() {
     await storage.set("gg.recentSearches", next);
   };
 
+  const clearRecent = () => {
+    setRecent([]);
+    storage.set("gg.recentSearches", []);
+  };
+
   const openHit = (route: string, hit: SearchHit) => {
     remember(q || hit.title);
     router.dismiss();
@@ -57,7 +65,7 @@ export default function SearchModal() {
         <View style={styles.searchWrap}>
           <SearchBar value={raw} onChangeText={setRaw} placeholder="Search games, coaches, venues" autoFocus />
         </View>
-        <Press accessibilityRole="button" accessibilityLabel="Close" onPress={() => router.dismiss()} scaleTo={0.9} style={styles.close}>
+        <Press accessibilityRole="button" accessibilityLabel="Close" onPress={() => router.dismiss()} scaleTo={0.9} hitSlop={8} style={styles.close}>
           <CloseIcon color={color.text} />
         </Press>
       </View>
@@ -66,7 +74,14 @@ export default function SearchModal() {
         {q.length < 2 ? (
           <>
             {recent.length > 0 && (
-              <Section label="Recent">
+              <Section
+                label="Recent"
+                action={
+                  <Press accessibilityRole="button" accessibilityLabel="Clear recent searches" hitSlop={8} onPress={clearRecent}>
+                    <Text style={styles.clearAction}>Clear</Text>
+                  </Press>
+                }
+              >
                 <View style={styles.chips}>
                   {recent.map((t) => (
                     <Chip key={t} label={t} onPress={() => setRaw(t)} />
@@ -82,7 +97,13 @@ export default function SearchModal() {
               </View>
             </Section>
           </>
-        ) : !isFetching && !hasResults ? (
+        ) : isFetching && !hasResults ? (
+          <View style={styles.section}>
+            {[0, 1, 2, 3].map((i) => (
+              <Skeleton key={i} height={40} style={styles.skel} />
+            ))}
+          </View>
+        ) : !hasResults ? (
           <View style={styles.empty}>
             <Text style={styles.emptyTitle}>No matches for “{q}”.</Text>
             <Text style={styles.emptyBody}>Try a sport, a venue, or a coach’s name.</Text>
@@ -108,10 +129,13 @@ export default function SearchModal() {
   );
 }
 
-function Section({ label, children }: { label: string; children: React.ReactNode }) {
+function Section({ label, action, children }: { label: string; action?: React.ReactNode; children: React.ReactNode }) {
   return (
     <View style={styles.section}>
-      <Text style={styles.sectionLabel}>{label}</Text>
+      <View style={styles.sectionHead}>
+        <Text style={styles.sectionLabel}>{label}</Text>
+        {action}
+      </View>
       {children}
     </View>
   );
@@ -123,7 +147,10 @@ const styles = StyleSheet.create({
   close: { width: 34, height: 34, borderRadius: 999, backgroundColor: color.card, alignItems: "center", justifyContent: "center" },
   body: { paddingHorizontal: layout.screenX, paddingBottom: space(10), gap: space(4) },
   section: { gap: space(2) },
+  sectionHead: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   sectionLabel: { ...type.label, color: color.dim },
+  clearAction: { ...type.bodyStrong, fontSize: 12, color: color.redLight },
+  skel: { marginBottom: space(2) },
   chips: { flexDirection: "row", flexWrap: "wrap", gap: space(2) },
   hit: { paddingVertical: space(2.5) },
   hitTitle: { ...type.bodyStrong, color: color.text },

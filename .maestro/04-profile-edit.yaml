@@ -1,0 +1,51 @@
+# Flow 4/5 (§14): profile edit.
+#
+# Also guards audit #25: game creation now requires a WhatsApp number on the profile, so the
+# phone field on this screen became load-bearing for a second flow.
+#
+# Entry point: on your own profile the hero card itself is the edit affordance
+# (testID profile-edit-entry) — there is no separate "Edit" button.
+appId: net.gameground.app.preview
+name: 04 profile edit
+---
+- runFlow: subflows/login.yaml
+
+- tapOn:
+    id: "tab-home"
+- tapOn:
+    id: "profile-edit-entry"
+    # calibrate: reachable from Home's header avatar. If the header route differs, navigate
+    # via the profile screen first.
+
+- extendedWaitUntil:
+    visible:
+      id: "profile-name"
+    timeout: 15000
+- assertVisible: "Edit profile"
+
+# Write values we can assert on afterwards. ${maestro.rand} keeps a rerun from passing on
+# stale state.
+- tapOn:
+    id: "profile-name"
+- eraseText
+- inputText: "E2E ${maestro.rand}"
+- tapOn:
+    id: "profile-bio"
+- eraseText
+- inputText: "Edited by Maestro"
+- hideKeyboard
+
+- tapOn:
+    id: "profile-save"
+- extendedWaitUntil:
+    visible: "Saved|updated"
+    timeout: 20000
+
+# Round-trip: leave and re-enter so we assert the server's value, not an optimistic
+# cache write.
+- back
+- tapOn:
+    id: "profile-edit-entry"
+- extendedWaitUntil:
+    visible: "Edited by Maestro"
+    timeout: 15000

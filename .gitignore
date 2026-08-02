@@ -30,7 +30,10 @@ yarn-error.*
 .DS_Store
 *.pem
 
-# local env files
+# local env files. `.env` was tracked until 2026-08-02 — it only ever held the public API URL and
+# a `_replace_me` placeholder (verified across its full history), but it is where SENTRY_DSN /
+# SENTRY_AUTH_TOKEN and real keys now land. `.env.example` stays tracked as the template.
+.env
 .env*.local
 
 # typescript
@@ -44,3 +47,6 @@ example
 
 # project
 .claude/settings.local.json
+
+# scratch: audit reports, findings, review notes — local viewing only
+.scratch/

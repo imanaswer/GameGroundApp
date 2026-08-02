@@ -25,31 +25,51 @@ export const RegisterSchema = z.object({
 });
 
 /**
- * web src/lib/api.ts CreateGameSchema (§3.3). Split per stepper step so each step
- * validates independently before advancing (§7). Server is still the referee on slots.
+ * Create-game form validation, split per stepper step (§7). The server (web
+ * src/lib/api.ts CreateGameSchema + src/app/api/games/route.ts) is the referee:
+ * it derives venue/time from `slotId` (never reads `venueId`), requires `slots`
+ * (player capacity) + a `skillLevel` enum, and takes `cost`/`costAmount`.
  */
+const SKILL_LEVELS = ["Beginner", "Intermediate", "Advanced", "All Levels"] as const;
+
 export const CreateGameStep = {
   basics: z.object({
     title: z.string().min(3, "Give it a title").max(80, "Keep it under 80 characters"),
     sport: z.string().min(1, "Pick a sport"),
   }),
   venue: z.object({
+    // Client-only: drives the slot query. The server resolves the venue from the slot.
     venueId: z.string().min(1, "Pick a venue"),
     slotId: z.string().min(1, "Pick a time slot"),
   }),
   size: z.object({
-    slotsTotal: z.coerce.number().int().min(2, "At least 2 players").max(50, "At most 50"),
-    skillLevel: z.string().optional(),
+    slots: z.coerce.number().int().min(2, "At least 2 players").max(100, "At most 100"),
+    skillLevel: z.enum(SKILL_LEVELS, { message: "Pick a skill level" }),
   }),
-  details: z.object({
-    description: z.string().max(500, "Keep it under 500 characters").optional(),
-  }),
+  details: z
+    .object({
+      description: z.string().max(1000, "Keep it under 1000 characters").optional(),
+      paid: z.boolean().optional(),
+      costAmount: z.coerce.number().optional(),
+    })
+    .refine((d) => !d.paid || (d.costAmount ?? 0) > 0, {
+      message: "Enter an amount above ₹0",
+      path: ["costAmount"],
+    }),
 } as const;
 
-export const CreateGameSchema = CreateGameStep.basics
-  .and(CreateGameStep.venue)
-  .and(CreateGameStep.size)
-  .and(CreateGameStep.details);
+/** The exact POST /games body (web src/lib/api.ts CreateGameSchema). */
+export const CreateGameSchema = z.object({
+  sport: z.string().min(1),
+  title: z.string().min(3).max(80),
+  slotId: z.string().min(1),
+  slots: z.coerce.number().min(2).max(100),
+  skillLevel: z.enum(SKILL_LEVELS),
+  cost: z.string().default("Free"),
+  costAmount: z.coerce.number().default(0),
+  description: z.string().max(1000).optional(),
+  rules: z.array(z.string()).optional(),
+});
 
 export type LoginInput = z.infer<typeof LoginSchema>;
 export type RegisterInput = z.infer<typeof RegisterSchema>;

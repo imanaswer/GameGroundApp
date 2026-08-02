@@ -67,12 +67,18 @@ export interface RegisterableSummary {
   id: string;
   kind: RegisterableKind;
   title: string;
-  /** ISO 8601. */
+  /** ISO 8601 start. */
   startsAt: string;
+  /** Human date range from the server ("July 20 – August 3, 2026"), for cards/detail. */
+  dateLabel: string | null;
   pricePaise: number | null;
   imageUrl: string | null;
   registered: number;
   capacity: number;
+  /** Server-flagged highlight — surfaces a "Featured" badge on cards (matches web). */
+  featured: boolean;
+  /** Deadline passed — the item still runs, but nobody new can join. */
+  registrationClosed: boolean;
 }
 
 export interface Announcement {
@@ -82,11 +88,52 @@ export interface Announcement {
   createdAt: string;
 }
 
+/** Workshop instructor / clinic lead. */
+export interface RegisterableInstructor {
+  name: string;
+  bio: string | null;
+  credentials: string | null;
+  imageUrl: string | null;
+}
+
 export interface RegisterableDetail extends RegisterableSummary {
   description: string;
+  sport: string | null;
   location: string | null;
+  address: string | null;
+  /** "2 Weeks" / "3 Hours". */
+  duration: string | null;
+  ageGroup: string | null;
+  skillLevel: string | null;
+  /** ISO 8601 — last day to register. */
+  registrationDeadline: string | null;
+  organizer: string | null;
+  organizerContact: string | null;
+  /** Selling points, "what's included", "what to bring"/"requirements" — string bullet lists. */
+  highlights: string[];
+  included: string[];
+  whatToBring: string[];
+  requirements: string[];
+  /** Workshops carry an instructor; camps/events may omit it. */
+  instructor: RegisterableInstructor | null;
   /** Events carry an announcements feed (§9); camps/workshops omit it. */
   announcements?: Announcement[];
+  /** The viewer's own registration, when signed in and registered. Null otherwise. */
+  viewerRegistration: ViewerRegistration | null;
+}
+
+/**
+ * The viewer's registration on a camp / workshop / event (server `userRegistration`).
+ * Events run a manual-approval mode, so a registration can sit `pending` or come back `rejected`
+ * with a reason — a paid registration is NOT automatically a confirmed place.
+ */
+export interface ViewerRegistration {
+  id: string;
+  paymentStatus: string;
+  /** Events only: "pending" | "approved" | "rejected". Absent for camps/workshops. */
+  status: string | null;
+  /** Events only: why a registration was turned down. */
+  rejectionReason: string | null;
 }
 
 /* ── Coaches (§3.3) ────────────────────────────────────────────────────────*/
@@ -99,8 +146,9 @@ export interface CoachSummary {
   avatarUrl: string | null;
   rating: number;
   reviewCount: number;
-  /** null → "on request"; else server-computed paise for the base batch. */
+  /** Session price range (paise). min null → "on request"; max null/≤min → single price. */
   pricePaise: number | null;
+  pricePaiseMax: number | null;
   area: string | null;
 }
 
@@ -128,6 +176,11 @@ export interface CoachDetail extends CoachSummary {
   whatsapp: string | null;
   /** Server eligibility: can the viewer post a review right now? */
   viewerCanReview: boolean;
+  /**
+   * Whether "pay & book" is available. False for coaches with a price range or no price — those
+   * are request-only, and the server refuses their checkout.
+   */
+  instantPayEligible: boolean;
 }
 
 /* ── Profiles (§3.3, product 6.6) ──────────────────────────────────────────*/
@@ -141,9 +194,10 @@ export interface RankProgress {
 
 export interface ProfileStats {
   games: number;
+  organized: number;
   attendance: number;
-  reputation: number;
-  rank: number | null;
+  /** Reliability score, 0–5. */
+  reliability: number;
 }
 
 export interface ActivityItem {
@@ -152,13 +206,31 @@ export interface ActivityItem {
   kind: string;
   title: string;
   at: string;
+  /** Server-computed reputation delta for this event, when present → renders a "+N REP" chip. */
+  points: number | null;
+}
+
+/** A game on the profile's Games tab (the user's played/organized games). */
+export interface ProfileGame {
+  id: string;
+  title: string;
+  sport: string;
+  venue: string | null;
+  startsAt: string;
+  status: GameStatus;
+  /** The viewer's role in this game: "player" | "organizer". */
+  role: string;
 }
 
 export interface UserProfile {
   id: string;
   name: string;
   username: string;
+  /** Free-text "about" line, editable on the profile. */
+  bio: string | null;
   city: string | null;
+  /** WhatsApp number — required by the server before a user can host a game. */
+  phone: string | null;
   avatarUrl: string | null;
   sports: string[];
   tier: Tier | null;
@@ -166,13 +238,21 @@ export interface UserProfile {
   stats: ProfileStats;
   /** Last-10 attendance intensities 0–1 for the WeekStrip (attendance only, Decision 6). */
   seasonStrip: number[];
+  /** The user's games (played + organized), newest-relevant first. */
+  games: ProfileGame[];
 }
 
 export interface UpdateProfileInput {
   name?: string;
-  city?: string;
+  /** Server rejects a taken handle with 409; only send when non-empty. */
+  username?: string;
+  bio?: string;
+  /** Server stores this as `location` (the read maps it back to `city`); the write must match. */
+  location?: string;
+  phone?: string;
   sports?: string[];
-  avatarPreset?: string;
+  /** Avatar image URL; "" clears it back to the initials fallback. */
+  avatarUrl?: string;
 }
 
 /* ── Leaderboard (§3.3) ────────────────────────────────────────────────────*/
@@ -185,7 +265,12 @@ export interface LeaderRow {
   user: PlayerRef & { tier: Tier | null };
   score: number;
   /** Rank movement since the previous period: +up / −down / 0 flat. */
-  delta: number;
+  /**
+   * Rank movement since the last period. The web `/leaderboard` route does NOT compute this, so
+   * it is null in practice — typed honestly rather than faked as 0, which read as "no movement".
+   * The row simply omits the indicator until the server sends one.
+   */
+  delta: number | null;
 }
 
 export interface Leaderboard {
@@ -200,16 +285,24 @@ export interface SearchHit {
   id: string;
   title: string;
   subtitle: string | null;
+  /**
+   * ISO end date, sent for camp and event hits only (added server-side 2 Aug 2026). Lets the app
+   * drop hits that have already ended instead of trusting the server's status sweep — the same
+   * backstop the Discover lists have. Absent for games and coaches, which have no end date here.
+   */
+  endDate?: string | null;
 }
 
 /** Grouped results — each group renders under its own header (web ⌘K parity). */
+/**
+ * What `/search` actually returns. Workshops and players are deliberately absent — the web route
+ * doesn't index them, and declaring them here let the UI advertise groups that never populate.
+ */
 export interface SearchResults {
   games: SearchHit[];
   coaches: SearchHit[];
   camps: SearchHit[];
-  workshops: SearchHit[];
   events: SearchHit[];
-  players: SearchHit[];
 }
 
 /* ── Venues (§3.3 — create-game picker) ────────────────────────────────────*/
@@ -264,6 +357,8 @@ export interface PaymentRecord {
 /** `GET /games/:id` — list fields plus the detail-only surface. */
 export interface GameDetail extends GameSummary {
   description: string;
+  /** Session length in minutes — shown in the "When" row. */
+  durationMin: number | null;
   organizer: PlayerRef & { tier: Tier | null };
   venueAddress: string | null;
   latitude: number | null;

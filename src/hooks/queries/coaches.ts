@@ -4,7 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import * as coachesApi from "@/api/coaches";
 import type { CoachSummary } from "@/api/types";
 import type { CoachCardData } from "@/components/cards";
-import { formatPrice } from "@/lib/format";
+import { formatSessionRange } from "@/lib/format";
 
 import { keys } from "./keys";
 
@@ -40,6 +40,7 @@ export function toCoachCard(c: CoachSummary): CoachCardData {
     facilityImageUrl: c.facilityImageUrl,
     avatarUrl: c.avatarUrl,
     rating: c.rating,
-    price: formatPrice(c.pricePaise) ?? "On request",
+    reviewCount: c.reviewCount,
+    price: formatSessionRange(c.pricePaise, c.pricePaiseMax),
   };
 }

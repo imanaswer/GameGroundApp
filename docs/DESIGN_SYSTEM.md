@@ -63,13 +63,13 @@ Contrast gates: body ≥ `text` on bg; nothing below `dim` on cards; `dim2` for 
 
 ## 2. Typography
 
-Two families only. Serif is the personality; it is rationed.
+Two families only. Serif is the personality; it is rationed — as of the GameGround sans wordmark, serif is reserved for `display` (onboarding), `amount` (checkout), and the **red serif-italic accent word** device inside an Inter heading — the Home greeting and the auth headings (DECISIONS #13). All screen/nav/detail headers are Inter SemiBold so they sit with the wordmark without shouting.
 
 | Role | Family | Size | Weight | Notes |
 |---|---|---|---|---|
 | display | Instrument Serif | 38–40 | 400 | onboarding headlines only; -0.5px tracking; italic = red accent word |
-| title1 | Instrument Serif | 27 | 400 | screen/detail titles, greeting; line-height 1.08 |
-| title2 | Instrument Serif | 21–23 | 400 | brand wordmark, hero card titles, celebration headlines |
+| title1 | Inter | 22 | 600 | screen/detail titles, greeting; -0.4px tracking; red = accent word |
+| title2 | Inter | 18 | 600 | nav/detail titles, hero card titles, celebration headlines; -0.2px tracking |
 | amount | Instrument Serif | 33 | 400 | checkout amount only |
 | heading | Inter | 14.5–15 | 700 | card titles, sheet headers |
 | body | Inter | 12.5–13.5 | 400–600 | paragraphs, meta rows, inputs |
@@ -77,7 +77,7 @@ Two families only. Serif is the personality; it is rationed.
 | label | Inter | 10.5 | 700 | SECTION LABELS: uppercase, .14em tracking, `dim` |
 | micro | Inter | 8.5–9.5 | 800 | tier chips, live chips, tab labels; uppercase where chip-like |
 
-Rules: serif never below 20px and never for UI controls; numerals that change live use `tabular-nums`; italic serif exists only as the red accent word inside a serif line; no all-caps body text.
+Rules: serif never below 20px and never for UI controls; numerals that change live use `tabular-nums`; italic serif exists only as the red accent word — inside a serif line (`display`), or as the red serif-italic accent word within an Inter heading line (the Home greeting + auth headings, DECISIONS #13); no all-caps body text.
 
 ---
 
@@ -101,7 +101,7 @@ States✱: rest / pressed (MOTION.md §3 compress + ripple on primary) / loading
 A11y: role button, min height 44.
 
 ### Chip / ChipRow
-Pill radius 999, 12px/600, padding 7×14; rest = border+dim; active = red bg/border, white text, red glow.
+Pill radius 999, 12px/600, padding 7×14; rest = border+dim; active = red-wash fill (`redSurface`) + red-focus border + `redLight` text. (This tinted selection is the shipped kit reality — it reads calmer on the dark surface than a solid-red fill; doc reconciled to code per §10.3.)
 ChipRow: horizontal scroll, no scrollbar, 8 gap, screen-padding inset.
 States✱: rest / active / pressed (scale .90) / disabled. Selection haptic. Filter changes animate the consuming list (MOTION.md §2).
 
@@ -153,7 +153,7 @@ Card bg container radius 14, padding 4; sliding red pill (spring.pop) under acti
 Top-anchored, elev bg, radius 16, icon tile (32pt, semantic tint) + 12.5px/700 title + 10.5px dim body + 2px progress bar draining over its 2.4s life. Spring in from −100. One at a time; re-trigger resets.
 
 ### EmptyState
-Floating icon tile (66pt circle, card bg, red icon, idle float, tap-reacts) + serif 20px headline + 12px dim body + primary CTA (+ optional secondary). Copy from MOTION.md §6 catalog — exact strings, not improvised.
+Floating icon tile (66pt circle, card bg, red icon, idle float, tap-reacts) + Inter `title2` headline (serif is rationed to `display`/`amount` per §2 — the earlier "serif 20px" spec is superseded) + `body` dim + primary CTA (+ optional secondary). Copy from MOTION.md §6 catalog — exact strings, not improvised.
 
 ### MapPreview
 96pt card, dark blue-gray gradient, grid overlay, road stroke, bouncing pin, red "Directions" mini-button bottom-right. Placeholder in prototype; static map image + intent link in app.

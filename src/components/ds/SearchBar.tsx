@@ -1,7 +1,10 @@
-/** DESIGN_SYSTEM.md §4 SearchBar. Input variant with leading search icon, radius 16. */
+/** DESIGN_SYSTEM.md §4 SearchBar. Input variant with leading search icon, radius 16, red focus
+ *  ring, and a trailing clear (×) once there's a query. */
+import { useState } from "react";
 import { StyleSheet, TextInput, View, type TextInputProps } from "react-native";
 
-import { SearchIcon } from "@/components/ds/icons";
+import { CloseIcon, SearchIcon } from "@/components/ds/icons";
+import { Press } from "@/components/ds/Press";
 import { color, space, type } from "@/lib/tokens";
 
 export function SearchBar({
@@ -10,9 +13,10 @@ export function SearchBar({
   placeholder = "Search",
   ...rest
 }: TextInputProps) {
+  const [focused, setFocused] = useState(false);
   return (
-    <View style={styles.wrap}>
-      <SearchIcon color={color.dim} />
+    <View style={[styles.wrap, focused && styles.focus]}>
+      <SearchIcon color={focused ? color.redLight : color.dim} />
       <TextInput
         value={value}
         onChangeText={onChangeText}
@@ -21,7 +25,27 @@ export function SearchBar({
         returnKeyType="search"
         style={styles.input}
         {...rest}
+        onFocus={(e) => {
+          setFocused(true);
+          rest.onFocus?.(e);
+        }}
+        onBlur={(e) => {
+          setFocused(false);
+          rest.onBlur?.(e);
+        }}
       />
+      {!!value && (
+        <Press
+          accessibilityRole="button"
+          accessibilityLabel="Clear search"
+          scaleTo={0.9}
+          hitSlop={8}
+          onPress={() => onChangeText?.("")}
+          style={styles.clear}
+        >
+          <CloseIcon size={16} color={color.dim} />
+        </Press>
+      )}
     </View>
   );
 }
@@ -38,5 +62,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: space(3.5),
     minHeight: 44,
   },
-  input: { flex: 1, color: color.text, fontFamily: type.body.fontFamily, fontSize: 13.5, paddingVertical: space(3) },
+  focus: { borderColor: color.redFocus },
+  input: { flex: 1, color: color.text, fontFamily: type.body.fontFamily, fontSize: type.body.fontSize, paddingVertical: space(3) },
+  clear: { width: 24, height: 24, alignItems: "center", justifyContent: "center" },
 });

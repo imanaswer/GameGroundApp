@@ -1,35 +1,39 @@
 /**
- * Profile (M11). Own profile (from useAuth) or another user via ?userId (leaderboard links).
- * Hero + StatStrip + Overview/Games tabs (Achievements deferred to v1.1, Decision 6).
+ * Profile (M11). Own profile is an account hub — hero + stat strip + a settings menu (Notifications,
+ * Payments, Simulate tier-up, Log out). Viewing another user (?userId, from leaderboard links) shows
+ * their hero + stats + games. Tapping your own hero opens Edit.
  */
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { useEffect, useState } from "react";
-import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { useEffect } from "react";
+import { Alert, Linking, ScrollView, StyleSheet, Text, View } from "react-native";
 
-import { ErrorState, HeroNav, Screen, SegmentedControl } from "@/components/chrome";
-import { Button, SettingsIcon, Skeleton } from "@/components/ds";
-import { PlayerHeroCard, StatStrip, WeekStrip } from "@/components/social/Profile";
+import { ErrorState, PageNav, Screen } from "@/components/chrome";
+import { BellIcon, CardIcon, ChevronRightIcon, InfoIcon, LogOutIcon, MessageIcon, Press, Skeleton, StarIcon } from "@/components/ds";
+import { ActivityFeed, PlayerHeroCard, StatStrip, UpcomingGames, WeekStrip } from "@/components/social/Profile";
 import { useTierUp } from "@/components/social/TierUp";
 import { useActivity, useProfile } from "@/hooks/queries";
 import { useAuth } from "@/hooks/useAuth";
-import { formatWhen } from "@/lib/format";
 import { color, layout, space, type } from "@/lib/tokens";
-
-type Tab = "overview" | "games";
 
 export default function Profile() {
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const params = useLocalSearchParams<{ userId?: string }>();
   const id = params.userId ?? user?.id ?? "";
   const isSelf = !params.userId || params.userId === user?.id;
 
   const { data: profile, isLoading, isError, error, refetch } = useProfile(id);
-  const activity = useActivity(id);
-  const [tab, setTab] = useState<Tab>("overview");
+  const { data: activity } = useActivity(id);
 
-  // Tier-up celebration (MOTION §5) — fires once when the viewer's own tier increases.
-  const { celebrate } = useTierUp();
+  // "Upcoming" = games the user has joined/organized that are still ahead, soonest first. The
+  // server owns status; we only filter to future, non-terminal games (never recompute anything).
+  const now = new Date().getTime();
+  const upcoming = (profile?.games ?? [])
+    .filter((g) => g.status !== "completed" && g.status !== "cancelled" && new Date(g.startsAt).getTime() >= now)
+    .sort((a, b) => new Date(a.startsAt).getTime() - new Date(b.startsAt).getTime());
+
+  // Real tier-up celebration (MOTION §5) — fires once when the viewer's own tier increases.
+  const { celebrate, simulate } = useTierUp();
   useEffect(() => {
     if (isSelf && profile?.tier) celebrate(profile.tier);
   }, [isSelf, profile?.tier, celebrate]);
@@ -37,79 +41,114 @@ export default function Profile() {
   if (isError) {
     return (
       <Screen>
-        <HeroNav onBack={router.back} />
+        <PageNav title="Profile" onBack={router.back} />
         <ErrorState message={(error as Error)?.message ?? "Couldn’t load this profile."} onRetry={refetch} />
       </Screen>
     );
   }
 
+  const runSimulate = () => {
+    if (!profile) return;
+    simulate(profile.tier, {
+      caption: `${profile.stats.games} games · ${profile.stats.attendance}% attendance · keep climbing`,
+    });
+  };
+
+  const confirmLogout = () => {
+    Alert.alert("Log out?", "You’ll need to log back in next time.", [
+      { text: "Cancel", style: "cancel" },
+      { text: "Log out", style: "destructive", onPress: () => logout().then(() => router.replace("/login")) },
+    ]);
+  };
+
   return (
     <Screen padded={false}>
-      <View style={styles.nav}>
-        {!isSelf && <HeroNav onBack={router.back} />}
-        {isSelf && (
-          <View style={styles.selfNav}>
-            <Button
-              title="Settings"
-              variant="ghost"
-              icon={<SettingsIcon color={color.dim} />}
-              onPress={() => router.push("/profile/settings")}
-            />
-          </View>
-        )}
-      </View>
+      <PageNav title="Profile" onBack={router.back} />
 
       <ScrollView contentContainerStyle={styles.scroll}>
         {isLoading || !profile ? (
           <>
-            <Skeleton height={180} round={24} />
+            <Skeleton height={150} round={24} />
             <Skeleton height={64} style={styles.gap} />
           </>
         ) : (
           <>
-            <PlayerHeroCard profile={profile} isSelf={isSelf} />
+            {isSelf ? (
+              <Press
+                testID="profile-edit-entry"
+                accessibilityRole="button"
+                accessibilityLabel="Edit profile"
+                onPress={() => router.push("/profile/edit")}
+              >
+                <PlayerHeroCard profile={profile} isSelf />
+              </Press>
+            ) : (
+              <PlayerHeroCard profile={profile} />
+            )}
+
             <StatStrip stats={profile.stats} />
+
             {profile.seasonStrip.length > 0 && (
-              <View style={styles.season}>
-                <Text style={styles.label}>Recent attendance</Text>
+              <View style={styles.formSection}>
+                <Text style={styles.formLabel}>Recent attendance</Text>
                 <WeekStrip data={profile.seasonStrip} />
               </View>
             )}
 
-            {isSelf && <Button title="Edit profile" variant="secondary" onPress={() => router.push("/profile/edit")} />}
+            <UpcomingGames games={upcoming} onOpen={(gid) => router.push(`/game/${gid}`)} />
 
-            <SegmentedControl
-              segments={[
-                { key: "overview", label: "Overview" },
-                { key: "games", label: "Games" },
-              ]}
-              value={tab}
-              onChange={setTab}
-            />
+            <ActivityFeed items={activity ?? []} />
 
-            {tab === "overview" && (
-              <View style={styles.section}>
-                {activity.isLoading ? (
-                  <Skeleton height={16} width="80%" />
-                ) : (activity.data?.length ?? 0) === 0 ? (
-                  <Text style={styles.muted}>No activity yet.</Text>
-                ) : (
-                  activity.data!.map((a) => (
-                    <View key={a.id} style={styles.activityRow}>
-                      <View style={styles.dot} />
-                      <View style={styles.activityText}>
-                        <Text style={styles.activityTitle}>{a.title}</Text>
-                        <Text style={styles.activityAt}>{formatWhen(a.at)}</Text>
-                      </View>
-                    </View>
-                  ))
-                )}
-              </View>
-            )}
-
-            {tab === "games" && (
-              <View style={styles.section}>
-                <Text style={styles.muted}>Games history appears here.</Text>
+            {isSelf && (
+              <View style={styles.menu}>
+                <Text style={styles.menuHeader}>Settings</Text>
+                <View>
+                  <MenuRow
+                    icon={<BellIcon color={color.dim} />}
+                    label="Notifications"
+                    onPress={() => router.push("/profile/settings")}
+                  />
+                  <MenuRow
+                    icon={<CardIcon color={color.dim} />}
+                    label="Payment history"
+                    onPress={() => router.push("/profile/payments")}
+                    divider
+                  />
+                  {/* Dev/QA affordance only — never exposed in a production build. */}
+                  {__DEV__ && (
+                    <MenuRow
+                      icon={<StarIcon color={color.red} />}
+                      label="Simulate tier-up"
+                      onPress={runSimulate}
+                      divider
+                    />
+                  )}
+                  <MenuRow
+                    icon={<MessageIcon color={color.dim} />}
+                    label="Help & support"
+                    onPress={() => Linking.openURL("mailto:support@gameground.net?subject=GameGround%20support")}
+                    divider
+                  />
+                  <MenuRow
+                    icon={<InfoIcon color={color.dim} />}
+                    label="Privacy policy"
+                    onPress={() => Linking.openURL("https://www.gameground.net/privacy")}
+                    divider
+                  />
+                  <MenuRow
+                    icon={<InfoIcon color={color.dim} />}
+                    label="Terms of service"
+                    onPress={() => Linking.openURL("https://www.gameground.net/terms")}
+                    divider
+                  />
+                  <MenuRow
+                    icon={<LogOutIcon color={color.redLight} />}
+                    label="Log out"
+                    danger
+                    onPress={confirmLogout}
+                    divider
+                  />
+                </View>
               </View>
             )}
           </>
@@ -119,18 +158,49 @@ export default function Profile() {
   );
 }
 
+function MenuRow({
+  icon,
+  label,
+  hint,
+  danger,
+  onPress,
+  divider,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  hint?: string;
+  danger?: boolean;
+  onPress: () => void;
+  divider?: boolean;
+}) {
+  return (
+    <Press
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      onPress={onPress}
+      style={[styles.menuRow, divider && styles.menuDivider]}
+    >
+      {icon}
+      <Text style={[styles.menuLabel, danger && styles.menuDanger]}>
+        {label}
+        {hint ? <Text style={styles.menuHint}> {hint}</Text> : null}
+      </Text>
+      {!danger && <ChevronRightIcon size={16} color={color.dim2} />}
+    </Press>
+  );
+}
+
 const styles = StyleSheet.create({
-  nav: { minHeight: space(6) },
-  selfNav: { alignItems: "flex-end", paddingHorizontal: space(2), paddingTop: space(2) },
   scroll: { paddingHorizontal: layout.screenX, paddingBottom: space(20), gap: space(4) },
   gap: { marginTop: space(3) },
-  season: { gap: space(2) },
-  label: { ...type.label, color: color.dim },
-  section: { gap: space(3) },
-  muted: { ...type.body, color: color.dim },
-  activityRow: { flexDirection: "row", gap: space(3), alignItems: "flex-start" },
-  dot: { width: 8, height: 8, borderRadius: 999, backgroundColor: color.red, marginTop: space(1.5) },
-  activityText: { flex: 1, gap: space(0.5) },
-  activityTitle: { ...type.body, color: color.text },
-  activityAt: { ...type.caption, color: color.dim },
+  formSection: { gap: space(2.5) },
+  formLabel: { ...type.label, color: color.dim },
+
+  menu: { gap: space(2) },
+  menuHeader: { ...type.label, color: color.dim, marginBottom: space(1) },
+  menuRow: { flexDirection: "row", alignItems: "center", gap: space(3.5), paddingVertical: space(3.5) },
+  menuDivider: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: color.border },
+  menuLabel: { ...type.body, color: color.text, flex: 1 },
+  menuHint: { ...type.caption, color: color.dim2 },
+  menuDanger: { color: color.redLight },
 });

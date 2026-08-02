@@ -146,9 +146,14 @@ export function useAuth(): AuthContextValue {
  */
 export function useGoogleLogin(onError: (e: unknown) => void) {
   const { adopt } = useAuth();
+  // Pass the ids straight through (already "" when unconfigured). Coercing "" to undefined trips
+  // expo-auth-session's invariantClientId, which throws on `undefined` during render — crashing the
+  // whole login screen. An empty string passes the invariant; the `available` gate below keeps the
+  // button hidden until real ids exist, which is the intended "hidden until configured" behavior.
   const [request, response, promptAsync] = Google.useIdTokenAuthRequest({
-    iosClientId: env.googleIosClientId || undefined,
-    androidClientId: env.googleAndroidClientId || undefined,
+    iosClientId: env.googleIosClientId,
+    androidClientId: env.googleAndroidClientId,
+    webClientId: env.googleWebClientId,
   });
 
   useEffect(() => {
@@ -160,16 +165,24 @@ export function useGoogleLogin(onError: (e: unknown) => void) {
   }, [response]);
 
   const configured =
-    Platform.OS === "ios" ? !!env.googleIosClientId : !!env.googleAndroidClientId;
+    Platform.OS === "ios"
+      ? !!env.googleIosClientId
+      : Platform.OS === "android"
+        ? !!env.googleAndroidClientId
+        : !!env.googleWebClientId;
   return { available: configured && !!request, prompt: () => promptAsync() };
 }
 
-/** Apple button shows only where Apple auth actually works. */
+/**
+ * Apple button shows only where Apple auth actually works — which means BOTH the device
+ * supporting it and the server route existing. Device capability alone is what made this button
+ * ship visible on every iPhone while `/auth/apple/mobile` 404s (§5.2 is unshipped server work).
+ */
 export function useAppleAvailable(): boolean {
-  const [available, setAvailable] = useState(false);
+  const [deviceSupports, setDeviceSupports] = useState(false);
   useEffect(() => {
-    if (Platform.OS !== "ios") return;
-    AppleAuthentication.isAvailableAsync().then(setAvailable, () => setAvailable(false));
+    if (Platform.OS !== "ios" || !env.appleAuthEnabled) return;
+    AppleAuthentication.isAvailableAsync().then(setDeviceSupports, () => setDeviceSupports(false));
   }, []);
-  return available;
+  return env.appleAuthEnabled && deviceSupports;
 }

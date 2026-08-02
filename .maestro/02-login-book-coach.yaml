@@ -1,0 +1,70 @@
+# Flow 2/5 (§14): login → book a coach with a test-mode payment.
+#
+# ⚠️ PREVIEW BUILD ONLY. Preview carries a Razorpay *test* key; a production build would
+# charge real money. Check the bundle id above before running.
+#
+# Corrected against the real screen: there is no "Book" CTA on the coach StickyCTA — that
+# button is "Message on WhatsApp". Booking is a per-batch mini Button inside the Batches
+# section, and it only renders when `coach.instantPayEligible` is true (ranged-price coaches
+# are request-only; the server 400s their checkout). So the coach this runs against must be
+# instant-pay eligible with a batch that has seats left, or the flow will correctly find
+# nothing to tap.
+appId: net.gameground.app.preview
+name: 02 login and book a coach (test payment)
+---
+- runFlow: subflows/login.yaml
+
+- tapOn:
+    id: "tab-coaches"
+- extendedWaitUntil:
+    visible:
+      id: "coach-card"
+    timeout: 20000
+
+# calibrate: index 0 is whatever the API returns first, which is not guaranteed to be
+# instant-pay eligible. Pin a known-good coach by name once you have one:
+#   - tapOn: ${COACH_NAME}
+- tapOn:
+    id: "coach-card"
+    index: 0
+
+- extendedWaitUntil:
+    visible:
+      id: "coach-book"
+    timeout: 15000
+- tapOn:
+    id: "coach-book"
+    index: 0
+
+# Booking opens the checkout Sheet (not a route change) with the amount on the CTA.
+- extendedWaitUntil:
+    visible:
+      id: "checkout-pay"
+    timeout: 15000
+- tapOn:
+    id: "checkout-pay"
+
+# --- Razorpay WebView boundary -------------------------------------------------------
+# Everything below is inside the hosted checkout (DECISIONS #10), not our UI. Webview text
+# matching is weaker than native; expect this section to need the most calibration.
+- extendedWaitUntil:
+    visible: "Razorpay|Pay now|Card|UPI"
+    timeout: 30000
+
+- tapOn:
+    text: "Success"           # calibrate: Razorpay test-mode simulation control
+    optional: true
+
+# --- back in our UI ------------------------------------------------------------------
+# The server re-verifies the HMAC on /payments/verify and the webhook settles independently,
+# so a client-side success screen is not proof on its own.
+- extendedWaitUntil:
+    visible: "Booked|Confirmed|You're in"
+    timeout: 60000
+
+# Round-trip proof: the booking must survive a fresh read, not just the success state.
+- tapOn:
+    id: "tab-home"
+- extendedWaitUntil:
+    visible: "Upcoming|Up next"
+    timeout: 20000

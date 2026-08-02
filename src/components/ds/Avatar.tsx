@@ -12,8 +12,8 @@ function identityColor(seed: string): string {
   return avatarColors[Math.abs(hash) % avatarColors.length];
 }
 
-function initials(name: string): string {
-  const parts = name.trim().split(/\s+/);
+function initials(name?: string | null): string {
+  const parts = (name ?? "").trim().split(/\s+/);
   return ((parts[0]?.[0] ?? "") + (parts[1]?.[0] ?? "")).toUpperCase() || "?";
 }
 

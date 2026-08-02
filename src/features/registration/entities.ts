@@ -22,6 +22,13 @@ export type EntityConfig = {
   pluralLabel: string;
   list: (params?: { q?: string }) => ReturnType<typeof campsApi.list>;
   detail: (id: string) => ReturnType<typeof campsApi.detail>;
+  /**
+   * Free registration — a separate endpoint, not a ₹0 checkout. The server's charge helpers
+   * reject a ₹0 amount outright, so free entities can only register this way.
+   */
+  register: (id: string, fields: Record<string, unknown>) => Promise<{ registered: true }>;
+  /** Cancel the viewer's registration (90-minute pre-start cutoff). */
+  cancel: (id: string) => Promise<{ cancelled: true }>;
   /** registration payload fields, mirrored from the web verify Body (§9.1). */
   fields: Field[];
 };
@@ -34,6 +41,8 @@ export const ENTITIES: Record<RegisterableKind, EntityConfig> = {
     pluralLabel: "Camps",
     list: campsApi.list,
     detail: campsApi.detail,
+    register: campsApi.register,
+    cancel: campsApi.cancel,
     fields: [
       { key: "childName", label: "Child’s name", type: "text", required: true, placeholder: "Full name" },
       { key: "childAge", label: "Child’s age", type: "number", required: true, min: 3, max: 18 },
@@ -47,6 +56,8 @@ export const ENTITIES: Record<RegisterableKind, EntityConfig> = {
     pluralLabel: "Workshops",
     list: workshopsApi.list,
     detail: workshopsApi.detail,
+    register: workshopsApi.register,
+    cancel: workshopsApi.cancel,
     fields: [
       { key: "participantName", label: "Participant name", type: "text", required: true, placeholder: "Full name" },
       { key: "participantAge", label: "Age", type: "number", required: true, min: 5, max: 99 },
@@ -60,6 +71,8 @@ export const ENTITIES: Record<RegisterableKind, EntityConfig> = {
     pluralLabel: "Events",
     list: eventsApi.list,
     detail: eventsApi.detail,
+    register: eventsApi.register,
+    cancel: eventsApi.cancel,
     fields: [
       { key: "teamName", label: "Team name", type: "text", required: true, placeholder: "Your team" },
       { key: "phone", label: "Contact number", type: "text", required: true, placeholder: "10-digit mobile" },

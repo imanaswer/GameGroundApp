@@ -1,18 +1,22 @@
 /**
  * MOTION.md §3 — universal touch compress. Every Pressable in the app routes through
- * this so the press physics live in exactly one place (spring.press, scale .965).
- * Reduced-motion drops the scale (MOTION.md §9).
+ * this so the press physics live in exactly one place.
+ *
+ * §3 spec: 3D compress — perspective tilt (~2.4° rotateX) + scale .965 via spring.press;
+ * release springs back. Cards additionally brighten their border (border → border2 / 12% white).
+ * Icon buttons compress harder (scaleTo .90). Reduced-motion drops the transforms (§9).
  */
 import { forwardRef } from "react";
-import { AccessibilityInfo } from "react-native";
-import { Pressable, type PressableProps } from "react-native";
+import { AccessibilityInfo, Pressable, type PressableProps } from "react-native";
 import Animated, {
+  interpolateColor,
   useAnimatedStyle,
   useReducedMotion,
   useSharedValue,
   withSpring,
 } from "react-native-reanimated";
 
+import { color } from "@/lib/tokens";
 import { spring } from "@/theme/animations";
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
@@ -20,18 +24,53 @@ const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 type Props = PressableProps & {
   /** Icon buttons compress harder (.90 vs .965) per §3. */
   scaleTo?: number;
+  /**
+   * §3 perspective tilt on press. **Off by default (Decision 16, 2 Aug 2026) — opt in, don't opt
+   * out.** A perspective transform promotes the view into a 3D compositing layer, and on iOS those
+   * layers rasterize in tiles and tear: reported on device against a coach batch row and again
+   * against the Discover segmented control, both splitting into halves mid-press. Nothing currently
+   * sets it. Provisional — the evidence so far is from Expo Go (Reanimated 4.1); re-test on a real
+   * development build before deciding whether the §3 tilt can come back for cards.
+   */
+  tilt?: boolean;
+  /** §3 cards brighten their border on press (border → border2). Consumer sets borderWidth;
+   *  Press owns the animated borderColor, so don't also set a static borderColor in `style`. */
+  brighten?: boolean;
 };
 
+/** §3 perspective tilt angle and card border-brighten stops. */
+const TILT_DEG = 2.4;
+const PERSPECTIVE = 600;
+
 export const Press = forwardRef<typeof Pressable, Props>(function Press(
-  { scaleTo = 0.965, onPressIn, onPressOut, style, children, ...rest },
+  { scaleTo = 0.965, tilt = false, brighten = false, onPressIn, onPressOut, style, children, ...rest },
   ref,
 ) {
   const pressed = useSharedValue(0);
   const reduced = useReducedMotion();
 
-  const animatedStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: reduced ? 1 : 1 - pressed.value * (1 - scaleTo) }],
-  }));
+  const animatedStyle = useAnimatedStyle(() => {
+    // Reduced motion: no transforms; hold the card border at its rest tone.
+    if (reduced) return brighten ? { borderColor: color.border } : {};
+
+    const p = pressed.value;
+    const scale = 1 - p * (1 - scaleTo);
+    const angle = (tilt ? p : 0) * TILT_DEG;
+
+    // Perspective is applied ONLY while the press is in flight. It is a geometric no-op at 0°, but
+    // not a rendering one: a perspective transform promotes the view into a 3D compositing layer
+    // whatever the angle, and on iOS those layers rasterize separately inside a ScrollView and
+    // flicker. Resting controls therefore stay on the plain 2D path. (Reported on device 2 Aug
+    // 2026 — every Press in the app was permanently 3D for a tilt that only exists mid-press.)
+    const transform: ({ perspective: number } | { rotateX: string } | { scale: number })[] =
+      angle === 0
+        ? [{ scale }]
+        : [{ perspective: PERSPECTIVE }, { rotateX: `${angle}deg` }, { scale }];
+
+    return brighten
+      ? { transform, borderColor: interpolateColor(p, [0, 1], [color.border, color.border2]) }
+      : { transform };
+  });
 
   return (
     <AnimatedPressable
@@ -44,7 +83,8 @@ export const Press = forwardRef<typeof Pressable, Props>(function Press(
         pressed.value = withSpring(0, spring.press);
         onPressOut?.(e);
       }}
-      style={[animatedStyle, style as never]}
+      // Animated props last so the press physics always win over static style.
+      style={[style as never, animatedStyle]}
       {...rest}
     >
       {children as never}

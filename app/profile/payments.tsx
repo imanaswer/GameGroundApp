@@ -5,11 +5,11 @@ import { useRouter } from "expo-router";
 import { FlatList, StyleSheet, Text, View } from "react-native";
 
 import type { PaymentRecord, PaymentStatus } from "@/api/types";
-import { ErrorState, HeroNav, Screen } from "@/components/chrome";
-import { Skeleton } from "@/components/ds";
+import { EmptyState, ErrorState, PageNav, Screen } from "@/components/chrome";
+import { CardIcon, Skeleton } from "@/components/ds";
 import { usePaymentsHistory } from "@/hooks/queries";
 import { formatAmount, formatWhen } from "@/lib/format";
-import { color, layout, space, type } from "@/lib/tokens";
+import { color, icon as iconSize, layout, space, type } from "@/lib/tokens";
 
 const STATUS: Record<PaymentStatus, { label: string; tone: keyof typeof toneColor }> = {
   paid: { label: "Paid", tone: "success" },
@@ -26,10 +26,7 @@ export default function Payments() {
 
   return (
     <Screen padded={false}>
-      <View style={styles.nav}>
-        <HeroNav onBack={router.back} />
-      </View>
-      <Text style={styles.title}>Payments</Text>
+      <PageNav title="Payments" onBack={router.back} />
 
       {isLoading ? (
         <View style={styles.list}>
@@ -40,7 +37,11 @@ export default function Payments() {
       ) : isError ? (
         <ErrorState message={(error as Error)?.message ?? "Couldn’t load payments."} onRetry={refetch} />
       ) : (data?.length ?? 0) === 0 ? (
-        <Text style={styles.empty}>No payments yet.</Text>
+        <EmptyState
+          icon={<CardIcon size={iconSize.empty} color={color.red} />}
+          headline="No payments yet"
+          body="Your bookings and receipts will show up here."
+        />
       ) : (
         <FlatList
           data={data}
@@ -70,16 +71,13 @@ export default function Payments() {
 }
 
 const styles = StyleSheet.create({
-  nav: { minHeight: space(6) },
-  title: { ...type.title1, color: color.text, paddingHorizontal: layout.screenX, paddingBottom: space(3) },
   list: { paddingHorizontal: layout.screenX, paddingBottom: space(10) },
   skel: { marginBottom: space(2) },
-  empty: { ...type.body, color: color.dim, paddingHorizontal: layout.screenX },
   row: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: space(3), borderBottomWidth: 1, borderBottomColor: color.border },
   rowText: { gap: space(0.5) },
   entity: { ...type.bodyStrong, color: color.text },
   at: { ...type.caption, color: color.dim },
   rowRight: { alignItems: "flex-end", gap: space(0.5) },
-  amount: { fontFamily: type.heading.fontFamily, fontSize: 14, color: color.text },
+  amount: { ...type.heading, color: color.text },
   status: { ...type.caption },
 });

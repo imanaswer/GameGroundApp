@@ -14,20 +14,30 @@ describe("per-step validation", () => {
     expect(CreateGameStep.venue.safeParse({ venueId: "v1", slotId: "s1" }).success).toBe(true);
   });
 
-  test("size coerces the string count and enforces bounds", () => {
-    const ok = CreateGameStep.size.safeParse({ slotsTotal: "10" });
-    expect(ok.success && ok.data.slotsTotal).toBe(10);
-    expect(CreateGameStep.size.safeParse({ slotsTotal: "1" }).success).toBe(false);
-    expect(CreateGameStep.size.safeParse({ slotsTotal: "99" }).success).toBe(false);
+  test("size coerces the player count, enforces 2–100, and requires a valid skill level", () => {
+    const ok = CreateGameStep.size.safeParse({ slots: "10", skillLevel: "All Levels" });
+    expect(ok.success && ok.data.slots).toBe(10);
+    expect(CreateGameStep.size.safeParse({ slots: "1", skillLevel: "All Levels" }).success).toBe(false);
+    expect(CreateGameStep.size.safeParse({ slots: "101", skillLevel: "All Levels" }).success).toBe(false);
+    // "Any" is not a server skill level — the picker must send one of the enum values.
+    expect(CreateGameStep.size.safeParse({ slots: "10", skillLevel: "Any" }).success).toBe(false);
   });
 
-  test("full schema accepts a complete valid payload", () => {
+  test("details requires an amount only when the game is paid", () => {
+    expect(CreateGameStep.details.safeParse({ paid: false }).success).toBe(true);
+    expect(CreateGameStep.details.safeParse({ paid: true, costAmount: "0" }).success).toBe(false);
+    expect(CreateGameStep.details.safeParse({ paid: true, costAmount: "120" }).success).toBe(true);
+  });
+
+  test("full schema accepts a complete valid payload (server body shape)", () => {
     const r = CreateGameSchema.safeParse({
       title: "Evening Football 7s",
       sport: "Football",
-      venueId: "v1",
       slotId: "s1",
-      slotsTotal: "14",
+      slots: "14",
+      skillLevel: "Intermediate",
+      cost: "Free",
+      costAmount: 0,
       description: "Bring water",
     });
     expect(r.success).toBe(true);

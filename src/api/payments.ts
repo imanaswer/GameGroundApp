@@ -10,14 +10,21 @@ export function createOrder(entityType: EntityType, entityId: string): Promise<C
   return api.post<CreatedOrder>("/payments/create-order", { entityType, entityId });
 }
 
+/** The server answers `{ verified: true }` (+ `slotsLeft` for games, `bookingId` for coaches). */
+export type VerifyResult = {
+  verified: true;
+  slotsLeft?: number;
+  bookingId?: string;
+};
+
 export function verify(input: {
   result: RazorpayResult;
   entityType: EntityType;
   entityId: string;
   /** Per-entity fields mirror the web verify Body (§9.1) — camps: child*, events: team*, etc. */
   registration: Record<string, unknown>;
-}): Promise<{ registered: true }> {
-  return api.post<{ registered: true }>(
+}): Promise<VerifyResult> {
+  return api.post<VerifyResult>(
     "/payments/verify",
     { ...input.result, entityType: input.entityType, entityId: input.entityId, registration: input.registration },
     { timeoutMs: 30_000, retry401: false },
