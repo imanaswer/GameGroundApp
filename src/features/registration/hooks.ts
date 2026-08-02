@@ -1,5 +1,11 @@
 /** Query hooks for registerable entities — one pair, parameterized by entity config (M9). */
-import { useMutation, useQuery, useQueryClient, type QueryClient } from "@tanstack/react-query";
+import {
+  keepPreviousData,
+  useMutation,
+  useQuery,
+  useQueryClient,
+  type QueryClient,
+} from "@tanstack/react-query";
 
 import type { RegisterableSummary } from "@/api/types";
 import type { RegistrationCardData } from "@/components/cards";
@@ -13,6 +19,11 @@ export function useRegisterableList(config: EntityConfig, q: string) {
     queryKey: keys.registerables.list(config.kind, q),
     queryFn: () => config.list({ q: q || undefined }),
     staleTime: 60_000,
+    // MOTION.md §2, "Filter/leaderboard change": keep-previous-data, no spinner, no blank flash.
+    // Both the kind and the search term are in the query key, so without this every segment switch
+    // and every debounced keystroke dropped to `isLoading` and flashed CardSkeletons over the list.
+    // Matches the leaderboard query, which already did this.
+    placeholderData: keepPreviousData,
   });
 }
 
