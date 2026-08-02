@@ -156,7 +156,7 @@ function EditForm({ profile }: { profile: UserProfile }) {
 
       <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === "ios" ? "padding" : undefined}>
         <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
-          <SectionCard icon={<CameraIcon size={16} color={color.red} />} title="Avatar" hint="Pick a look, or keep your initials.">
+          <SectionCard icon={<CameraIcon size={16} color={color.primary} />} title="Avatar" hint="Pick a look, or keep your initials.">
             <View style={styles.avatarRow}>
               <Avatar name={name || profile.name} uri={avatar || undefined} size={64} isSelf />
               <Text style={styles.avatarNote}>This is how other players see you across GameGround.</Text>
@@ -180,7 +180,7 @@ function EditForm({ profile }: { profile: UserProfile }) {
             </ScrollView>
           </SectionCard>
 
-          <SectionCard icon={<UserIcon size={16} color={color.red} />} title="Basic information" hint="This is what other players see.">
+          <SectionCard icon={<UserIcon size={16} color={color.primary} />} title="Basic information" hint="This is what other players see.">
             <Field label="Full name">
               <Input testID="profile-name" value={name} onChangeText={setName} placeholder="Your full name" error={fieldErrors.name} />
             </Field>
@@ -209,7 +209,7 @@ function EditForm({ profile }: { profile: UserProfile }) {
             </Field>
           </SectionCard>
 
-          <SectionCard icon={<MapPinIcon size={16} color={color.red} />} title="Contact & location">
+          <SectionCard icon={<MapPinIcon size={16} color={color.primary} />} title="Contact & location">
             <Field label="Location">
               <Input value={city} onChangeText={setCity} placeholder="e.g. Kozhikode, Kerala" />
             </Field>
@@ -225,7 +225,7 @@ function EditForm({ profile }: { profile: UserProfile }) {
             </Field>
           </SectionCard>
 
-          <SectionCard icon={<TrophyIcon size={16} color={color.red} />} title="Sports I play" hint="Pick everything you’d join a game for.">
+          <SectionCard icon={<TrophyIcon size={16} color={color.primary} />} title="Sports I play" hint="Pick everything you’d join a game for.">
             <View style={styles.chips}>
               {SPORTS.map((s) => (
                 <Chip key={s} label={s} active={sports.includes(s)} onPress={() => toggleSport(s)} />
@@ -236,7 +236,7 @@ function EditForm({ profile }: { profile: UserProfile }) {
           <View style={styles.dangerCard}>
             <View style={styles.cardHead}>
               <View style={styles.dangerIcon}>
-                <AlertIcon size={16} color={color.redLight} />
+                <AlertIcon size={16} color={color.primarySoft} />
               </View>
               <Text style={styles.dangerTitle}>Danger zone</Text>
             </View>
@@ -337,9 +337,9 @@ const styles = StyleSheet.create({
     borderRadius: radius.tileSm,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: color.redSurface,
+    backgroundColor: color.errorSurface,
     borderWidth: 1,
-    borderColor: color.redFocus,
+    borderColor: color.focusRing,
   },
   cardTitle: { ...type.heading, color: color.text },
   cardHint: { ...type.caption, color: color.dim, marginTop: space(2), marginLeft: space(11) },
@@ -354,7 +354,7 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: color.border,
   },
-  avatarOptionSel: { borderColor: color.red },
+  avatarOptionSel: { borderColor: color.primary },
 
   field: { gap: space(2) },
   fieldLabel: { ...type.caption, color: color.dim },
@@ -376,28 +376,28 @@ const styles = StyleSheet.create({
   chips: { flexDirection: "row", flexWrap: "wrap", gap: space(2) },
 
   // danger zone
-  dangerCard: { backgroundColor: color.redWash, borderRadius: radius.card, borderWidth: 1, borderColor: color.redSurface, padding: space(4) },
+  dangerCard: { backgroundColor: color.errorWash, borderRadius: radius.card, borderWidth: 1, borderColor: color.errorSurface, padding: space(4) },
   dangerIcon: {
     width: 32,
     height: 32,
     borderRadius: radius.tileSm,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: color.redSurface,
+    backgroundColor: color.errorSurface,
     borderWidth: 1,
-    borderColor: color.redFocus,
+    borderColor: color.focusRing,
   },
-  dangerTitle: { ...type.heading, color: color.redLight },
+  dangerTitle: { ...type.heading, color: color.primarySoft },
   dangerBody: { ...type.caption, color: color.dim, lineHeight: 17, marginTop: space(3), marginBottom: space(4) },
   dangerOutline: {
     alignSelf: "flex-start",
     borderRadius: radius.input,
     borderWidth: 1,
-    borderColor: color.redFocus,
+    borderColor: color.focusRing,
     paddingVertical: space(2.5),
     paddingHorizontal: space(4),
   },
-  dangerOutlineText: { ...type.bodyStrong, color: color.redLight },
+  dangerOutlineText: { ...type.bodyStrong, color: color.primarySoft },
   dangerConfirm: { flexDirection: "row", gap: space(2) },
   dangerConfirmBtn: { flex: 1 },
   dangerCancel: {
@@ -411,7 +411,7 @@ const styles = StyleSheet.create({
   },
   dangerCancelText: { ...type.bodyStrong, color: color.dim },
 
-  error: { ...type.caption, color: color.redLight, textAlign: "center", marginTop: space(1) },
+  error: { ...type.caption, color: color.primarySoft, textAlign: "center", marginTop: space(1) },
 
   footer: {
     flexDirection: "row",

@@ -84,7 +84,7 @@ export function SegmentedControl<T extends string>({
 
 const styles = StyleSheet.create({
   container: { flexDirection: "row", backgroundColor: color.card, borderRadius: radius.input, padding: 4 },
-  pill: { position: "absolute", top: 4, bottom: 4, left: 4, borderRadius: radius.tileSm, backgroundColor: color.red },
+  pill: { position: "absolute", top: 4, bottom: 4, left: 4, borderRadius: radius.tileSm, backgroundColor: color.primary },
   pillSubtle: { backgroundColor: color.border2 },
   segment: { flex: 1, alignItems: "center", justifyContent: "center", paddingVertical: space(2.5) },
   segmentSubtle: { paddingVertical: space(1.75) },

@@ -123,7 +123,7 @@ const styles = StyleSheet.create({
   rating: { fontFamily: t.heading.fontFamily, fontSize: 14, color: color.text },
   ratingCount: { fontFamily: t.body.fontFamily, fontSize: 12, color: color.dim },
   ratingNew: { ...t.caption, color: color.dim },
-  price: { fontFamily: t.bodyStrong.fontFamily, fontSize: 14, color: color.redLight },
+  price: { fontFamily: t.bodyStrong.fontFamily, fontSize: 14, color: color.primarySoft },
   priceUnit: { fontFamily: t.caption.fontFamily, fontSize: 12, color: color.dim },
   priceMuted: { ...t.caption, color: color.dim },
 });

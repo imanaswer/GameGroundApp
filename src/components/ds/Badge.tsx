@@ -69,7 +69,7 @@ const styles = StyleSheet.create({
   badge: { borderRadius: 6, paddingVertical: space(0.75), paddingHorizontal: space(1.75), alignSelf: "flex-start" },
   neutral: { backgroundColor: color.card },
   success: { backgroundColor: color.successSurface },
-  red: { backgroundColor: color.redSurface },
+  red: { backgroundColor: color.errorSurface },
   text: { fontFamily: type.micro.fontFamily, fontSize: 10, letterSpacing: 0.68, textTransform: "uppercase" },
   textNeutral: { color: color.dim },
   textStrong: { color: color.text },
@@ -81,7 +81,7 @@ const styles = StyleSheet.create({
     borderRadius: 6,
     paddingVertical: space(0.75),
     paddingHorizontal: space(1.75),
-    backgroundColor: color.liveRed,
+    backgroundColor: color.live,
     alignSelf: "flex-start",
   },
   // White on the filled live chip. `color.text` is near-black since the light port and would sit

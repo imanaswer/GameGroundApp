@@ -29,7 +29,7 @@ export default function NotificationSettings() {
                   haptics.selection();
                   setPref(c.key, v);
                 }}
-                trackColor={{ true: color.red, false: color.border2 }}
+                trackColor={{ true: color.primary, false: color.border2 }}
                 thumbColor={color.text}
               />
             </View>

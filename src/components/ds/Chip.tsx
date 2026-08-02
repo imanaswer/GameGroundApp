@@ -82,7 +82,7 @@ const styles = StyleSheet.create({
   // Selected = solid black, per the source's selection language. It was a red-tinted wash before
   // the light port; carried over literally that becomes a PINK chip (the red tokens now resolve to
   // the Error ramp), so a selected filter would read as a validation error.
-  active: { backgroundColor: color.red, borderColor: color.red },
+  active: { backgroundColor: color.primary, borderColor: color.primary },
   disabled: { opacity: 0.5 },
   label: { fontFamily: type.bodyStrong.fontFamily, fontSize: 12 },
   labelSm: { fontSize: 12 },

@@ -142,7 +142,7 @@ const styles = StyleSheet.create({
   },
 
   primary: {
-    backgroundColor: color.red,
+    backgroundColor: color.primary,
     borderRadius: radius.chip,
     height: H_MD,
     paddingHorizontal: space(6),
@@ -157,7 +157,7 @@ const styles = StyleSheet.create({
   },
   ghost: { paddingVertical: space(2), paddingHorizontal: space(2), minHeight: 0 },
   mini: {
-    backgroundColor: color.red,
+    backgroundColor: color.primary,
     borderRadius: radius.chip,
     minHeight: H_SM,
     height: H_SM,

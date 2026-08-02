@@ -138,13 +138,13 @@ const styles = StyleSheet.create({
   podRank: { ...type.micro, color: color.dim },
 
   row: { flexDirection: "row", alignItems: "center", gap: space(3), paddingVertical: space(2.5), paddingHorizontal: space(2) },
-  rowSelf: { backgroundColor: color.redWash, borderRadius: radius.input },
+  rowSelf: { backgroundColor: color.errorWash, borderRadius: radius.input },
   rank: { fontFamily: type.heading.fontFamily, fontSize: 12, color: color.dim, width: 28 },
   rowText: { flex: 1, flexDirection: "row", alignItems: "center", gap: space(2) },
   name: { ...type.bodyStrong, color: color.text, flexShrink: 1 },
   delta: { fontFamily: type.micro.fontFamily, fontSize: 10 },
   up: { color: color.successText },
-  down: { color: color.redLight },
+  down: { color: color.primarySoft },
   score: { fontFamily: type.heading.fontFamily, fontSize: 12, color: color.text },
 
   pinnedWrap: { position: "absolute", left: 0, right: 0, paddingHorizontal: layout.screenX, paddingVertical: space(2), backgroundColor: color.elev, borderTopWidth: 1, borderTopColor: color.border },

@@ -27,7 +27,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     minWidth: 46,
   },
-  // The badge fill is `color.text` (near-black), so both lines must be light. `color.red` is
+  // The badge fill is `color.text` (near-black), so both lines must be light. `color.primary` is
   // the primary-action colour and is now black — this line was black-on-black.
   month: { ...type.label, color: color.inverse, opacity: 0.7 },
   day: { fontFamily: font.sansExtra, fontSize: 20, lineHeight: 22, color: color.bg },

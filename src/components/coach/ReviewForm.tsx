@@ -73,6 +73,6 @@ const styles = StyleSheet.create({
   wrap: { gap: space(2.5), backgroundColor: color.card, borderRadius: radius.input, borderWidth: 1, borderColor: color.border, padding: space(3.5), marginBottom: space(2) },
   label: { ...type.label, color: color.dim },
   stars: { flexDirection: "row", gap: space(1.5) },
-  error: { ...type.caption, color: color.redLight },
+  error: { ...type.caption, color: color.primarySoft },
   thanks: { ...type.body, color: color.successText, paddingVertical: space(2) },
 });

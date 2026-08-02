@@ -187,14 +187,14 @@ export default function CoachDetail() {
                 <View style={styles.metaList}>
                   {(!!coach.area || !!coach.address) && (
                     <MetaTile
-                      icon={<MapPinIcon size={17} color={color.redLight} />}
+                      icon={<MapPinIcon size={17} color={color.primarySoft} />}
                       label={coach.area || coach.address || ""}
                       sub={coach.area && coach.address ? coach.address : "Get directions"}
                       onPress={openDirections}
                     />
                   )}
                   {!!coach.timing && (
-                    <MetaTile icon={<ClockIcon size={17} color={color.redLight} />} label={coach.timing} sub="Available" />
+                    <MetaTile icon={<ClockIcon size={17} color={color.primarySoft} />} label={coach.timing} sub="Available" />
                   )}
                 </View>
               )}

@@ -92,7 +92,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
             style={styles.card}
           >
             <View style={styles.iconTile}>
-              <BellIcon size={16} color={color.red} />
+              <BellIcon size={16} color={color.primary} />
             </View>
             <View style={styles.text}>
               <Text style={styles.title} numberOfLines={1}>{toast.title}</Text>
@@ -135,5 +135,5 @@ const styles = StyleSheet.create({
   title: { fontFamily: type.heading.fontFamily, fontSize: 12, color: color.text },
   body: { ...type.caption, color: color.dim },
   track: { position: "absolute", left: 0, right: 0, bottom: 0, height: 2, backgroundColor: color.border },
-  bar: { height: 2, backgroundColor: color.red },
+  bar: { height: 2, backgroundColor: color.primary },
 });

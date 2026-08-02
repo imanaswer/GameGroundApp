@@ -67,6 +67,6 @@ const styles = StyleSheet.create({
   track: { height: 5, borderRadius: 999, backgroundColor: color.track, overflow: "hidden" },
   fill: { height: 5, borderRadius: 999, overflow: "hidden" },
   grow: { flex: 1 },
-  red: { backgroundColor: color.red },
+  red: { backgroundColor: color.primary },
   lab: { ...type.caption, color: color.dim, marginTop: space(1.5) },
 });

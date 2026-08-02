@@ -61,7 +61,7 @@ function checkoutHtml(order: CreatedOrder, prefill: CheckoutPrefill): string {
     currency: order.currency,
     name: "Game Ground",
     prefill: { email: prefill.email ?? "", contact: prefill.contact ?? "" },
-    theme: { color: color.red },
+    theme: { color: color.primary },
   };
   const post = (payload: string) => `window.ReactNativeWebView.postMessage(${payload})`;
   return `<!doctype html><html><head><meta name="viewport" content="width=device-width, initial-scale=1"/>

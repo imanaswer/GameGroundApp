@@ -55,7 +55,7 @@ export function TabBar({ state, descriptors, navigation }: MaterialTopTabBarProp
             typeof options.tabBarLabel === "string"
               ? options.tabBarLabel
               : (options.title ?? route.name);
-          const tint = focused ? color.red : color.dim2;
+          const tint = focused ? color.primary : color.dim2;
           const glyph = options.tabBarIcon?.({ focused, color: tint });
 
           const onPress = () => {
@@ -142,14 +142,14 @@ const styles = StyleSheet.create({
   fill: { position: "absolute", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: color.tabBarBg },
   row: { flex: 1, flexDirection: "row" },
   item: { flex: 1, alignItems: "center", justifyContent: "center", gap: 3, paddingTop: 8 },
-  indicator: { position: "absolute", top: 0, height: 2.5, borderRadius: 999, backgroundColor: color.red },
+  indicator: { position: "absolute", top: 0, height: 2.5, borderRadius: 999, backgroundColor: color.primary },
   iconWrap: { width: 40, height: 24, alignItems: "center", justifyContent: "center" },
   halo: {
     position: "absolute",
     width: 38,
     height: 38,
     borderRadius: 999,
-    backgroundColor: color.redSurface,
+    backgroundColor: color.errorSurface,
   },
   label: { fontFamily: font.sansSemi, fontSize: 10, lineHeight: 12 },
 });

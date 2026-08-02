@@ -149,7 +149,7 @@ const styles = StyleSheet.create({
   section: { gap: space(2) },
   sectionHead: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   sectionLabel: { ...type.label, color: color.dim },
-  clearAction: { ...type.bodyStrong, fontSize: 12, color: color.redLight },
+  clearAction: { ...type.bodyStrong, fontSize: 12, color: color.primarySoft },
   skel: { marginBottom: space(2) },
   chips: { flexDirection: "row", flexWrap: "wrap", gap: space(2) },
   hit: { paddingVertical: space(2.5) },

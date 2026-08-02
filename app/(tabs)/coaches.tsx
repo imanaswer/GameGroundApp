@@ -74,7 +74,7 @@ export default function CoachesTab() {
         <ErrorState message={(error as Error)?.message ?? "Couldn’t load coaches."} onRetry={refetch} />
       ) : empty ? (
         <EmptyState
-          icon={<CoachesIcon size={iconSize.empty} color={color.red} />}
+          icon={<CoachesIcon size={iconSize.empty} color={color.primary} />}
           headline={sport === "all" ? "No coaches yet." : `No ${prettySport(sport)} coaches yet.`}
           body="Try another sport."
         />

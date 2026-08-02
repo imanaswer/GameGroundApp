@@ -117,7 +117,7 @@ export default function Profile() {
                   {/* Dev/QA affordance only — never exposed in a production build. */}
                   {__DEV__ && (
                     <MenuRow
-                      icon={<StarIcon color={color.red} />}
+                      icon={<StarIcon color={color.primary} />}
                       label="Simulate tier-up"
                       onPress={runSimulate}
                       divider
@@ -142,7 +142,7 @@ export default function Profile() {
                     divider
                   />
                   <MenuRow
-                    icon={<LogOutIcon color={color.redLight} />}
+                    icon={<LogOutIcon color={color.primarySoft} />}
                     label="Log out"
                     danger
                     onPress={confirmLogout}
@@ -202,5 +202,5 @@ const styles = StyleSheet.create({
   menuDivider: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: color.border },
   menuLabel: { ...type.body, color: color.text, flex: 1 },
   menuHint: { ...type.caption, color: color.dim2 },
-  menuDanger: { color: color.redLight },
+  menuDanger: { color: color.primarySoft },
 });

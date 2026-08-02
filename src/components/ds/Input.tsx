@@ -87,10 +87,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: space(3.5),
     paddingVertical: space(3),
   },
-  focus: { borderColor: color.redFocus },
-  error: { borderColor: color.redLight },
+  focus: { borderColor: color.focusRing },
+  error: { borderColor: color.primarySoft },
   disabled: { opacity: 0.5 },
   eye: { paddingHorizontal: space(3.5), paddingVertical: space(2), alignItems: "center", justifyContent: "center" },
-  errorLine: { ...type.caption, color: color.redLight, marginTop: space(1) },
+  errorLine: { ...type.caption, color: color.primarySoft, marginTop: space(1) },
   hintLine: { ...type.caption, color: color.dim2, marginTop: space(1) },
 });

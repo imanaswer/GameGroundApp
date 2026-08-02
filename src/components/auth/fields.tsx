@@ -44,5 +44,5 @@ export function fieldErrorsFrom(error: unknown): Record<string, string> {
 }
 
 const styles = StyleSheet.create({
-  formError: { ...type.bodyStrong, color: color.redLight, marginBottom: space(3), textAlign: "center" },
+  formError: { ...type.bodyStrong, color: color.primarySoft, marginBottom: space(3), textAlign: "center" },
 });

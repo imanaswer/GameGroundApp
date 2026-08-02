@@ -10,7 +10,7 @@
  * would make every downstream diff unreviewable. Names get rationalised in a later phase, once
  * the light system is actually on screen and correct.
  *
- * Consequence to expect: names now describe a ROLE, not a hue. `color.red` is the primary-action
+ * Consequence to expect: names now describe a ROLE, not a hue. `color.primary` is the primary-action
  * colour and is black, because the source system has no brand accent — Nike's identity comes from
  * the swoosh and photography. Anything still reading as "red" is a Phase 2+ cleanup, not a bug.
  */
@@ -54,14 +54,17 @@ export const color = {
   dim2: gray[600],
 
   /**
-   * Primary action. BLACK, not red — see the file header. Kept under the `red*` names for this
-   * phase so ~100 call sites keep compiling; they mean "primary", "primary-hover", "primary-deep".
+   * Primary action — black. The source system has no brand accent; identity comes from the mark
+   * and photography. Renamed from the `red*` family, which Phase 1 kept only so the port could
+   * land in one reviewable diff. Those names were actively dangerous once the values moved: a
+   * `color.red` that is black read as a safe accent at every call site and produced real
+   * black-on-black bugs (DateBadge's month line, the SegmentedControl label).
    */
-  red: "#000000",
-  redLight: gray[800],
-  redDeep: "#000000",
+  primary: "#000000",
+  primarySoft: gray[800],
+  primaryDeep: "#000000",
   /** Input focus ring. */
-  redFocus: "rgba(0,0,0,0.40)",
+  focusRing: "rgba(0,0,0,0.40)",
 
   /** Tier/rating accents ride the Warning ramp — the source has no gold. See Decision 20. */
   /** FILL only (chips, pills, gradient stops). ~3.6:1 on white — not legible as text. */
@@ -83,10 +86,10 @@ export const color = {
 
   // Tinted surfaces. On white these are the ramp's 100 step, not an alpha wash of the accent.
   successSurface: ramp.success[100],
-  redSurface: ramp.error[100],
-  redWash: "rgba(202,70,42,0.06)",
-  /** "Live"/urgent badge — the Error ramp, since primary is now black and cannot signal urgency. */
-  liveRed: ramp.error[500],
+  errorSurface: ramp.error[100],
+  errorWash: "rgba(202,70,42,0.06)",
+  /** "Live"/urgent badge — the Error ramp, since primary is black and cannot signal urgency. */
+  live: ramp.error[500],
 
   /** Nav chrome: translucent WHITE over blur (was translucent black). */
   tabBarBg: "rgba(255,255,255,0.88)",

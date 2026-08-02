@@ -84,7 +84,7 @@ export default function LeadersTab() {
         <ErrorState message={(error as Error)?.message ?? "Couldn’t load the leaderboard."} onRetry={refetch} />
       ) : data && data.rows.length === 0 ? (
         <EmptyState
-          icon={<LeadersIcon size={iconSize.empty} color={color.red} />}
+          icon={<LeadersIcon size={iconSize.empty} color={color.primary} />}
           headline="No rankings yet."
           body="Play some games to get on the board."
           cta={{ label: "Find a game", onPress: () => router.push("/games") }}
@@ -116,7 +116,7 @@ const styles = StyleSheet.create({
   tabLabel: { ...type.heading, color: color.dim },
   tabLabelOn: { color: color.text },
   underline: { height: 2.5, width: "100%", borderRadius: 999 },
-  underlineOn: { backgroundColor: color.red },
+  underlineOn: { backgroundColor: color.primary },
   windowChips: { flexDirection: "row", gap: space(2) },
   list: { paddingHorizontal: layout.screenX, paddingBottom: space(6) },
   skel: { marginBottom: space(2) },

@@ -348,13 +348,13 @@ export default function GameDetail() {
             <>
               <View style={styles.metaList}>
                 <MetaTile
-                  icon={<MapPinIcon size={17} color={color.redLight} />}
+                  icon={<MapPinIcon size={17} color={color.primarySoft} />}
                   label={game.venueName || game.venueAddress || "Venue TBD"}
                   sub="Get directions"
                   onPress={game.venueName || game.venueAddress ? openDirections : undefined}
                 />
                 <MetaTile
-                  icon={<ClockIcon size={17} color={color.redLight} />}
+                  icon={<ClockIcon size={17} color={color.primarySoft} />}
                   label={formatSessionWhen(game.startsAt)}
                   sub={game.durationMin ? `${game.durationMin} minutes` : undefined}
                 />
@@ -592,7 +592,7 @@ const styles = StyleSheet.create({
     paddingVertical: space(3.5),
     alignItems: "center",
   },
-  cancelText: { ...type.bodyStrong, color: color.redLight },
+  cancelText: { ...type.bodyStrong, color: color.primarySoft },
 
   goodToKnow: { marginTop: space(5), gap: space(2) },
   label: { ...type.label, color: color.dim },

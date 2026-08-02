@@ -135,7 +135,7 @@ export default function HomeTab() {
         ) : empty ? (
           <View style={styles.emptyWrap}>
             <EmptyState
-              icon={<GamesIcon size={iconSize.empty} color={color.red} />}
+              icon={<GamesIcon size={iconSize.empty} color={color.primary} />}
               headline="No open games yet"
               body="Be the first to start one — or browse everything happening on GameGround."
               cta={{ label: "Host a game", onPress: () => router.push("/game/create") }}
@@ -247,7 +247,7 @@ function Section({
         {onSeeAll && (
           <Press onPress={onSeeAll} hitSlop={8} style={styles.seeAll}>
             <Text style={styles.seeAllText}>See all</Text>
-            <ChevronRightIcon size={14} color={color.redLight} />
+            <ChevronRightIcon size={14} color={color.primarySoft} />
           </Press>
         )}
       </View>
@@ -279,7 +279,7 @@ const styles = StyleSheet.create({
   sectionLabel: { ...type.label, color: color.dim },
   seeAll: { flexDirection: "row", alignItems: "center", gap: space(0.5) },
   // Demoted from the section label's uppercase treatment: an action shouldn't wear the title's clothes.
-  seeAllText: { ...type.bodyStrong, fontSize: 12, color: color.redLight },
+  seeAllText: { ...type.bodyStrong, fontSize: 12, color: color.primarySoft },
 
   rail: { paddingHorizontal: layout.screenX, gap: layout.railGap },
 });

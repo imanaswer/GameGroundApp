@@ -218,8 +218,8 @@ const styles = StyleSheet.create({
 
   topRow: { flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between" },
   eyebrowRow: { flexDirection: "row", alignItems: "center", gap: space(1.5) },
-  dot: { width: 6, height: 6, borderRadius: 999, backgroundColor: color.redLight },
-  eyebrow: { fontFamily: font.sansExtra, fontSize: 10, letterSpacing: 1.3, color: color.redLight },
+  dot: { width: 6, height: 6, borderRadius: 999, backgroundColor: color.primarySoft },
+  eyebrow: { fontFamily: font.sansExtra, fontSize: 10, letterSpacing: 1.3, color: color.primarySoft },
 
   bottomRow: { flexDirection: "row", alignItems: "flex-end", justifyContent: "space-between", gap: space(3) },
   bottomLeft: { flex: 1, gap: space(1) },

@@ -175,6 +175,6 @@ export default function Signup() {
 
 const styles = StyleSheet.create({
   terms: { ...type.caption, color: color.dim2, textAlign: "center", lineHeight: 16, marginTop: space(3.5) },
-  termsLink: { color: color.redLight },
+  termsLink: { color: color.primarySoft },
   spacer: { flex: 1, minHeight: space(6) },
 });

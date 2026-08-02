@@ -107,6 +107,6 @@ const styles = StyleSheet.create({
   doneTitle: { ...type.heading, color: color.text },
   doneBody: { ...type.body, lineHeight: 20, color: color.dim, textAlign: "center" },
   resend: { marginTop: space(1) },
-  resendText: { ...type.bodyStrong, color: color.redLight },
+  resendText: { ...type.bodyStrong, color: color.primarySoft },
   spacer: { flex: 1, minHeight: space(6) },
 });

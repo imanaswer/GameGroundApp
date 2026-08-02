@@ -169,7 +169,7 @@ const styles = StyleSheet.create({
   google: { backgroundColor: google.surface, borderWidth: 1, borderColor: color.border },
   // Black fill, per Apple's own light-mode guidance and the source's filled-action language.
   // Was a near-black card fill on a dark ground; on white that became grey-on-white mush.
-  apple: { backgroundColor: color.red },
+  apple: { backgroundColor: color.primary },
   socialDisabled: { opacity: 0.5 },
   socialLabel: { ...type.bodyStrong, color: color.text },
   appleLabel: { color: color.inverse },

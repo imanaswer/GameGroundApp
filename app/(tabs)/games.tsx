@@ -104,7 +104,7 @@ export default function GamesTab() {
         <ErrorState message={(error as Error)?.message ?? "Couldn’t load games."} onRetry={refetch} />
       ) : empty ? (
         <EmptyState
-          icon={<GamesIcon size={iconSize.empty} color={color.red} />}
+          icon={<GamesIcon size={iconSize.empty} color={color.primary} />}
           headline={sport === "all" ? "No games tonight — yet." : `No ${prettySport(sport)} games — yet.`}
           body="Someone has to go first. Why not you?"
           cta={{ label: "Host a game", onPress: hostGame }}

@@ -73,7 +73,7 @@ export async function configureAndroidChannel(): Promise<void> {
     await N.setNotificationChannelAsync("default", {
       name: "Game Ground",
       importance: N.AndroidImportance.DEFAULT,
-      lightColor: color.red,
+      lightColor: color.primary,
     });
   } catch (e) {
     captureException(e, { where: "configureAndroidChannel" });

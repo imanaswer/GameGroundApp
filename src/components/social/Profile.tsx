@@ -174,7 +174,7 @@ const ACTIVITY_VISUALS: Record<string, ActivityVisual> = {
   played: { Icon: CheckIcon, tint: color.success, bg: color.successSurface },
   created: { Icon: StarIcon, tint: color.gold, bg: tierMap.gold.bg },
   organized: { Icon: StarIcon, tint: color.gold, bg: tierMap.gold.bg },
-  booked: { Icon: CardIcon, tint: color.redLight, bg: color.redSurface },
+  booked: { Icon: CardIcon, tint: color.primarySoft, bg: color.errorSurface },
   tier_up: { Icon: TrophyIcon, tint: color.gold, bg: tierMap.gold.bg },
 };
 const ACTIVITY_FALLBACK: ActivityVisual = { Icon: InfoIcon, tint: color.dim, bg: color.track };
@@ -253,7 +253,7 @@ const styles = StyleSheet.create({
   cellLabel: { ...type.micro, color: color.dim, textTransform: "uppercase" },
 
   week: { flexDirection: "row", alignItems: "flex-end", gap: space(1.5), height: 44 },
-  weekBar: { flex: 1, borderRadius: 3, backgroundColor: color.red },
+  weekBar: { flex: 1, borderRadius: 3, backgroundColor: color.primary },
 
   feed: { gap: space(2.5) },
   feedLabel: { ...type.label, color: color.dim },

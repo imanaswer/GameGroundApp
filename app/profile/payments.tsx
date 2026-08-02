@@ -18,7 +18,7 @@ const STATUS: Record<PaymentStatus, { label: string; tone: keyof typeof toneColo
   failed: { label: "Failed", tone: "danger" },
 };
 
-const toneColor = { success: color.success, dim: color.dim, danger: color.redLight } as const;
+const toneColor = { success: color.success, dim: color.dim, danger: color.primarySoft } as const;
 
 export default function Payments() {
   const router = useRouter();
@@ -38,7 +38,7 @@ export default function Payments() {
         <ErrorState message={(error as Error)?.message ?? "Couldn’t load payments."} onRetry={refetch} />
       ) : (data?.length ?? 0) === 0 ? (
         <EmptyState
-          icon={<CardIcon size={iconSize.empty} color={color.red} />}
+          icon={<CardIcon size={iconSize.empty} color={color.primary} />}
           headline="No payments yet"
           body="Your bookings and receipts will show up here."
         />

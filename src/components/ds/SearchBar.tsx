@@ -16,7 +16,7 @@ export function SearchBar({
   const [focused, setFocused] = useState(false);
   return (
     <View style={[styles.wrap, focused && styles.focus]}>
-      <SearchIcon color={focused ? color.redLight : color.dim} />
+      <SearchIcon color={focused ? color.primarySoft : color.dim} />
       <TextInput
         value={value}
         onChangeText={onChangeText}
@@ -62,7 +62,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: space(3.5),
     minHeight: 44,
   },
-  focus: { borderColor: color.redFocus },
+  focus: { borderColor: color.focusRing },
   input: { flex: 1, color: color.text, fontFamily: type.body.fontFamily, fontSize: type.body.fontSize, paddingVertical: space(3) },
   clear: { width: 24, height: 24, alignItems: "center", justifyContent: "center" },
 });

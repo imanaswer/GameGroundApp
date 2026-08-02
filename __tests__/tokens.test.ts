@@ -88,7 +88,7 @@ test("dim2 is legible as large/secondary text (AA large, 3:1)", () => {
 });
 
 test("primary action carries white label at AA", () => {
-  expect(contrast(color.inverse, color.red)).toBeGreaterThanOrEqual(4.5);
+  expect(contrast(color.inverse, color.primary)).toBeGreaterThanOrEqual(4.5);
 });
 
 /**
@@ -99,9 +99,9 @@ test("primary action carries white label at AA", () => {
  */
 test("labels on filled surfaces are legible", () => {
   // Primary button / selected chip / segmented pill — all the black fill, all white labels.
-  expect(contrast(color.inverse, color.red)).toBeGreaterThanOrEqual(4.5);
+  expect(contrast(color.inverse, color.primary)).toBeGreaterThanOrEqual(4.5);
   // "Live" badge text and dot.
-  expect(contrast(color.inverse, color.liveRed)).toBeGreaterThanOrEqual(4.5);
+  expect(contrast(color.inverse, color.live)).toBeGreaterThanOrEqual(4.5);
   // Completed checkout step: a white check glyph, held to the 3:1 non-text bar.
   expect(contrast(color.inverse, ramp.success[600])).toBeGreaterThanOrEqual(3);
 });
@@ -126,7 +126,7 @@ test.each([
 
 test("semantic text colors are legible on their own tinted surfaces", () => {
   expect(contrast(ramp.success[700], color.successSurface)).toBeGreaterThanOrEqual(4.5);
-  expect(contrast(ramp.error[700], color.redSurface)).toBeGreaterThanOrEqual(4.5);
+  expect(contrast(ramp.error[700], color.errorSurface)).toBeGreaterThanOrEqual(4.5);
 });
 
 /** Sizes and tracking are lifted from the Figma exactly; leading is deliberately not (see tokens). */

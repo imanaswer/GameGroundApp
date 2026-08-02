@@ -11,7 +11,7 @@ export function ErrorState({ message, onRetry }: { message: string; onRetry: () 
   return (
     <View style={styles.wrap}>
       <View style={styles.tile}>
-        <AlertIcon size={iconSize.empty} color={color.redLight} />
+        <AlertIcon size={iconSize.empty} color={color.primarySoft} />
       </View>
       <Text style={styles.headline}>Something went wrong</Text>
       <Text style={styles.body}>{message}</Text>

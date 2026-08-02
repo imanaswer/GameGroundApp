@@ -35,7 +35,7 @@ export function DiscoverSegment({ config, q }: { config: EntityConfig; q: string
     const plural = config.pluralLabel.toLowerCase();
     return (
       <EmptyState
-        icon={<DiscoverIcon size={iconSize.empty} color={color.red} />}
+        icon={<DiscoverIcon size={iconSize.empty} color={color.primary} />}
         headline={searching ? `No ${plural} match “${q}”.` : "Nothing scheduled — check back soon."}
         body={searching ? "Try a different search." : `New ${plural} will show up here.`}
       />

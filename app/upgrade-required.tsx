@@ -20,7 +20,7 @@ export default function UpgradeRequired() {
     <Screen>
       <View style={styles.center}>
         <View style={styles.tile}>
-          <InfoIcon size={iconSize.empty} color={color.red} />
+          <InfoIcon size={iconSize.empty} color={color.primary} />
         </View>
         <Text style={styles.title}>Time to update</Text>
         <Text style={styles.body}>

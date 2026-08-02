@@ -147,7 +147,7 @@ export default function CreateGame() {
           </Press>
         </View>
         <EmptyState
-          icon={<UserIcon size={iconSize.empty} color={color.red} />}
+          icon={<UserIcon size={iconSize.empty} color={color.primary} />}
           headline="Add a contact number first"
           body="Players reach their host on WhatsApp, so hosting needs a number on your profile."
           cta={{ label: "Add number", onPress: () => router.replace("/profile/edit") }}
@@ -339,18 +339,18 @@ const styles = StyleSheet.create({
   stepLabel: { ...type.label, color: color.dim },
   progress: { flexDirection: "row", gap: space(1.5), paddingHorizontal: layout.screenX, paddingVertical: space(3) },
   progressBar: { flex: 1, height: 3, borderRadius: 999, backgroundColor: color.border2 },
-  progressBarOn: { backgroundColor: color.red },
+  progressBarOn: { backgroundColor: color.primary },
   scroll: { paddingHorizontal: layout.screenX, paddingTop: space(3), paddingBottom: space(10) },
   label: { ...type.label, color: color.dim, marginBottom: space(2) },
   labelGap: { marginTop: space(5) },
   blockGap: { marginTop: space(4) },
   chipWrap: { flexDirection: "row", flexWrap: "wrap", gap: space(2) },
-  err: { ...type.caption, color: color.redLight, marginTop: space(2) },
+  err: { ...type.caption, color: color.primarySoft, marginTop: space(2) },
   note: { ...type.body, color: color.dim, marginTop: space(1), flexShrink: 1 },
   stateRow: { flexDirection: "row", alignItems: "center", gap: space(2), marginTop: space(1) },
   slotList: { gap: space(2) },
   slot: { backgroundColor: color.card, borderRadius: radius.input, borderWidth: 1, borderColor: color.border, padding: space(3.5) },
-  slotOn: { borderColor: color.red, backgroundColor: color.redWash },
+  slotOn: { borderColor: color.primary, backgroundColor: color.errorWash },
   slotText: { ...type.body, color: color.text },
   footer: { paddingHorizontal: layout.screenX, paddingTop: space(3) },
 });

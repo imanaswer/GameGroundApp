@@ -30,7 +30,7 @@ export function Header({
       <View style={styles.titleWrap}>
         {wordmark ? (
           <View style={styles.brand} accessibilityRole="header" accessibilityLabel="GameGround">
-            <Image source={BRAND_MARK} style={styles.brandMark} contentFit="contain" tintColor={color.red} />
+            <Image source={BRAND_MARK} style={styles.brandMark} contentFit="contain" tintColor={color.primary} />
             <Text style={styles.brandText} numberOfLines={1}>
               GameGround
             </Text>

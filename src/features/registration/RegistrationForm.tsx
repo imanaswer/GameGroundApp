@@ -151,6 +151,6 @@ const styles = StyleSheet.create({
   fieldWrap: { marginBottom: space(4) },
   label: { ...type.label, color: color.dim, marginBottom: space(2) },
   chipRow: { flexDirection: "row", flexWrap: "wrap", gap: space(2) },
-  err: { ...type.caption, color: color.redLight, marginTop: space(1) },
+  err: { ...type.caption, color: color.primarySoft, marginTop: space(1) },
   sheetHost: { paddingBottom: space(4) },
 });

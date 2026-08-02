@@ -223,7 +223,7 @@ export default function Catalog() {
         <Section title="EmptyState">
           <View style={styles.stateBox}>
             <EmptyState
-              icon={<GamesIcon size={iconSize.empty} color={color.red} />}
+              icon={<GamesIcon size={iconSize.empty} color={color.primary} />}
               headline="No games tonight — yet."
               body="Someone has to go first. Why not you?"
               cta={{ label: "Create one", onPress: () => {} }}

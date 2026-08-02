@@ -199,20 +199,20 @@ export function RegisterableDetailScreen({ config, id }: { config: EntityConfig;
             <>
               <View style={styles.metaBlock}>
                 <MetaTile
-                  icon={<CalendarIcon size={17} color={color.redLight} />}
+                  icon={<CalendarIcon size={17} color={color.primarySoft} />}
                   label={item.dateLabel ?? formatDate(item.startsAt)}
                   sub={item.duration ?? undefined}
                 />
                 {!!item.location && (
                   <MetaTile
-                    icon={<MapPinIcon size={17} color={color.redLight} />}
+                    icon={<MapPinIcon size={17} color={color.primarySoft} />}
                     label={item.location}
                     sub="Get directions"
                     onPress={openDirections}
                   />
                 )}
                 {!!ageSkill && (
-                  <MetaTile icon={<UserIcon size={17} color={color.redLight} />} label={ageSkill} sub="Recommended" />
+                  <MetaTile icon={<UserIcon size={17} color={color.primarySoft} />} label={ageSkill} sub="Recommended" />
                 )}
               </View>
 
@@ -402,7 +402,7 @@ const styles = StyleSheet.create({
   instructor: { flexDirection: "row", gap: space(3), backgroundColor: color.card, borderRadius: radius.input, borderWidth: 1, borderColor: color.border, padding: space(3.5) },
   instructorText: { flex: 1, gap: space(1) },
   instructorName: { ...type.heading, color: color.text },
-  instructorCred: { ...type.caption, color: color.redLight },
+  instructorCred: { ...type.caption, color: color.primarySoft },
   instructorBio: { ...type.body, color: color.dim, lineHeight: 19, marginTop: space(1) },
 
   detailCard: { backgroundColor: color.card, borderRadius: radius.input, borderWidth: 1, borderColor: color.border, paddingHorizontal: space(3.5), paddingVertical: space(1.5) },
