@@ -19,6 +19,7 @@ export const env = {
   // Native Google OAuth client ids (§5.2) — empty until created in Google Cloud Console.
   googleIosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID ?? "",
   googleAndroidClientId: process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID ?? "",
+  googleWebClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID ?? "",
   /**
    * Apple sign-in is gated OFF by default: `POST /auth/apple/mobile` is §5.2 server work that
    * hasn't shipped, and unlike Google there is no client-id to be implicitly missing — device

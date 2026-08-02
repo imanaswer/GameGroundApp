@@ -122,6 +122,9 @@ export function RegisterableDetailScreen({ config, id }: { config: EntityConfig;
 
   const price = item ? formatPrice(item.pricePaise) : null;
   const full = !!item && item.capacity > 0 && item.registered >= item.capacity;
+  // Deadline passed: the item still runs and stays reachable, but nobody new can join. An existing
+  // registration is unaffected — cancel must keep working past the deadline.
+  const closed = !!item?.registrationClosed;
   const ageSkill = item ? [item.ageGroup, item.skillLevel].filter(Boolean).join(" · ") : "";
 
   const reg = item?.viewerRegistration ?? null;
@@ -313,14 +316,25 @@ export function RegisterableDetailScreen({ config, id }: { config: EntityConfig;
       {item && !registering && (
         <StickyCTA
           testID="registerable-cta"
-          price={reg ? undefined : price}
+          price={reg || closed ? undefined : price}
           status={regStatus}
-          caption={!online ? "Offline — reconnect to register" : !reg && price ? "per registration" : undefined}
-          ctaLabel={reg ? "Cancel registration" : full ? "Fully booked" : "Register"}
+          caption={
+            !online
+              ? "Offline — reconnect to register"
+              : // An existing registration still cancels after the deadline; only new ones are barred.
+                closed && !reg
+                ? "The deadline for this one has passed"
+                : !reg && price
+                  ? "per registration"
+                  : undefined
+          }
+          ctaLabel={
+            reg ? "Cancel registration" : closed ? "Registration closed" : full ? "Fully booked" : "Register"
+          }
           buttonVariant={reg ? "secondary" : "primary"}
           onPress={reg ? confirmCancel : () => setRegistering(true)}
           loading={cancelReg.isPending}
-          disabled={!reg && (full || !online)}
+          disabled={!reg && (closed || full || !online)}
         />
       )}
     </Screen>

@@ -23,6 +23,8 @@ export type RegistrationCardData = {
   registered: number;
   capacity: number;
   featured?: boolean;
+  /** Deadline passed — still runs, but closed to new registrations. */
+  registrationClosed?: boolean;
 };
 
 const KIND_LABEL: Record<RegistrationCardData["kind"], string> = {
@@ -73,7 +75,11 @@ export const RegistrationCard = memo(function RegistrationCard({
         {!!data.when && <MetaRow icon={<CalendarIcon size={14} color={color.dim} />} text={data.when} />}
         {!!data.time && <MetaRow icon={<ClockIcon size={14} color={color.dim} />} text={data.time} />}
 
-        {capped ? (
+        {/* Closed items stay listed on purpose — Discover is the only surface for these, so hiding
+            them would strand anyone already registered. Say so plainly instead. */}
+        {data.registrationClosed ? (
+          <Text style={styles.closedText}>Registration closed</Text>
+        ) : capped ? (
           <View style={styles.spotsBlock}>
             <View style={styles.spotsHead}>
               <Text style={styles.spotsLabel}>Seats</Text>
@@ -124,4 +130,6 @@ const styles = StyleSheet.create({
   spotsCount: { ...type.caption, color: color.dim, fontVariant: ["tabular-nums"] },
   spotsCountLow: { color: color.goldLight },
   openText: { ...type.caption, color: color.dim, marginTop: space(0.5) },
+  // Dimmer than `open`: a closed item is still real content, just not actionable.
+  closedText: { ...type.caption, color: color.dim2, marginTop: space(0.5) },
 });
