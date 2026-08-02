@@ -9,12 +9,13 @@ name: 01 signup and join a free game
 - clearState
 - launchApp
 
-# Onboarding shows exactly once per install (M4); clearState puts us back to first-run.
-# Optional: calibrate the CTA copy against app/onboarding.tsx on first run.
+# The welcome screen shows exactly once per install (M4); clearState puts us back to first-run.
+# Selecting on testID, not copy, so the selector test catches a rename before a device does.
 - tapOn:
-    text: "Get started"
+    id: "welcome-join"
     optional: true
 
+# Covers the already-onboarded path, where launch lands on login instead of welcome.
 - tapOn:
     text: "Create account"
     optional: true

@@ -44,6 +44,16 @@ export const color = {
   imagePlaceholder: "#141414",
   /** Modal/sheet backdrop scrim (DS §10 permitted overlay). */
   scrim: "rgba(0,0,0,0.6)",
+
+  /**
+   * DS §4 inverted CTA — the one place a button is white instead of red. Over full-bleed
+   * photography the red primary loses contrast against warm/dark image content, and `border2`
+   * (12% white) is invisible on a photo; these are the photographic-surface counterparts.
+   * `onInverse` deliberately equals `bg` so the label reads as a cut-out of the app's own black.
+   */
+  inverse: "#ffffff",
+  onInverse: "#050505",
+  inverseBorder: "rgba(255,255,255,0.55)",
 } as const;
 
 /** Avatar identity ring + own-avatar gradient stops (DS §1.3). */
@@ -111,6 +121,16 @@ export const gradient = {
     angle: 100,
   },
   ctaFade: { colors: ["transparent", "rgba(5,5,5,0.95)"], locations: [0, 0.42] },
+  /**
+   * Full-bleed photographic screen (welcome). Distinct from `heroScrim`, which is shaped for a
+   * detail-page hero BAND — that one is already at 98% black by mid-screen, which crushes a
+   * full-screen photo to near-black. This keeps the image legible through the top ~70% and only
+   * darkens the bottom third, where the copy and CTAs sit. Top stop covers the status bar.
+   */
+  welcomeScrim: {
+    colors: ["rgba(0,0,0,0.45)", "transparent", "rgba(5,5,5,0.72)", "rgba(5,5,5,0.97)"],
+    locations: [0, 0.28, 0.7, 1],
+  },
 } as const;
 
 /** DS §3 */

@@ -110,21 +110,32 @@ module.exports = {
     "expo-router",
     "expo-secure-store",
     "expo-apple-authentication",
-    // Splash mark sized to fill the screen as far as each platform allows.
-    // iOS 280pt ≈ 70% of a 390pt-wide device; at @3x that is 840px from a 1024px source, so it
-    // still never upscales. Android 12+ owns its splash (system SplashScreen API: centred icon,
-    // outer third masked off, solid background — a full-bleed image is not expressible), so it
-    // gets a smaller value that survives the mask instead of being clipped.
-    // A genuinely edge-to-edge iOS splash would need portrait artwork (~1284×2778) plus
-    // resizeMode:"cover"; the current asset is a 1024² mark and would crop badly.
+    // Monochrome launch: white mark on the near-black field, no brand red (decision 18).
+    // backgroundColor stays `color.bg` (#050505) rather than pure #000 so the handoff from the
+    // native splash to the first React screen is seamless — a #000 splash against a #050505 app
+    // shows a visible step at the exact moment the splash fades out.
+    //
+    // Mark width: 140pt, putting the artwork at ~28.5% of a 393pt screen.
+    // Deliberately BELOW the reference screenshot's 33.5%, which measured out to imageWidth 170.
+    // Matching that number matched the wrong thing: the reference mark is a thin ribbon, ours is a
+    // solid arrow, so at equal bounding-box width ours carries far more visual mass and reads
+    // oversized. 140 matches the reference's optical weight rather than its measurements — chosen
+    // from a side-by-side render of 170/140/120/100.
+    // `imageWidth` sizes the whole square canvas, NOT the artwork inside it — this asset's alpha
+    // bbox is only 818/1024 = 79.9% of its canvas, so the two are not interchangeable.
+    // Android keeps the established 0.714 ratio against iOS: Android 12+ owns its splash (system
+    // SplashScreen API — centred icon, outer third masked off) and a value that survives that mask
+    // is not the same value that looks right on iOS.
+    // imageWidth is fixed pt, so the ratio drifts a little across screen widths (≈35% at 375pt,
+    // ≈31% at 430pt). Percentage sizing is not expressible in this plugin.
     [
       "expo-splash-screen",
       {
         backgroundColor: "#050505",
         image: "./assets/images/splash-icon.png",
-        imageWidth: 280,
+        imageWidth: 140,
         resizeMode: "contain",
-        android: { imageWidth: 200 },
+        android: { imageWidth: 100 },
       },
     ],
     // Push (M12): brand-red accent + monochrome icon; the plugin adds the iOS APNs entitlement

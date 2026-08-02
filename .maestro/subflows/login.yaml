@@ -6,8 +6,9 @@ appId: net.gameground.app.preview
     clearState: true
 
 - tapOn:
-    text: "Get started"
+    id: "welcome-signin"
     optional: true
+# Covers the already-onboarded path, where launch lands on signup/login directly.
 - tapOn:
     text: "Log in"
     optional: true

@@ -55,6 +55,7 @@ Avatar identity colors (initials fallback rotation): #e63946 · #eab308 · #4ade
 | heroScrim | rgba(0,0,0,.32) → transparent 30–50% → rgba(5,5,5,.98) | detail heroes |
 | heroSide | 100°, rgba(5,5,5,.9) 32% → rgba(5,5,5,.22) 78% | Home UpNext hero |
 | ctaFade | transparent → rgba(5,5,5,.95) 42% | sticky CTA backdrop |
+| welcomeScrim | rgba(0,0,0,.45) → transparent 28% → rgba(5,5,5,.72) 70% → rgba(5,5,5,.97) | full-bleed photographic screens (welcome) |
 | tierSweep | shine sweeps per MOTION.md §8 | badges/heroes only |
 
 Contrast gates: body ≥ `text` on bg; nothing below `dim` on cards; `dim2` for hints/timestamps only.
@@ -99,6 +100,8 @@ Primary (red, white text, radius 16, padding 14–15, weight 700, red glow) · S
 Props: `variant, size, loading, disabled, icon?, onPress`.
 States✱: rest / pressed (MOTION.md §3 compress + ripple on primary) / loading (inline spinner — one of only two legal spinners) / disabled (opacity .5) / success-morph (bg→success, check draw-on; see CTA usage).
 A11y: role button, min height 44.
+
+**Inverted CTA (photographic surfaces only).** Over a full-bleed photo the red primary loses contrast against warm/dark image content and `border2` (12% white) vanishes — so the welcome screen uses an inverted pair instead: filled = `color.inverse` bg + `onInverse` label; outlined = transparent + 1px `inverseBorder`. Both height 52, radius 999 (fully round, unlike §4's radius-16 family — they sit on photography, not on the app's black), side by side with `space(3)` between. Currently local to `app/onboarding.tsx` and NOT a `Button` variant; promoting it needs §10.1 sign-off. Do not use on a solid background — that is what Primary/Secondary are for.
 
 ### Chip / ChipRow
 Pill radius 999, 12px/600, padding 7×14; rest = border+dim; active = red-wash fill (`redSurface`) + red-focus border + `redLight` text. (This tinted selection is the shipped kit reality — it reads calmer on the dark surface than a solid-red fill; doc reconciled to code per §10.3.)
@@ -157,6 +160,9 @@ Floating icon tile (66pt circle, card bg, red icon, idle float, tap-reacts) + In
 
 ### MapPreview
 96pt card, dark blue-gray gradient, grid overlay, road stroke, bouncing pin, red "Directions" mini-button bottom-right. Placeholder in prototype; static map image + intent link in app.
+
+### SplashGate (launch)
+Full-bleed `bg` field, white brand mark centered at the same width as the native splash (`imageWidth` 140pt, 100 on Android — Android 12+ masks the outer third of its system splash). That puts the artwork at ~28.5% of a 393pt screen, deliberately under the reference's 33.5%: the reference mark is a thin ribbon and ours is a solid arrow, so equal bbox width reads oversized. Note `imageWidth` sizes the square canvas, not the artwork — this asset's alpha bbox is 79.9% of its canvas, so the two are not interchangeable. The value lives in `app.config.js` and `SplashGate.tsx` and must move in both. Mounts opaque, dismisses the native splash on its first layout, holds to a 1200ms floor measured from bundle evaluation, then fades on dur.base + ease.exit and unmounts. Blocks touches while up. Cold start only — no AppState listener, so it never replays on resume. Reduced motion drops the fade, keeps the hold. See Decision 18.
 
 ### ExpandCard (accordion)
 Card bg, radius 14, 12.5px/600 head + rotating chevron (spring), max-height body reveal. Selection haptic.

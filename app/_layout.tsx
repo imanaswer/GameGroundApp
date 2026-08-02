@@ -10,7 +10,7 @@ import { InteractionManager } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 
 import { setClientHandlers } from "@/api/client";
-import { ToastProvider, useToast } from "@/components/chrome";
+import { SplashGate, ToastProvider, useToast } from "@/components/chrome";
 import { TierUpProvider } from "@/components/social/TierUp";
 import { keys } from "@/hooks/queries";
 import { useAuth, AuthProvider } from "@/hooks/useAuth";
@@ -23,6 +23,8 @@ import { RazorpayHost } from "@/lib/razorpay";
 import { initSentry } from "@/lib/sentry";
 import { color } from "@/lib/tokens";
 
+// Held until <SplashGate /> paints; that component owns the dismissal and the minimum on-screen
+// time (Decision 18). Deliberately NOT hidden on font load — see SplashGate's handoff comment.
 SplashScreen.preventAutoHideAsync();
 
 // Single client; per-domain staleTimes live on each query hook (§6.1). gcTime ≥ persist maxAge
@@ -111,11 +113,6 @@ export default function RootLayout() {
     Inter_800ExtraBold: require("@/assets/fonts/Inter_800ExtraBold.ttf"),
   });
 
-  useEffect(() => {
-    // Hide on error too — a missing font must not leave the user staring at the splash.
-    if (fontsLoaded || fontError) SplashScreen.hideAsync();
-  }, [fontsLoaded, fontError]);
-
   // Analytics + crash reporting init is deferred past first frame (§13 cold-start budget).
   useEffect(() => {
     const task = InteractionManager.runAfterInteractions(() => {
@@ -151,6 +148,9 @@ export default function RootLayout() {
           </ToastProvider>
         </AuthProvider>
       </PersistQueryClientProvider>
+      {/* Last sibling = on top of the whole app, and outside the providers so a slow session
+          restore or query hydration can never delay the launch mark. */}
+      <SplashGate />
     </GestureHandlerRootView>
   );
 }

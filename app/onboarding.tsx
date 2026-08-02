@@ -1,160 +1,131 @@
 /**
- * 3-slide onboarding, shown once (flag in storage). Skip or finish → login.
- * Display type is the only place the serif goes this large (DS §2 display, red accent word).
+ * Welcome — the single unauthenticated landing screen, shown once (flag in storage).
  *
- * Motion (MOTION.md): an ambient top red glow, headline/body that fade + rise as each slide
- * centers (gesture-linked, not autoplay), page dots that widen/redden with the swipe, and a
- * selection haptic on every page turn.
+ * Replaces the former 3-slide swipe deck (Decision 19). Everything the deck said across three
+ * pages is now one photographic screen: full-bleed image, scrim, brand mark, headline, one
+ * paragraph, and the two account CTAs. Both CTAs set the onboarded flag, so a returning user
+ * lands straight on login instead of re-reading this.
+ *
+ * Motion is deliberately minimal here (MOTION §8 first-paint): the copy block rises and fades in
+ * once on mount. No swipe, no dots, no autoplay — there is nothing left to page through.
  */
+import { Image } from "expo-image";
+import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
-import { useRef, useState } from "react";
-import { FlatList, StyleSheet, Text, View, useWindowDimensions } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import Animated, {
-  Extrapolation,
-  interpolate,
-  interpolateColor,
-  type SharedValue,
-  useAnimatedStyle,
-  useSharedValue,
-} from "react-native-reanimated";
-import Svg, { Defs, RadialGradient, Rect, Stop } from "react-native-svg";
 
 import { Screen } from "@/components/chrome";
-import { Button } from "@/components/ds";
-import * as haptics from "@/lib/haptics";
+import { Appear } from "@/components/ds";
+import { Press } from "@/components/ds/Press";
 import * as storage from "@/lib/storage";
-import { color, layout, space, type } from "@/lib/tokens";
+import { color, gradient, layout, space, type } from "@/lib/tokens";
 
-const SLIDES = [
-  { key: "find", lead: "Find your", accent: "next game", body: "Football, cricket, badminton — games near you, filling up tonight." },
-  { key: "learn", lead: "Learn from", accent: "real coaches", body: "Book batches, read reviews, level up your game." },
-  { key: "play", lead: "Play more,", accent: "climb higher", body: "Earn reputation, rise through the tiers, top the leaderboard." },
-] as const;
+const PHOTO = require("@/assets/images/onboarding/welcome.jpg");
+const MARK = require("@/assets/images/splash-icon.png");
 
-type Slide = (typeof SLIDES)[number];
+/**
+ * Welcome copy. Deliberately built on the reference's shape — brand name as headline, then one
+ * declarative sentence with a three-part list — because a list of three lands harder than the
+ * three hedged clauses this replaced ("games filling up tonight, coaches who actually level you
+ * up, and…"). Keep it to a single sentence: `display` is 39px and the body is capped at 340pt,
+ * so anything longer pushes the CTAs toward the home indicator.
+ */
+const HEADLINE = "GameGround";
+const BODY = "Bringing players the best games, coaches and competition in your city.";
 
-/** Top-anchored red radial glow — the same ambient signature as the auth screens. */
-function OnboardingGlow() {
-  const { width } = useWindowDimensions();
-  const height = 380;
+/**
+ * The welcome CTAs. Not `Button`: DS §4 buttons are red/ghost on the app's black, and over
+ * photography red loses contrast while `border2` (12% white) disappears entirely. These are the
+ * inverted pair — see DESIGN_SYSTEM §4 "Inverted CTA (photographic surfaces)".
+ */
+function Pill({
+  label,
+  onPress,
+  filled,
+  testID,
+}: {
+  label: string;
+  onPress: () => void;
+  filled?: boolean;
+  testID?: string;
+}) {
   return (
-    <View pointerEvents="none" style={styles.glow}>
-      <Svg width={width} height={height}>
-        <Defs>
-          <RadialGradient id="obGlow" cx="50%" cy="0%" rx="75%" ry="100%" fx="50%" fy="0%">
-            <Stop offset="0" stopColor={color.red} stopOpacity={0.2} />
-            <Stop offset="1" stopColor={color.red} stopOpacity={0} />
-          </RadialGradient>
-        </Defs>
-        <Rect x="0" y="0" width={width} height={height} fill="url(#obGlow)" />
-      </Svg>
-    </View>
+    <Press
+      accessibilityRole="button"
+      testID={testID}
+      onPress={onPress}
+      style={[styles.pill, filled ? styles.pillFilled : styles.pillOutlined]}
+    >
+      <Text style={[styles.pillLabel, filled && styles.pillLabelFilled]}>{label}</Text>
+    </Press>
   );
 }
 
-function SlideView({ item, index, scrollX, width }: { item: Slide; index: number; scrollX: SharedValue<number>; width: number }) {
-  const style = useAnimatedStyle(() => {
-    const input = [(index - 1) * width, index * width, (index + 1) * width];
-    return {
-      opacity: interpolate(scrollX.value, input, [0, 1, 0], Extrapolation.CLAMP),
-      transform: [{ translateY: interpolate(scrollX.value, input, [28, 0, 28], Extrapolation.CLAMP) }],
-    };
-  });
-  return (
-    <View style={[styles.slide, { width }]}>
-      <Animated.View style={[styles.slideInner, style]}>
-        <Text style={styles.display}>
-          {item.lead} <Text style={styles.accent}>{item.accent}</Text>
-        </Text>
-        <Text style={styles.body}>{item.body}</Text>
-      </Animated.View>
-    </View>
-  );
-}
-
-function Dot({ index, scrollX, width }: { index: number; scrollX: SharedValue<number>; width: number }) {
-  const style = useAnimatedStyle(() => {
-    const input = [(index - 1) * width, index * width, (index + 1) * width];
-    return {
-      width: interpolate(scrollX.value, input, [7, 22, 7], Extrapolation.CLAMP),
-      backgroundColor: interpolateColor(scrollX.value, input, [color.border2, color.red, color.border2]),
-    };
-  });
-  return <Animated.View style={[styles.dot, style]} />;
-}
-
-export default function Onboarding() {
+export default function Welcome() {
   const router = useRouter();
-  const { width } = useWindowDimensions();
   const insets = useSafeAreaInsets();
-  const listRef = useRef<FlatList<Slide>>(null);
-  const [index, setIndex] = useState(0);
-  const scrollX = useSharedValue(0);
-  const last = index === SLIDES.length - 1;
 
-  const finish = async () => {
+  // Mark onboarding seen before routing, so a kill mid-signup doesn't replay this screen.
+  const go = (href: "/signup" | "/login") => async () => {
     await storage.set("gg.onboarded", true);
-    router.replace("/login");
-  };
-
-  const next = () => {
-    if (last) return finish();
-    listRef.current?.scrollToIndex({ index: index + 1, animated: true });
+    router.replace(href);
   };
 
   return (
-    // Full-bleed so the red glow reaches the top of the display instead of starting below the
-    // status bar; Skip is inset by hand so it still clears the notch.
     <Screen padded={false} fullBleed>
-      <OnboardingGlow />
-      <View style={[styles.topBar, { paddingTop: insets.top + space(2) }]}>
-        <Button title="Skip" variant="ghost" onPress={finish} />
-      </View>
-      <FlatList
-        ref={listRef}
-        data={SLIDES}
-        horizontal
-        pagingEnabled
-        showsHorizontalScrollIndicator={false}
-        keyExtractor={(s) => s.key}
-        scrollEventThrottle={16}
-        onScroll={(e) => {
-          scrollX.value = e.nativeEvent.contentOffset.x;
-        }}
-        // Fixed full-width pages → scrollToIndex is always safe; the fallback covers a cold first mount.
-        getItemLayout={(_, i) => ({ length: width, offset: width * i, index: i })}
-        onScrollToIndexFailed={(info) => listRef.current?.scrollToOffset({ offset: info.index * width, animated: true })}
-        onMomentumScrollEnd={(e) => {
-          const i = Math.round(e.nativeEvent.contentOffset.x / width);
-          if (i !== index) {
-            haptics.selection();
-            setIndex(i);
-          }
-        }}
-        renderItem={({ item, index: i }) => <SlideView item={item} index={i} scrollX={scrollX} width={width} />}
+      <Image source={PHOTO} style={StyleSheet.absoluteFill} contentFit="cover" transition={220} />
+      {/* NOT heroScrim — that one is at 98% black by mid-screen and flattens a full-bleed photo
+          into a black rectangle. This keeps the image readable through the top ~70%. */}
+      <LinearGradient
+        colors={gradient.welcomeScrim.colors}
+        locations={gradient.welcomeScrim.locations}
+        style={StyleSheet.absoluteFill}
+        pointerEvents="none"
       />
-      <View style={[styles.footer, { paddingBottom: Math.max(space(10), insets.bottom + space(4)) }]}>
-        <View style={styles.dots}>
-          {SLIDES.map((s, i) => (
-            <Dot key={s.key} index={i} scrollX={scrollX} width={width} />
-          ))}
+
+      <View
+        style={[
+          styles.content,
+          { paddingBottom: Math.max(space(8), insets.bottom + space(5)), paddingTop: insets.top },
+        ]}
+      >
+        <Appear style={styles.copy}>
+          <Image source={MARK} style={styles.mark} contentFit="contain" />
+          <Text style={styles.headline}>{HEADLINE}</Text>
+          <Text style={styles.body}>{BODY}</Text>
+        </Appear>
+
+        <View style={styles.ctas}>
+          <Pill testID="welcome-join" label="Join Us" filled onPress={go("/signup")} />
+          <Pill testID="welcome-signin" label="Sign In" onPress={go("/login")} />
         </View>
-        <Button title={last ? "Get started" : "Next"} onPress={next} />
       </View>
     </Screen>
   );
 }
 
+const PILL_H = 52;
+
 const styles = StyleSheet.create({
-  glow: { position: "absolute", top: 0, left: 0, right: 0 },
-  topBar: { alignItems: "flex-end", paddingHorizontal: layout.screenX, paddingTop: space(2) },
-  slide: { flex: 1, justifyContent: "center", paddingHorizontal: layout.screenX },
-  slideInner: { gap: space(4) },
-  display: { ...type.display, color: color.text },
-  accent: { color: color.redLight, fontStyle: "italic" },
-  body: { ...type.body, color: color.dim, maxWidth: 320 },
-  footer: { paddingHorizontal: layout.screenX, gap: space(5) },
-  dots: { flexDirection: "row", gap: space(1.5), justifyContent: "center", alignItems: "center" },
-  dot: { width: 7, height: 7, borderRadius: 999, backgroundColor: color.border2 },
+  // Bottom-anchored: the photo owns the top two-thirds, copy and CTAs sit in the scrim.
+  content: { flex: 1, justifyContent: "flex-end", paddingHorizontal: layout.screenX, gap: space(6) },
+  copy: { gap: space(3) },
+  mark: { width: 58, height: 58, marginBottom: space(2) },
+  headline: { ...type.display, color: color.inverse },
+  // maxWidth keeps the paragraph off a ragged 2-word last line on wide phones.
+  body: { ...type.body, color: color.inverse, opacity: 0.86, maxWidth: 340 },
+
+  ctas: { flexDirection: "row", gap: space(3) },
+  pill: {
+    flex: 1,
+    height: PILL_H,
+    borderRadius: 999,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  pillFilled: { backgroundColor: color.inverse },
+  pillOutlined: { borderWidth: 1, borderColor: color.inverseBorder },
+  pillLabel: { ...type.heading, color: color.inverse },
+  pillLabelFilled: { color: color.onInverse },
 });

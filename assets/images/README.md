@@ -7,7 +7,7 @@ with the Game Ground logos (keep the exact filenames), then rebuild (`npx expo r
 | File | Purpose | Spec | Which logo |
 |---|---|---|---|
 | `icon.png` | iOS + base app icon | **1024×1024, opaque (NO transparency), square**, no rounded corners (the OS rounds it) | Black mark on white/cream **or** red mark on #050505 — a full-bleed square |
-| `splash-icon.png` | Launch splash mark (bg is #050505, dark) | **transparent PNG**, ≥ 512px, mark centered | **Red** mark on transparent (a black mark would vanish on the dark splash) |
+| `splash-icon.png` | Launch splash mark (bg is #050505, dark) | **transparent PNG**, ≥ 512px, mark centered | **White** mark on transparent — the launch is deliberately monochrome, no brand red |
 | `android-icon-foreground.png` | Android adaptive-icon foreground (bg #050505 set in config) | **1024×1024, transparent**, mark inside the centre ~66% "safe zone" with transparent padding | Red mark on transparent |
 | `android-icon-monochrome.png` | Android themed icon **and the notification icon** | **1024×1024, transparent**, mark as a **solid white silhouette** (Android tints it) | White silhouette of the mark |
 
