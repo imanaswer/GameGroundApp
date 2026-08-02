@@ -108,7 +108,23 @@ module.exports = {
     "expo-router",
     "expo-secure-store",
     "expo-apple-authentication",
-    ["expo-splash-screen", { backgroundColor: "#050505", image: "./assets/images/splash-icon.png", imageWidth: 76 }],
+    // Splash mark sized to fill the screen as far as each platform allows.
+    // iOS 280pt ≈ 70% of a 390pt-wide device; at @3x that is 840px from a 1024px source, so it
+    // still never upscales. Android 12+ owns its splash (system SplashScreen API: centred icon,
+    // outer third masked off, solid background — a full-bleed image is not expressible), so it
+    // gets a smaller value that survives the mask instead of being clipped.
+    // A genuinely edge-to-edge iOS splash would need portrait artwork (~1284×2778) plus
+    // resizeMode:"cover"; the current asset is a 1024² mark and would crop badly.
+    [
+      "expo-splash-screen",
+      {
+        backgroundColor: "#050505",
+        image: "./assets/images/splash-icon.png",
+        imageWidth: 280,
+        resizeMode: "contain",
+        android: { imageWidth: 200 },
+      },
+    ],
     // Push (M12): brand-red accent + monochrome icon; the plugin adds the iOS APNs entitlement
     // and Android POST_NOTIFICATIONS permission at build time.
     ["expo-notifications", { color: "#e63946", icon: "./assets/images/android-icon-monochrome.png" }],
