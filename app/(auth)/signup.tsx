@@ -15,6 +15,13 @@ const PRIVACY_URL = "https://www.gameground.net/privacy";
 export default function Signup() {
   const router = useRouter();
   const { register, loginWithApple } = useAuth();
+  /**
+   * Two-step signup, ported from the source's Sign up 04→06 flow: email alone, then the rest.
+   * Purely client-side sequencing of the SAME single /auth/register call — the source verifies the
+   * address with an emailed code between the steps, which needs endpoints we do not have. So this
+   * borrows the pacing, not the verification, and nothing is sent until step two completes.
+   */
+  const [step, setStep] = useState<"email" | "details" | "done">("email");
   const [form, setForm] = useState({ name: "", username: "", email: "", password: "" });
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [formError, setFormError] = useState<unknown>(null);
@@ -35,7 +42,21 @@ export default function Signup() {
     setFieldErrors((e) => (e[key] ? { ...e, [key]: "" } : e));
   };
 
-  const back = () => (router.canGoBack() ? router.back() : router.replace("/onboarding"));
+  /** Step one validates ONLY the email, using the same schema field the server will apply. */
+  const advance = () => {
+    const email = form.email.trim();
+    const parsed = RegisterSchema.shape.email.safeParse(email);
+    if (!parsed.success) return setFieldErrors({ email: parsed.error.issues[0].message });
+    setFieldErrors({});
+    setStep("details");
+  };
+
+  // Back steps WITHIN the form before leaving it, so a mistyped email is one tap away rather than
+  // a full restart.
+  const back = () => {
+    if (step === "details") return setStep("email");
+    return router.canGoBack() ? router.back() : router.replace("/onboarding");
+  };
 
   const submit = async () => {
     setFormError(null);
@@ -54,7 +75,9 @@ export default function Signup() {
     setBusy(true);
     try {
       await register(parsed.data);
-      router.replace("/home");
+      // The account exists and the session is live; the success screen is an acknowledgement, not
+      // a gate. Source's Sign up 08.
+      setStep("done");
     } catch (e) {
       const inline = fieldErrorsFrom(e);
       if (Object.keys(inline).length) setFieldErrors(inline);
@@ -76,82 +99,111 @@ export default function Signup() {
       .finally(() => setAppleBusy(false));
   };
 
+  if (step === "done") {
+    return (
+      <AuthShell
+        title="You're in."
+        accent=""
+        subtitle="Your account is ready. Let's find you a game."
+        onBack={() => router.replace("/home")}
+      >
+        <Button testID="signup-continue" title="Continue" onPress={() => router.replace("/home")} />
+      </AuthShell>
+    );
+  }
+
+  const onEmailStep = step === "email";
+
   return (
     <AuthShell
-      title="Create your"
-      accent="account"
-      subtitle="Find coaches, drop into games and camps near you in Kozhikode."
+      title={onEmailStep ? "Enter your email" : "Now let's set up"}
+      accent={onEmailStep ? "to join us." : "your account."}
+      subtitle={
+        onEmailStep
+          ? "Find coaches, drop into games and camps near you in Kozhikode."
+          : form.email.trim()
+      }
       onBack={back}
     >
-      {google.available && (
+      {onEmailStep && google.available && (
         <GoogleButton label="Sign up with Google" onPress={google.prompt} disabled={busy || appleBusy} />
       )}
-      {appleAvailable && <AppleButton label="Sign up with Apple" onPress={onApple} disabled={busy || appleBusy} />}
-      {hasSocial && <Divider />}
+      {onEmailStep && appleAvailable && <AppleButton label="Sign up with Apple" onPress={onApple} disabled={busy || appleBusy} />}
+      {onEmailStep && hasSocial && <Divider />}
 
       <FormError error={formError} />
-      <Input
-        testID="signup-name"
-        label="Full name"
-        value={form.name}
-        onChangeText={update("name")}
-        error={fieldErrors.name}
-        autoComplete="name"
-        textContentType="name"
-        placeholder="Ananya Suresh"
-        returnKeyType="next"
-        blurOnSubmit={false}
-        onSubmitEditing={() => usernameRef.current?.focus()}
-      />
-      <Input
-        ref={usernameRef}
-        testID="signup-username"
-        label="Username"
-        value={form.username}
-        onChangeText={update("username")}
-        error={fieldErrors.username}
-        hint="Lowercase letters, numbers and underscores."
-        autoCapitalize="none"
-        autoCorrect={false}
-        textContentType="username"
-        placeholder="ananya_s"
-        returnKeyType="next"
-        blurOnSubmit={false}
-        onSubmitEditing={() => emailRef.current?.focus()}
-      />
-      <Input
-        ref={emailRef}
-        testID="auth-email"
-        label="Email"
-        value={form.email}
-        onChangeText={update("email")}
-        error={fieldErrors.email}
-        autoCapitalize="none"
-        autoComplete="email"
-        textContentType="emailAddress"
-        keyboardType="email-address"
-        placeholder="you@email.com"
-        returnKeyType="next"
-        blurOnSubmit={false}
-        onSubmitEditing={() => passwordRef.current?.focus()}
-      />
-      <Input
-        ref={passwordRef}
-        testID="auth-password"
-        label="Password"
-        value={form.password}
-        onChangeText={update("password")}
-        error={fieldErrors.password}
-        secureTextEntry
-        autoComplete="new-password"
-        textContentType="newPassword"
-        placeholder="At least 8 characters"
-        returnKeyType="go"
-        onSubmitEditing={submit}
-      />
-      <PasswordRules value={form.password} />
+      {onEmailStep ? (
+        <Input
+          ref={emailRef}
+          testID="auth-email"
+          label="Email"
+          value={form.email}
+          onChangeText={update("email")}
+          error={fieldErrors.email}
+          autoCapitalize="none"
+          autoComplete="email"
+          textContentType="emailAddress"
+          keyboardType="email-address"
+          placeholder="you@email.com"
+          returnKeyType="go"
+          onSubmitEditing={advance}
+        />
+      ) : (
+        <>
+        <Input
+          testID="signup-name"
+          label="Full name"
+          value={form.name}
+          onChangeText={update("name")}
+          error={fieldErrors.name}
+          autoComplete="name"
+          textContentType="name"
+          placeholder="Ananya Suresh"
+          returnKeyType="next"
+          blurOnSubmit={false}
+          onSubmitEditing={() => usernameRef.current?.focus()}
+        />
+        <Input
+          ref={usernameRef}
+          testID="signup-username"
+          label="Username"
+          value={form.username}
+          onChangeText={update("username")}
+          error={fieldErrors.username}
+          hint="Lowercase letters, numbers and underscores."
+          autoCapitalize="none"
+          autoCorrect={false}
+          textContentType="username"
+          placeholder="ananya_s"
+          returnKeyType="next"
+          blurOnSubmit={false}
+          onSubmitEditing={() => emailRef.current?.focus()}
+        />
+        <Input
+          ref={passwordRef}
+          testID="auth-password"
+          label="Password"
+          value={form.password}
+          onChangeText={update("password")}
+          error={fieldErrors.password}
+          secureTextEntry
+          autoComplete="new-password"
+          textContentType="newPassword"
+          placeholder="At least 8 characters"
+          returnKeyType="go"
+          onSubmitEditing={submit}
+        />
+        <PasswordRules value={form.password} />
+        </>
+      )}
 
-      <Button testID="auth-submit" title="Create account" onPress={submit} loading={busy} />
+      {/* Two buttons rather than one with a computed testID: the E2E selector contract can only
+          verify STATIC testIDs, and a ternary silently opts out of that check. */}
+      {onEmailStep ? (
+        <Button testID="signup-continue-email" title="Continue" onPress={advance} />
+      ) : (
+        <Button testID="auth-submit" title="Create account" onPress={submit} loading={busy} />
+      )}
       <Text style={styles.terms}>
         By continuing you agree to our{" "}
         <Text accessibilityRole="link" style={styles.termsLink} onPress={() => Linking.openURL(TERMS_URL)}>
