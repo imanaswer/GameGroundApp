@@ -4,7 +4,7 @@
  */
 import { FlashList } from "@shopify/flash-list";
 import { useRouter } from "expo-router";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { RefreshControl, StyleSheet, View } from "react-native";
 
 import { GameCard } from "@/components/cards";
@@ -13,7 +13,7 @@ import { Appear, Button, CardSkeleton, ChipRow, GamesIcon, PlusIcon, SearchIcon 
 import { toGameCard, useGamePlayers, useGames } from "@/hooks/queries";
 import { useAuth } from "@/hooks/useAuth";
 import type { GameSummary } from "@/api/types";
-import { isToday } from "@/lib/format";
+import { isToday, prettySport } from "@/lib/format";
 import * as haptics from "@/lib/haptics";
 import { color, icon as iconSize, layout, space } from "@/lib/tokens";
 
@@ -23,28 +23,39 @@ function GameFeedCard({ game, onPress }: { game: GameSummary; onPress: () => voi
   return <GameCard data={toGameCard(game, players)} onPress={onPress} />;
 }
 
-// Keys are sent verbatim to the API's `sport` filter, which is case-sensitive — they MUST match the
-// server's stored casing (e.g. "Football", not "football"), or the query returns nothing.
-const SPORTS = [
-  { key: "all", label: "All" },
-  { key: "Football", label: "Football" },
-  { key: "Cricket", label: "Cricket" },
-  { key: "Badminton", label: "Badminton" },
-  { key: "Basketball", label: "Basketball" },
-  { key: "Tennis", label: "Tennis" },
-];
-
 export default function GamesTab() {
   const router = useRouter();
   const { user } = useAuth();
   const [sport, setSport] = useState("all");
 
+  // Unfiltered by sport on purpose: the chips are derived from what comes back, so filtering the
+  // query would collapse the chip row to whatever is already selected. Same pattern as the coaches
+  // tab, which also filters client-side.
   const { data, isLoading, isError, error, refetch, isRefetching, isPaused } = useGames({
-    sport,
     status: "open",
   });
 
-  const empty = data && data.length === 0;
+  // Chips come from the data, never a hardcoded list: a new sport appears the moment a game is
+  // hosted in it, a sport with nothing on offer is not advertised, and there is no case-sensitivity
+  // trap from hand-written keys having to match the server's stored casing.
+  const chips = useMemo(() => {
+    const unique = Array.from(new Set((data ?? []).map((g) => g.sport).filter(Boolean)));
+    return [
+      { key: "all", label: "All" },
+      // Sort on the LABEL, not the raw value: server casing is inconsistent, and a plain sort()
+      // puts "BOXING/KICK" before "Badminton" because uppercase sorts first in ASCII.
+      ...unique
+        .map((s) => ({ key: s, label: prettySport(s) }))
+        .sort((a, b) => a.label.localeCompare(b.label)),
+    ];
+  }, [data]);
+
+  const games = useMemo(
+    () => (sport === "all" ? (data ?? []) : (data ?? []).filter((g) => g.sport === sport)),
+    [data, sport],
+  );
+
+  const empty = data && games.length === 0;
   // Subtitle counts games happening TODAY (not the total open list), per the mock copy.
   const liveToday = (data ?? []).filter((g) => isToday(g.startsAt)).length;
   // Neutral line while loading or empty — never a negative "0 … live today" over an empty state.
@@ -78,7 +89,7 @@ export default function GamesTab() {
       />
       {isPaused && <OfflineBanner />}
       <View style={styles.chips}>
-        <ChipRow items={SPORTS} value={sport} onChange={setSport} />
+        <ChipRow items={chips} value={sport} onChange={setSport} />
       </View>
 
       {isLoading ? (
@@ -94,7 +105,7 @@ export default function GamesTab() {
       ) : empty ? (
         <EmptyState
           icon={<GamesIcon size={iconSize.empty} color={color.red} />}
-          headline={sport === "all" ? "No games tonight — yet." : `No ${sport} games — yet.`}
+          headline={sport === "all" ? "No games tonight — yet." : `No ${prettySport(sport)} games — yet.`}
           body="Someone has to go first. Why not you?"
           cta={{ label: "Host a game", onPress: hostGame }}
         />
@@ -103,7 +114,7 @@ export default function GamesTab() {
         // in-place refetches (pull-to-refresh) do not.
         <Appear key={sport} style={styles.listWrap}>
           <FlashList
-            data={data}
+            data={games}
             keyExtractor={(g) => g.id}
             contentContainerStyle={{ ...styles.list, paddingBottom: bottomPad + space(14) }}
             ItemSeparatorComponent={() => <View style={styles.sep} />}
