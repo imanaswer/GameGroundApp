@@ -8,9 +8,9 @@
 const profile = process.env.APP_ENV ?? "development";
 
 const variant = {
-  development: { name: "Game Ground (Dev)", id: "net.gameground.app.dev" },
-  preview: { name: "Game Ground (Preview)", id: "net.gameground.app.preview" },
-  production: { name: "Game Ground", id: "net.gameground.app" },
+  development: { name: "GG Redesign (Dev)", id: "net.gameground.redesigned.dev" },
+  preview: { name: "GG Redesign (Preview)", id: "net.gameground.redesigned.preview" },
+  production: { name: "GG Redesign", id: "net.gameground.redesigned" },
 }[profile];
 
 const sentryDsn = process.env.SENTRY_DSN ?? null;
@@ -60,16 +60,18 @@ const sentryPlugin = (() => {
 
 module.exports = {
   name: variant.name,
-  slug: "gameground-mobile",
-  owner: "imanaswer",
-  version: "1.0.1",
+  slug: "redesigned-gameground",
+  version: "1.0.0",
   orientation: "portrait",
   icon: "./assets/images/icon.png",
-  scheme: "gameground",
+  // Distinct from the original's "gameground://" — two apps registering the same scheme on one
+  // device makes which one opens a deep link undefined.
+  scheme: "ggredesign",
   userInterfaceStyle: "dark",
   backgroundColor: "#050505",
-  // EAS Update (OTA). runtimeVersion tracks app version so OTA never crosses a native change.
-  updates: { url: "https://u.expo.dev/c51e7b53-2f3f-4556-b1c7-4e539836f90a" },
+  // EAS Update is deliberately NOT configured. This project shares no OTA channel with the
+  // original: inheriting its `updates.url` + projectId would push the ORIGINAL app's JS bundle
+  // onto this one. Run `eas init` (then re-add `updates`) when this app needs its own project.
   runtimeVersion: { policy: "appVersion" },
   ios: {
     bundleIdentifier: variant.id,
@@ -135,7 +137,8 @@ module.exports = {
   extra: {
     appEnv: profile,
     sentryDsn,
-    // Linked EAS project (eas init). Env override kept for CI / alternate accounts.
-    eas: { projectId: process.env.EAS_PROJECT_ID ?? "c51e7b53-2f3f-4556-b1c7-4e539836f90a" },
+    // No hardcoded projectId — that id belongs to the original app's EAS project. `eas init` will
+    // write a new one here; until then only EAS_PROJECT_ID from the env applies.
+    ...(process.env.EAS_PROJECT_ID ? { eas: { projectId: process.env.EAS_PROJECT_ID } } : {}),
   },
 };
