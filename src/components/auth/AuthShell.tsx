@@ -67,7 +67,7 @@ export function AuthShell({ title, accent, subtitle, onBack, children }: ShellPr
             <BackIcon size={22} color={color.text} />
           </Press>
 
-          <Image source={MARK} style={styles.mark} resizeMode="contain" />
+          <Image source={MARK} style={styles.mark} resizeMode="contain" tintColor={color.primary} />
           <Text style={styles.heading}>
             {title} <Text style={styles.accent}>{accent}</Text>
           </Text>
@@ -145,9 +145,15 @@ const styles = StyleSheet.create({
    */
   back: { width: 32, height: 32, marginLeft: -space(1), alignItems: "flex-start", justifyContent: "center" },
   /**
-   * Small and WIDE, like the source's swoosh — a mark, not a logo tile. At 46² ours read as a
-   * third heavyweight element above the headline; the source's is roughly a third of that area
-   * and sits well clear of the type, which is what lets the headline dominate.
+   * Small, wide and BLACK — a mark, not a logo tile.
+   *
+   * The asset is the red mark (#F65F57) and this was the one place it rendered untinted; Header
+   * has always tinted it. After the light port that left a red logo on a white page in a system
+   * whose whole point is that it has no brand accent — the only coloured element on the screen,
+   * and the first thing the eye lands on.
+   *
+   * Size: at 46² it read as a third heavyweight block above the headline. The source's mark is
+   * roughly a third of that area and sits clear of the type, which is what lets the headline lead.
    */
   mark: { width: 44, height: 33, marginTop: space(7), marginBottom: space(5) },
   heading: { ...type.authTitle, color: color.text },
