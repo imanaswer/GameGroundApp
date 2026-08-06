@@ -3,7 +3,6 @@
  * besides api/auth.ts persist. Screens read `useAuth()`; they never touch storage.
  */
 import { useQueryClient } from "@tanstack/react-query";
-import * as AppleAuthentication from "expo-apple-authentication";
 import Constants from "expo-constants";
 import * as Crypto from "expo-crypto";
 import * as WebBrowser from "expo-web-browser";
@@ -17,7 +16,6 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { Platform } from "react-native";
 
 import * as authApi from "@/api/auth";
 import { isNoResponse } from "@/api/client";
@@ -42,8 +40,7 @@ type AuthContextValue = {
     email: string;
     password: string;
   }) => Promise<void>;
-  loginWithApple: () => Promise<void>;
-  /** Social flows land their payload here after the native handshake. */
+  /** Social flows land their payload here after the browser handshake. */
   adopt: (payload: AuthPayload) => void;
   logout: () => Promise<void>;
 };
@@ -102,20 +99,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [adopt],
   );
 
-  const loginWithApple = useCallback(async () => {
-    const credential = await AppleAuthentication.signInAsync({
-      requestedScopes: [
-        AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
-        AppleAuthentication.AppleAuthenticationScope.EMAIL,
-      ],
-    });
-    if (!credential.identityToken) throw new Error("Apple sign-in returned no token");
-    const fullName = [credential.fullName?.givenName, credential.fullName?.familyName]
-      .filter(Boolean)
-      .join(" ");
-    adopt(await authApi.loginWithApple(credential.identityToken, fullName || null));
-  }, [adopt]);
-
   // Logout (§5.1): unregister push → revoke → clear SecureStore → clear cache → reset identity.
   const logout = useCallback(async () => {
     await unregisterForPush().catch(() => {});
@@ -129,8 +112,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [queryClient]);
 
   const value = useMemo(
-    () => ({ user, status, offline, login, register, loginWithApple, adopt, logout }),
-    [user, status, offline, login, register, loginWithApple, adopt, logout],
+    () => ({ user, status, offline, login, register, adopt, logout }),
+    [user, status, offline, login, register, adopt, logout],
   );
 
   return createElement(AuthContext.Provider, { value }, children);
@@ -224,19 +207,4 @@ function base64url(bytes: Uint8Array): string {
   let binary = "";
   for (const b of bytes) binary += String.fromCharCode(b);
   return toBase64Url(global.btoa(binary));
-}
-
-/**
- * Apple button shows only where Apple auth actually works — which means BOTH the device supporting
- * it and the server being configured for it. Device capability alone would ship this visible on
- * every iPhone, including against a deployment with no `APPLE_BUNDLE_IDS`, where
- * `/auth/apple/mobile` answers 503. `env.appleAuthEnabled` is the build-time mirror of that.
- */
-export function useAppleAvailable(): boolean {
-  const [deviceSupports, setDeviceSupports] = useState(false);
-  useEffect(() => {
-    if (Platform.OS !== "ios" || !env.appleAuthEnabled) return;
-    AppleAuthentication.isAvailableAsync().then(setDeviceSupports, () => setDeviceSupports(false));
-  }, []);
-  return env.appleAuthEnabled && deviceSupports;
 }

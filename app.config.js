@@ -126,7 +126,6 @@ module.exports = {
   plugins: [
     "expo-router",
     "expo-secure-store",
-    "expo-apple-authentication",
     // Monochrome launch: white mark on the near-black field, no brand red (decision 18).
     // backgroundColor stays `color.bg` (#050505) rather than pure #000 so the handoff from the
     // native splash to the first React screen is seamless — a #000 splash against a #050505 app

@@ -139,9 +139,51 @@ describe("401 → refresh → replay", () => {
 
   test("requests without a token never attempt refresh (bad login stays a 401)", async () => {
     fetchMock.mockResolvedValue(res(401, { ok: false, error: "Wrong password" }));
-    const err = await trap(api.post("/auth/login", { email: "a@b.c", password: "x" }, { retry401: false }));
+    const err = await trap(
+      api.post("/auth/login", { email: "a@b.c", password: "x" }, { skipSessionRefresh: true }),
+    );
     expect(err.message).toBe("Wrong password");
     expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  /**
+   * The counterpart to the test above, and the regression guard for the bug this replaced: every
+   * write in the app had opted out of refresh-and-replay, so an expired access token surfaced as a
+   * bare "Authentication required" while reads recovered silently. The server rejects a 401 before
+   * the route handler runs, so replaying a mutation is safe — and on `/payments/verify` it is the
+   * difference between a recoverable payment and one reported as failed after the money moved.
+   */
+  test("a MUTATION also refreshes and replays, and does so exactly once", async () => {
+    mem.set("gg.access", "tok-stale");
+    mem.set("gg.refresh", "ref-1");
+    fetchMock.mockImplementation(routes(200));
+
+    const out = await api.post("/payments/verify", { razorpay_payment_id: "pay_1" });
+
+    expect(out).toEqual({ fine: true });
+    const verifyCalls = fetchMock.mock.calls.filter(([u]) => String(u).endsWith("/payments/verify"));
+    expect(verifyCalls).toHaveLength(2); // the 401, then the replay — never more
+    expect(verifyCalls[1][1].headers.Authorization).toBe("Bearer tok-new");
+  });
+
+  test("a replay that 401s again gives up instead of looping", async () => {
+    mem.set("gg.access", "tok-stale");
+    mem.set("gg.refresh", "ref-1");
+    // Refresh succeeds, but the replayed request is still refused. Without the `replayed` guard
+    // this recurses until the stack gives out.
+    fetchMock.mockImplementation((url: string) =>
+      Promise.resolve(
+        String(url).endsWith("/auth/refresh")
+          ? res(200, { ok: true, data: { token: "tok-new", refreshToken: "ref-new" } })
+          : res(401, { ok: false, error: "Unauthorized" }),
+      ),
+    );
+
+    const err = await trap(api.del("/users/u1"));
+
+    expect(err.status).toBe(401);
+    const refreshCalls = fetchMock.mock.calls.filter(([u]) => String(u).endsWith("/auth/refresh"));
+    expect(refreshCalls).toHaveLength(1);
   });
 });
 

@@ -1,13 +1,15 @@
-/** Auth endpoints (Developer PRD §3.2, §5). All 401s here are verdicts, not expiry — no retry. */
+/** Auth endpoints (Developer PRD §3.2, §5). All 401s here are verdicts, not expiry — no refresh. */
 import * as storage from "@/lib/storage";
 
 import { api } from "./client";
 import type { AuthPayload, SessionUser } from "./types";
 
-const NO_RETRY = { retry401: false } as const;
+/** A 401 from these is the server rejecting the credentials — refreshing and replaying is
+ *  meaningless. Every OTHER endpoint refreshes and replays; see Options in client.ts. */
+const CREDENTIAL = { skipSessionRefresh: true } as const;
 
 export async function login(email: string, password: string): Promise<AuthPayload> {
-  return persist(await api.post<AuthPayload>("/auth/login", { email, password }, NO_RETRY));
+  return persist(await api.post<AuthPayload>("/auth/login", { email, password }, CREDENTIAL));
 }
 
 export async function register(input: {
@@ -16,7 +18,7 @@ export async function register(input: {
   email: string;
   password: string;
 }): Promise<AuthPayload> {
-  return persist(await api.post<AuthPayload>("/auth/register", input, NO_RETRY));
+  return persist(await api.post<AuthPayload>("/auth/register", input, CREDENTIAL));
 }
 
 /**
@@ -26,17 +28,7 @@ export async function register(input: {
  */
 export async function exchangeGoogleCode(code: string, verifier: string): Promise<AuthPayload> {
   return persist(
-    await api.post<AuthPayload>("/auth/google/exchange", { code, verifier }, NO_RETRY),
-  );
-}
-
-/** Apple sends name/email on FIRST authorization only — forward them so the server persists. */
-export async function loginWithApple(
-  identityToken: string,
-  fullName?: string | null,
-): Promise<AuthPayload> {
-  return persist(
-    await api.post<AuthPayload>("/auth/apple/mobile", { identityToken, fullName }, NO_RETRY),
+    await api.post<AuthPayload>("/auth/google/exchange", { code, verifier }, CREDENTIAL),
   );
 }
 
@@ -52,14 +44,14 @@ export async function me(): Promise<SessionUser> {
 }
 
 export function forgotPassword(email: string): Promise<unknown> {
-  return api.post("/auth/forgot-password", { email }, NO_RETRY);
+  return api.post("/auth/forgot-password", { email }, CREDENTIAL);
 }
 
 /** Best-effort server revoke; callers still clear local state when this throws. */
 export function revoke(all = false): Promise<unknown> {
   return storage
     .deviceId()
-    .then((deviceId) => api.post("/auth/revoke", { deviceId, all }, NO_RETRY));
+    .then((deviceId) => api.post("/auth/revoke", { deviceId, all }, CREDENTIAL));
 }
 
 async function persist(payload: AuthPayload): Promise<AuthPayload> {

@@ -22,7 +22,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Screen } from "@/components/chrome/Screen";
-import { AppleGlyph, BackIcon, GoogleGlyph } from "@/components/ds";
+import { BackIcon, GoogleGlyph } from "@/components/ds";
 import { Press } from "@/components/ds/Press";
 import { color, google, radius, space, type } from "@/lib/tokens";
 import { themed, usePalette, useThemedStyles } from "@/theme/runtime";
@@ -90,18 +90,6 @@ export function GoogleButton({ label, onPress, disabled }: { label: string; onPr
     <Press accessibilityRole="button" accessibilityState={{ disabled }} disabled={disabled} onPress={onPress} style={[styles.social, styles.google, disabled && styles.socialDisabled]}>
       <GoogleGlyph size={18} />
       <Text style={[styles.socialLabel, styles.googleLabel]}>{label}</Text>
-    </Press>
-  );
-}
-
-/** Black Apple button — kept for iOS alongside Google. */
-export function AppleButton({ label, onPress, disabled }: { label: string; onPress: () => void; disabled?: boolean }) {
-  const styles = useThemedStyles(sheets);
-  const color = usePalette();
-  return (
-    <Press accessibilityRole="button" accessibilityState={{ disabled }} disabled={disabled} onPress={onPress} style={[styles.social, styles.apple, disabled && styles.socialDisabled]}>
-      <AppleGlyph size={18} color={color.onPrimary} />
-      <Text style={[styles.socialLabel, styles.appleLabel]}>{label}</Text>
     </Press>
   );
 }
@@ -188,14 +176,8 @@ const sheets = themed(() => ({
   // A white button on a white page needs a border to exist at all; on the old dark ground the
   // surface alone was the separation.
   google: { backgroundColor: google.surface, borderWidth: 1, borderColor: color.border },
-  // Black fill, per Apple's own light-mode guidance and the source's filled-action language.
-  // Was a near-black card fill on a dark ground; on white that became grey-on-white mush.
-  apple: { backgroundColor: color.primary },
   socialDisabled: { opacity: 0.5 },
   socialLabel: { ...type.bodyStrong, color: color.text },
-  // The Apple button is a `primary` fill: black pill/white mark in light, inverted in dark —
-  // which is also both of Apple's own sanctioned treatments.
-  appleLabel: { color: color.onPrimary },
   googleLabel: { color: google.onSurface },
 
   divider: { flexDirection: "row", alignItems: "center", gap: space(3.5), marginVertical: space(5) },

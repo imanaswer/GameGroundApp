@@ -8,6 +8,9 @@ import { useCallback, useEffect, useState } from "react";
 import { Alert, Linking, Text, View } from "react-native";
 import Animated, { useAnimatedScrollHandler, useSharedValue } from "react-native-reanimated";
 
+// Constant only, not a data call — the leave cutoff the server enforces, so the prose on this
+// screen and the behaviour it describes cannot drift apart (they were two separate "90"s).
+import { LEAVE_CUTOFF_MS } from "@/api/games";
 import { DateBadge, ErrorState, HeroNav, ParallaxHero, Screen, Sheet, StickyCTA, useToast } from "@/components/chrome";
 import { CheckoutSheet } from "@/components/checkout";
 import {
@@ -225,7 +228,7 @@ export default function GameDetail() {
       haptics.warning();
       show({
         title: "Too late to leave",
-        body: "Spots can’t be given up within 90 minutes of kick-off.",
+        body: `Spots can’t be given up within ${LEAVE_CUTOFF_MS / 60_000} minutes of kick-off.`,
       });
       return;
     }
@@ -467,12 +470,24 @@ export default function GameDetail() {
                 <Text style={styles.label}>Good to know</Text>
                 <ExpandCard
                   title="Rules & etiquette"
-                  body="Arrive 10 minutes early · Non-marking shoes only · Attendance counts toward your tier · Spots can’t be given up within 90 minutes of kick-off."
+                  body={`Arrive 10 minutes early · Non-marking shoes only · Attendance counts toward your tier · Spots can’t be given up within ${LEAVE_CUTOFF_MS / 60_000} minutes of kick-off.`}
                 />
-                <ExpandCard
-                  title="Refunds & cancellation"
-                  body="Full refund if the organizer cancels. Player cancellations follow the cutoff shown at checkout."
-                />
+                {/*
+                  Rendered ONLY when the server sends a policy.
+
+                  This card used to be static copy promising "Full refund if the organizer
+                  cancels" — a promise the platform has no code to keep: admin cancellation flips
+                  the status and leaves paid joiners charged, and games are not a refund category
+                  in adminBookings at all (SYSTEM_LOGIC_AUDIT §1.3–§1.5). Its second sentence
+                  pointed at "the cutoff shown at checkout", which the checkout sheet never showed.
+
+                  Saying nothing is the honest state until a refund path exists. When the server
+                  adds `refundPolicy`, this card returns and tracks it — including every later
+                  revision — without an app release.
+                */}
+                {!!game.refundPolicy && (
+                  <ExpandCard title="Refunds & cancellation" body={game.refundPolicy} />
+                )}
               </View>
             </>
           )}

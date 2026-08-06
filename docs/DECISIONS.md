@@ -4,6 +4,7 @@ One line per decision. The product PRD §12 mirrors decisions 1–8; new entries
 
 | # | Date | Decision | Owner |
 |---|---|---|---|
+| 27 | 6 Aug 2026 | **Sign in with Apple is removed; Google is the only social login.** Requested by Anaswer. Deletes `loginWithApple` (api + hook), `useAppleAvailable`, `AppleButton`, `AppleGlyph`, the `EXPO_PUBLIC_APPLE_AUTH_ENABLED` flag, the `expo-apple-authentication` dependency and its config plugin. The flag was already `false` in all three EAS profiles, so this is a code removal, not a behaviour change. **This is an iOS submission blocker, not a bug:** App Store Guideline 4.8 requires an equivalent privacy-preserving login wherever a third-party login (Google is named explicitly) establishes the primary account, and the "own account system only" exemption does not apply while Google is offered. Email/password likely fails 4.8's email-masking criterion. Apple sign-in must be restored, or Google dropped on iOS, before an App Store submission. Server-side `/api/auth/apple/mobile`, `User.appleId` and `APPLE_BUNDLE_IDS` are untouched and left in place. | Anaswer |
 | 1 | 10 Jul 2026 | React Native/Expo, single codebase, both platforms | Anaswer |
 | 2 | 10 Jul 2026 | Launch scope = full web parity; phased internal build order (M0–M17) | Anaswer |
 | 3 | 10 Jul 2026 | Reuse existing Next.js API; refresh-token auth added server-side (M1) | Anaswer |

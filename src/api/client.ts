@@ -50,10 +50,31 @@ type Options = {
   body?: unknown;
   timeoutMs?: number;
   /**
-   * Attempt refresh+replay on 401. Defaults on; auth endpoints (login/register/refresh/revoke)
-   * turn it off — a 401 there means bad credentials, not an expired session (§S1.7).
+   * Don't try to refresh the session when this request 401s. Two legitimate uses, and no others:
+   *
+   *  1. **The credential endpoints** — login, register, refresh, revoke, forgot-password, the
+   *     social exchange. A 401 there is the server rejecting the credentials themselves;
+   *     refreshing and replaying would be nonsense.
+   *  2. **Logout-time cleanup** (`push.unregister`). Refreshing a session that is being destroyed
+   *     is wasted work, and a refresh that fails mid-logout fires "Session expired" over a logout
+   *     the user asked for.
+   *
+   * Everywhere else a 401 means the access token expired, and the client refreshes once and
+   * replays. **That includes mutations**, which does not contradict §S1.7's "mutations are never
+   * auto-retried": that rule is about 429s and dropped connections, where the first attempt may
+   * well have been applied and a blind retry could duplicate it. A 401 is the opposite case — the
+   * server rejects it in `getSessionFromRequest` before the route handler runs, so the first
+   * attempt provably did nothing and the replay is the first real attempt.
+   *
+   * This was one `retry401` flag, and the name did the damage: reading "retry" next to "never
+   * auto-retry a mutation", every write in the app had turned it off. Reads silently recovered
+   * from an expired session while writes returned a bare "Authentication required" with the app
+   * still believing it was signed in — and a 401 on `/payments/verify` became a hard failure
+   * instead of a reconcile, losing the recovery path for a payment that had already been debited.
    */
-  retry401?: boolean;
+  skipSessionRefresh?: boolean;
+  /** Internal. Set on the single replay after a refresh so a second 401 cannot recurse. */
+  replayed?: boolean;
 };
 
 const DEFAULT_TIMEOUT = 15_000;
@@ -94,9 +115,17 @@ async function rawRequest<T>(method: string, path: string, opts: Options): Promi
     throw new ApiClientError(426, "Update required to continue");
   }
 
-  if (res.status === 401 && token && opts.retry401 !== false && path !== "/auth/refresh") {
+  // The `path` check is redundant with `skipSessionRefresh` (doRefresh sets it) and kept anyway:
+  // if that flag were ever dropped from the refresh call, this is what stops the recursion.
+  if (
+    res.status === 401 &&
+    token &&
+    !opts.skipSessionRefresh &&
+    !opts.replayed &&
+    path !== "/auth/refresh"
+  ) {
     const outcome = await refreshSession();
-    if (outcome === "ok") return rawRequest<T>(method, path, { ...opts, retry401: false });
+    if (outcome === "ok") return rawRequest<T>(method, path, { ...opts, replayed: true });
     if (outcome === "rejected") {
       await storage.clearAuth();
       handlers.onSessionExpired?.();
@@ -140,7 +169,7 @@ async function doRefresh(): Promise<"ok" | "rejected" | "unreachable"> {
   try {
     const data = await rawRequest<RefreshPayload>("POST", "/auth/refresh", {
       body: { refreshToken, deviceId: await storage.deviceId() },
-      retry401: false,
+      skipSessionRefresh: true,
     });
     await storage.set("gg.access", data.token);
     await storage.set("gg.refresh", data.refreshToken);

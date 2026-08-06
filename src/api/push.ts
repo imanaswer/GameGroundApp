@@ -15,13 +15,20 @@ export type RegisterInput = {
 
 /** Upsert on token; refreshes lastSeenAt. Called on every app open when permission is granted. */
 export function register(input: RegisterInput): Promise<{ ok: true }> {
-  return api.post<{ ok: true }>("/push/register", input, { retry401: true });
+  // Refresh-and-replay on 401 is the default; this used to say so explicitly, which is now noise.
+  return api.post<{ ok: true }>("/push/register", input);
 }
 
-/** Best-effort removal on logout. */
+/**
+ * Best-effort removal on logout.
+ *
+ * `skipSessionRefresh` is deliberate here and is the one non-credential use of it: this runs as
+ * the first step of `logout()`, so renewing the session we are about to revoke is pointless, and
+ * a refresh that fails would fire a "Session expired" toast over a logout the user asked for.
+ */
 export function unregister(expoPushToken: string): Promise<{ ok: true }> {
   return api.del<{ ok: true }>(`/push/register?token=${encodeURIComponent(expoPushToken)}`, {
-    retry401: false,
+    skipSessionRefresh: true,
   });
 }
 

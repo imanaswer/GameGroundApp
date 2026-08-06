@@ -209,6 +209,35 @@ export interface RankProgress {
   points: number;
   /** Points at which the next tier unlocks; null when already at the top tier. */
   nextTierAt: number | null;
+  /**
+   * Fill fraction 0–1, measured across the CURRENT tier's span (its floor → the next tier's),
+   * never from zero. Computed in `api/users.ts` so the component renders a number instead of
+   * deriving one — which is what lets the server's own `pct` replace it without touching a screen.
+   */
+  ratio: number;
+  /**
+   * Where the thresholds came from. "fallback" means the server sent no `progress` block and
+   * `lib/tierLadder.ts` stood in.
+   */
+  source: "server" | "fallback";
+}
+
+/**
+ * The `progress` block the server is expected to start sending on `/users/:id`. This is exactly
+ * the shape `progressToNextTier()` already returns in `GG/src/lib/reputation.ts` — the server
+ * computes all four values today and simply does not serialise them.
+ *
+ * Every field is optional: absent today, preferred the moment it appears. Nothing else in the app
+ * has to change when it does.
+ */
+export interface RawRankProgress {
+  current?: Tier | null;
+  next?: Tier | null;
+  /** Points at which `next` unlocks; null/absent at the top tier. */
+  nextAt?: number | null;
+  /** Whole percent 0–100, as the server computes it. */
+  pct?: number | null;
+  pointsToNext?: number | null;
 }
 
 export interface ProfileStats {
@@ -412,4 +441,16 @@ export interface GameDetail extends GameSummary {
   viewerIsOrganizer: boolean;
   /** Leave cutoff has passed — the client surfaces this; the server enforces it (§7). */
   leaveDeadlinePassed: boolean;
+  /**
+   * The platform's refund/cancellation policy for THIS game, as prose the server owns.
+   *
+   * Null today — no server field exists — and the detail screen omits the card entirely when it is
+   * null rather than asserting a policy. It previously carried hardcoded copy ("Full refund if the
+   * organizer cancels") that the platform has no code to honour: per SYSTEM_LOGIC_AUDIT §1.3–§1.5,
+   * cancelling a paid game refunds nothing and games are not even a refund category in admin.
+   *
+   * Once the server sends it, the app renders whatever policy is actually in force, and every
+   * later revision of that policy reaches installed apps with no release.
+   */
+  refundPolicy: string | null;
 }

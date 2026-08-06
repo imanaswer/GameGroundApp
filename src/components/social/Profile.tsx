@@ -72,14 +72,17 @@ export function PlayerHeroCard({ profile, isSelf }: { profile: UserProfile; isSe
   );
 }
 
+/**
+ * The bar renders `progress.ratio` and the caption renders `progress.nextTierAt` — both decided in
+ * `api/users.ts`, which knows whether they came from the server or the fallback ladder. This
+ * component deliberately computes neither: the arithmetic used to live here (`points / nextTierAt`,
+ * measured from zero rather than across the tier's span, so every tier above bronze read too full)
+ * and the threshold used to come straight off the local ladder.
+ */
 export function RankProgress({ progress }: { progress: Progress }) {
   const styles = useThemedStyles(sheets);
   const color = usePalette();
-  const ratio =
-    progress.nextTierAt && progress.nextTierAt > 0
-      ? Math.min(1, progress.points / progress.nextTierAt)
-      : 1;
-  const next = nextTier(progress.tier);
+  const nextTierLabel = nextTier(progress.tier)?.tier;
   return (
     <View style={styles.progressWrap}>
       <View style={styles.track}>
@@ -87,12 +90,16 @@ export function RankProgress({ progress }: { progress: Progress }) {
           colors={[tierMap[progress.tier].fg, color.gold]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 0 }}
-          style={[styles.fill, { width: `${Math.max(4, ratio * 100)}%` }]}
+          style={[styles.fill, { width: `${Math.max(4, progress.ratio * 100)}%` }]}
         />
       </View>
       <View style={styles.progressMetaRow}>
         <CountUp value={progress.points} suffix=" pts" style={styles.progressMeta} />
-        <Text style={styles.progressMeta}>{next ? `${cap(next.tier)} at ${next.at}` : "Top tier"}</Text>
+        <Text style={styles.progressMeta}>
+          {progress.nextTierAt !== null && nextTierLabel
+            ? `${cap(nextTierLabel)} at ${progress.nextTierAt}`
+            : "Top tier"}
+        </Text>
       </View>
     </View>
   );

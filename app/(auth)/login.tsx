@@ -3,30 +3,28 @@ import { useEffect, useRef, useState } from "react";
 import { Text, TextInput, View } from "react-native";
 
 import { LoginSchema } from "@/api/schemas";
-import { AppleButton, AuthShell, Divider, GoogleButton, SwitchLink } from "@/components/auth/AuthShell";
+import { AuthShell, Divider, GoogleButton, SwitchLink } from "@/components/auth/AuthShell";
 import { FormError, fieldErrorsFrom } from "@/components/auth/fields";
 import { useHandoff } from "@/components/chrome";
 import { Button, Input } from "@/components/ds";
 import { Press } from "@/components/ds/Press";
-import { useAppleAvailable, useAuth, useGoogleLogin } from "@/hooks/useAuth";
+import { useAuth, useGoogleLogin } from "@/hooks/useAuth";
 import { color, space, type } from "@/lib/tokens";
 import { themed, useThemedStyles } from "@/theme/runtime";
 
 export default function Login() {
   const styles = useThemedStyles(sheets);
   const router = useRouter();
-  const { login, loginWithApple, status: authStatus } = useAuth();
+  const { login, status: authStatus } = useAuth();
   const { begin: beginHandoff } = useHandoff();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [formError, setFormError] = useState<unknown>(null);
   const [busy, setBusy] = useState(false);
-  const [appleBusy, setAppleBusy] = useState(false);
 
   const google = useGoogleLogin(setFormError);
-  const appleAvailable = useAppleAvailable();
-  const hasSocial = google.available || appleAvailable;
+  const hasSocial = google.available;
 
   const passwordRef = useRef<TextInput>(null);
   // Clear a field's error the moment the user starts fixing it, so the red line never
@@ -35,10 +33,10 @@ export default function Login() {
 
   /**
    * ANY successful sign-in on this screen leaves through the brand loader, whatever produced it —
-   * email/password, Apple, or Google (whose hook never navigates at all; it relies on the status
+   * email/password or Google (whose hook never navigates at all; it relies on the status
    * flipping). Keying off the status rather than the individual handlers is what stops a path
-   * from silently opting out of the handoff, which is exactly how Apple and Google skipped
-   * signup's success screen.
+   * from silently opting out of the handoff, which is exactly how Google skipped signup's
+   * success screen.
    *
    * `begin()` raises the loader ABOVE the navigator, so replacing the route in the same commit is
    * fine — and wanted. The tabs mount behind the loader instead of after it.
@@ -73,17 +71,6 @@ export default function Login() {
     }
   };
 
-  const onApple = () => {
-    if (appleBusy) return;
-    setAppleBusy(true);
-    loginWithApple()
-      .then(() => {})
-      // Code ERR_REQUEST_CANCELED = user dismissed the native sheet — an intentional exit, not an error.
-      .catch((e) => {
-        if ((e as { code?: string })?.code !== "ERR_REQUEST_CANCELED") setFormError(e);
-      })
-      .finally(() => setAppleBusy(false));
-  };
 
   return (
     <AuthShell
@@ -142,9 +129,8 @@ export default function Login() {
 
       {hasSocial && <Divider />}
       {google.available && (
-        <GoogleButton label="Continue with Google" onPress={google.prompt} disabled={busy || appleBusy} />
+        <GoogleButton label="Continue with Google" onPress={google.prompt} disabled={busy} />
       )}
-      {appleAvailable && <AppleButton label="Continue with Apple" onPress={onApple} disabled={busy || appleBusy} />}
 
       <View style={styles.spacer} />
       <SwitchLink

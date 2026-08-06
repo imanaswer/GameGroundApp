@@ -17,10 +17,16 @@ import { useAuth } from "@/hooks/useAuth";
 import { formatWhen } from "@/lib/format";
 import * as haptics from "@/lib/haptics";
 import { hasWhatsAppNumber } from "@/lib/phone";
+import { SPORTS } from "@/lib/sports";
 import { color, icon as iconSize, layout, radius, space, type } from "@/lib/tokens";
 import { themed, usePalette, useThemedStyles } from "@/theme/runtime";
 
-const SPORTS = ["Football", "Cricket", "Badminton", "Basketball", "Tennis", "Volleyball"];
+/**
+ * Sports come from `lib/sports.ts`, which mirrors the server taxonomy. This screen used to carry
+ * its own six-entry list — a third copy, and the shortest of the three: a host could not create a
+ * Table Tennis or Athletics game even though the platform supports both, and the `?sport=` deep
+ * link below silently dropped any sport missing from it.
+ */
 // Must match the server's skillLevel enum exactly (no "Any").
 const SKILLS = ["Beginner", "Intermediate", "Advanced", "All Levels"] as const;
 const STEPS = ["Basics", "Venue", "Size", "Details"] as const;
@@ -55,7 +61,8 @@ export default function CreateGame() {
   const [step, setStep] = useState(0);
   const [form, setForm] = useState({
     title: "",
-    sport: sportParam && SPORTS.includes(sportParam) ? sportParam : "",
+    // Widened: SPORTS is a readonly tuple of literals, and the deep-link param is a plain string.
+    sport: sportParam && (SPORTS as readonly string[]).includes(sportParam) ? sportParam : "",
     venueId: "",
     slotId: "",
     slots: "10",

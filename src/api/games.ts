@@ -59,6 +59,8 @@ type RawGame = {
   viewerWaitlisted?: boolean;
   viewerIsOrganizer?: boolean;
   leaveDeadlinePassed?: boolean;
+  /** Not sent yet — the policy prose the app should display instead of hardcoding one. */
+  refundPolicy?: string | null;
 };
 
 /**
@@ -148,6 +150,9 @@ function toDetail(r: RawGame, viewerId?: string | null): GameDetail {
     leaveDeadlinePassed:
       r.leaveDeadlinePassed ??
       new Date(r.scheduledAt).getTime() - Date.now() < LEAVE_CUTOFF_MS,
+    // Absent today, so the detail screen shows no policy card rather than asserting one it cannot
+    // honour. See the field's note in types.ts.
+    refundPolicy: r.refundPolicy ?? null,
   };
 }
 
@@ -249,11 +254,13 @@ export async function create(
  *
  * The server allows this ONLY while nobody has joined (403 otherwise: players are already
  * committed, so unwinding becomes an admin matter). Cancelling releases the venue slot, so it
- * becomes bookable again. Never auto-retried — it's destructive and not idempotent from the
- * user's point of view (a second call 400s with "already cancelled").
+ * becomes bookable again. Never auto-retried on a 429 or a dropped connection — it's
+ * destructive and not idempotent from the user's point of view (a second call 400s with
+ * "already cancelled"). A 401 still refreshes and replays: the server rejects an expired
+ * token before the handler runs, so nothing was cancelled on the rejected attempt.
  */
 export function cancel(id: string): Promise<{ cancelled: true }> {
-  return api.post<{ cancelled: true }>(`/games/${id}/cancel`, undefined, { retry401: false });
+  return api.post<{ cancelled: true }>(`/games/${id}/cancel`, undefined);
 }
 
 /** userId → showed up. Send an entry for EVERY player so nobody is left at a DB default. */
@@ -275,8 +282,10 @@ export type CompleteResult = {
  *
  * It is ONE-SHOT and irreversible: a second call gets 400 "Game already completed". Rewards
  * (gamesPlayed, reliability, reputation) are NOT granted here — only at admin finalization, which
- * reads these flags. Never auto-retried, for the same reason as any non-idempotent write.
+ * reads these flags. Never auto-retried on a 429 or a dropped connection, for the same reason
+ * as any non-idempotent write; a 401 still refreshes and replays, which is safe because the
+ * rejected attempt never reached the handler.
  */
 export function complete(id: string, attendance: AttendanceMap): Promise<CompleteResult> {
-  return api.post<CompleteResult>(`/games/${id}/complete`, { attendance }, { retry401: false });
+  return api.post<CompleteResult>(`/games/${id}/complete`, { attendance });
 }

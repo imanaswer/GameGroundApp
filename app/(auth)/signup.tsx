@@ -9,11 +9,11 @@ import Animated, {
 } from "react-native-reanimated";
 
 import { RegisterSchema } from "@/api/schemas";
-import { AppleButton, AuthShell, Divider, GoogleButton, SwitchLink } from "@/components/auth/AuthShell";
+import { AuthShell, Divider, GoogleButton, SwitchLink } from "@/components/auth/AuthShell";
 import { useHandoff } from "@/components/chrome";
 import { FormError, PasswordRules, fieldErrorsFrom } from "@/components/auth/fields";
 import { Button, Input } from "@/components/ds";
-import { useAppleAvailable, useAuth, useGoogleLogin } from "@/hooks/useAuth";
+import { useAuth, useGoogleLogin } from "@/hooks/useAuth";
 import { color, space, type } from "@/lib/tokens";
 import { dur, ease } from "@/theme/animations";
 import { themed, useThemedStyles } from "@/theme/runtime";
@@ -24,7 +24,7 @@ const PRIVACY_URL = "https://www.gameground.net/privacy";
 export default function Signup() {
   const styles = useThemedStyles(sheets);
   const router = useRouter();
-  const { register, loginWithApple, status: authStatus } = useAuth();
+  const { register, status: authStatus } = useAuth();
   const { begin: beginHandoff } = useHandoff();
   /**
    * Two-step signup, ported from the source's Sign up 04→06 flow: email alone, then the rest.
@@ -39,11 +39,9 @@ export default function Signup() {
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [formError, setFormError] = useState<unknown>(null);
   const [busy, setBusy] = useState(false);
-  const [appleBusy, setAppleBusy] = useState(false);
 
   const google = useGoogleLogin(setFormError);
-  const appleAvailable = useAppleAvailable();
-  const hasSocial = google.available || appleAvailable;
+  const hasSocial = google.available;
 
   const usernameRef = useRef<TextInput>(null);
   const emailRef = useRef<TextInput>(null);
@@ -104,28 +102,14 @@ export default function Signup() {
     }
   };
 
-  const onApple = () => {
-    if (appleBusy) return;
-    setAppleBusy(true);
-    loginWithApple()
-      // No navigation here — the effect below drives every successful auth on this screen
-      // through the same acknowledgement → loader → home sequence.
-      .then(() => {})
-      // ERR_REQUEST_CANCELED = user dismissed the native sheet — an intentional exit, not an error.
-      .catch((e) => {
-        if ((e as { code?: string })?.code !== "ERR_REQUEST_CANCELED") setFormError(e);
-      })
-      .finally(() => setAppleBusy(false));
-  };
 
   /**
    * ANY successful auth on this screen enters the acknowledgement, whatever produced it.
    *
-   * Email/password reaches it through `submit`, but Apple used to call `router.replace("/home")`
-   * itself and Google never navigated at all — it relied on the entry route redirecting once the
-   * status flipped. Both bypassed the success screen, which is why it appeared to be skipped even
-   * after the entry-route fix. Keying off the auth status instead of the individual handlers means
-   * a future sign-in path cannot silently opt out of the flow.
+   * Email/password reaches it through `submit`, but Google never navigated at all — it relied on
+   * the entry route redirecting once the status flipped, bypassing the success screen, which is
+   * why it appeared to be skipped even after the entry-route fix. Keying off the auth status
+   * instead of the individual handlers means a future sign-in path cannot silently opt out.
    */
   useEffect(() => {
     if (authStatus === "signedIn" && (step === "email" || step === "details")) setStep("done");
@@ -285,9 +269,8 @@ export default function Signup() {
 
       {onEmailStep && hasSocial && <Divider />}
       {onEmailStep && google.available && (
-        <GoogleButton label="Sign up with Google" onPress={google.prompt} disabled={busy || appleBusy} />
+        <GoogleButton label="Sign up with Google" onPress={google.prompt} disabled={busy} />
       )}
-      {onEmailStep && appleAvailable && <AppleButton label="Sign up with Apple" onPress={onApple} disabled={busy || appleBusy} />}
 
       <View style={styles.spacer} />
       <SwitchLink

@@ -1,13 +1,14 @@
-# Social sign-in setup (Google + Apple)
+# Social sign-in setup (Google)
 
-Developer PRD §5.2, **with a scope change for Google** — see below. Apple follows the PRD as written.
+Developer PRD §5.2, **with a scope change for Google** — see below. Apple sign-in was removed in
+Decision 27; the section at the bottom explains what that costs you at App Store review.
 
-| Layer | Google | Apple |
-|---|---|---|
-| App | `useGoogleLogin` opens the site's OAuth flow in a browser | `loginWithApple` → native sheet |
-| Server | `/api/auth/google/handoff` + `/api/auth/google/exchange` | `POST /api/auth/apple/mobile` |
-| App-side config | **none** | `EXPO_PUBLIC_APPLE_AUTH_ENABLED=true` |
-| Console work | **none** | App ID capability |
+| Layer | Google |
+|---|---|
+| App | `useGoogleLogin` opens the site's OAuth flow in a browser |
+| Server | `/api/auth/google/handoff` + `/api/auth/google/exchange` |
+| App-side config | **none** |
+| Console work | **none** (one redirect URI per deployment) |
 
 ---
 
@@ -55,17 +56,7 @@ flow. Optional:
 MOBILE_APP_SCHEME=ggredesign      # defaults to this; set only if the app scheme changes
 ```
 
-For Apple:
-
-```
-APPLE_BUNDLE_IDS=net.gameground.redesigned,net.gameground.redesigned.dev
-```
-
-This is the **audience allowlist**. The identity token's `aud` is the app's bundle id, so every
-bundle id you build must be listed. Unset makes the Apple route answer 503 rather than verify
-against an empty audience — a token minted for any other developer's app would otherwise pass.
-
-Then apply the migrations (`User.appleId`, `MobileAuthCode`):
+Then apply the `MobileAuthCode` migration:
 
 ```bash
 npx prisma migrate deploy
@@ -73,32 +64,65 @@ npx prisma migrate deploy
 
 Vercel reads env changes only on the next deployment — set, then redeploy.
 
-## Apple Developer
+### One redirect URI per deployment
 
-Native Sign in with Apple needs only the App ID capability — no Service ID and no signing key
-(those are for the *web* flow, which this app does not use).
+Because the flow runs the *website's* OAuth client, every hostname the app points at must be
+registered on that client, or Google answers `redirect_uri_mismatch` before the consent screen:
 
-1. Certificates, Identifiers & Profiles → Identifiers → the App ID for each bundle id.
-2. Enable **Sign in with Apple** → Save.
-3. Rebuild. `expo-apple-authentication` (already in `app.config.js` `plugins`) writes the entitlement.
+```
+https://<deployment-host>/api/auth/google/callback
+```
 
-Then flip `EXPO_PUBLIC_APPLE_AUTH_ENABLED` to `true` in `eas.json`, but only **after** the server has
-`APPLE_BUNDLE_IDS` deployed, or iPhone users get a button that 503s.
+Exact match — no trailing slash, and `www` counts as a different host.
 
 ## Verify on a device
 
 Google works in Expo Go and in a dev client, on emulator or hardware — it is only a browser tab.
-Apple needs a real iOS build.
 
 - [ ] Google button appears on login and signup, with no configuration
 - [ ] Tapping opens a `gameground.net` tab, and completing it returns to the app signed in
 - [ ] Closing the tab returns silently, no error banner
 - [ ] Signing in with an email that already has a password account lands on **that** account
-- [ ] Apple button appears on iOS only, and only with the flag on
-- [ ] Cancelling the Apple sheet returns silently (`ERR_REQUEST_CANCELED`)
-- [ ] First Apple authorization persists the name; sign out, sign back in, name is still there
-- [ ] Apple "Hide My Email" creates a working account on a `@privaterelay.appleid.com` address
 
-The last two fail quietly: Apple releases the name exactly once, so if it is not persisted on first
-authorization it is gone for good. Re-testing needs the app removed under Settings → Apple ID →
-Sign in with Apple → the app → Stop Using Apple ID.
+---
+
+## Removed: Sign in with Apple (Decision 27)
+
+The app ships Google as its only social login. `loginWithApple`, `useAppleAvailable`, `AppleButton`,
+`AppleGlyph`, the `EXPO_PUBLIC_APPLE_AUTH_ENABLED` flag, the `expo-apple-authentication` dependency
+and its config plugin are all gone. The flag was already `false` in every EAS profile, so no shipped
+build ever rendered the button.
+
+**Server-side Apple support was left intact** — `/api/auth/apple/mobile`, `User.appleId` and
+`APPLE_BUNDLE_IDS` are untouched, so restoring this is app-side work only.
+
+### This blocks an iOS App Store submission
+
+App Store Review Guideline 4.8 (Login Services): when an app uses a third-party or social login
+service — **Google Sign-In is named explicitly** — to establish the user's primary account, it must
+*also* offer an equivalent login service that limits collection to name and email, **lets the user
+keep their email address private**, and does not collect in-app interactions for advertising.
+
+The relevant exemption covers apps that use "exclusively your company's own account setup and sign-in
+systems". Offering Google forfeits it. Email/password almost certainly fails the email-masking
+criterion, so it does not substitute.
+
+Practically: **Android and all dev/preview testing are unaffected.** Before an iOS submission you
+must either restore Sign in with Apple, or drop the Google button on iOS. Restoring it means:
+
+1. Re-add `expo-apple-authentication` and the config plugin, and the four deleted symbols.
+2. Apple Developer → Certificates, Identifiers & Profiles → Identifiers → the App ID for each bundle
+   id → enable **Sign in with Apple** → Save. Native sign-in needs only the App ID capability — no
+   Service ID and no signing key (those are for the *web* flow, which this app does not use).
+3. Set `APPLE_BUNDLE_IDS=net.gameground.redesigned,net.gameground.redesigned.dev` on the server and
+   redeploy. This is the **audience allowlist**: the identity token's `aud` is the app's bundle id,
+   so every bundle id you build must be listed. Unset makes the route answer 503 rather than verify
+   against an empty audience — a token minted for any other developer's app would otherwise pass.
+4. Rebuild (the plugin writes the entitlement) and re-test on real iOS hardware.
+
+Two Apple behaviours that used to bite, worth remembering if you restore it: Apple releases the
+user's name exactly once, on first authorization, so it must be persisted immediately or it is gone
+for good — re-testing needs the app removed under Settings → Apple ID → Sign in with Apple → the app
+→ Stop Using Apple ID. And "Hide My Email" creates the account on a `@privaterelay.appleid.com`
+address, so the same person signing in with Google on web and Apple on iPhone gets **two accounts**
+unless you build a merge path.

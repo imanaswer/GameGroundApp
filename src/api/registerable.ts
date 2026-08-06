@@ -185,14 +185,17 @@ export function toDetail(r: RawRegisterable, kind: RegisterableKind): Registerab
  * endpoint is the only way to register for one. It returns 402 if the entity is actually paid,
  * so the two paths can't be confused.
  *
- * Not auto-retried — a repeat is a duplicate-registration attempt, not a safe replay.
+ * Not auto-retried on a 429 or a dropped connection — there a repeat really could be a
+ * duplicate-registration attempt. A 401 is different and DOES refresh-and-replay: the server
+ * rejects an expired token before the route handler runs, so the rejected attempt registered
+ * nothing and the replay is the first real one.
  */
 export function registerFree(
   path: string,
   id: string,
   fields: Record<string, unknown>,
 ): Promise<{ registered: true }> {
-  return api.post<{ registered: true }>(`/${path}/${id}`, fields, { retry401: false });
+  return api.post<{ registered: true }>(`/${path}/${id}`, fields);
 }
 
 /**
@@ -200,5 +203,5 @@ export function registerFree(
  * Same 90-minute pre-start cutoff as games (403 inside it).
  */
 export function cancelRegistration(path: string, id: string): Promise<{ cancelled: true }> {
-  return api.del<{ cancelled: true }>(`/${path}/${id}`, { retry401: false });
+  return api.del<{ cancelled: true }>(`/${path}/${id}`);
 }
