@@ -11,7 +11,8 @@
       "env": {
         "APP_ENV": "development",
         "EXPO_PUBLIC_API_URL": "https://www.gameground.net",
-        "EXPO_PUBLIC_RAZORPAY_KEY_ID": "rzp_test_replace_me"
+        "EXPO_PUBLIC_RAZORPAY_KEY_ID": "rzp_test_replace_me",
+        "EXPO_PUBLIC_APPLE_AUTH_ENABLED": "false"
       },
       "ios": {
         "simulator": false
@@ -26,7 +27,8 @@
       "env": {
         "APP_ENV": "preview",
         "EXPO_PUBLIC_API_URL": "https://www.gameground.net",
-        "EXPO_PUBLIC_RAZORPAY_KEY_ID": "rzp_test_replace_me"
+        "EXPO_PUBLIC_RAZORPAY_KEY_ID": "rzp_test_replace_me",
+        "EXPO_PUBLIC_APPLE_AUTH_ENABLED": "false"
       },
       "android": {
         "buildType": "apk"
@@ -38,7 +40,8 @@
       "env": {
         "APP_ENV": "production",
         "EXPO_PUBLIC_API_URL": "https://www.gameground.net",
-        "EXPO_PUBLIC_RAZORPAY_KEY_ID": "rzp_live_replace_me"
+        "EXPO_PUBLIC_RAZORPAY_KEY_ID": "rzp_live_replace_me",
+        "EXPO_PUBLIC_APPLE_AUTH_ENABLED": "false"
       }
     }
   },

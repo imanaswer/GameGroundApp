@@ -19,9 +19,15 @@ export async function register(input: {
   return persist(await api.post<AuthPayload>("/auth/register", input, NO_RETRY));
 }
 
-/** §5.2 — native Google flow hands the verified idToken to the mobile-only route. */
-export async function loginWithGoogle(idToken: string): Promise<AuthPayload> {
-  return persist(await api.post<AuthPayload>("/auth/google/mobile", { idToken }, NO_RETRY));
+/**
+ * §5.2 (scope change) — Google runs through the website's existing OAuth client in a browser tab,
+ * which hands back a one-time code. `verifier` is the PKCE secret that never left this app; without
+ * it the code is worthless, which is what makes the custom-scheme hop safe.
+ */
+export async function exchangeGoogleCode(code: string, verifier: string): Promise<AuthPayload> {
+  return persist(
+    await api.post<AuthPayload>("/auth/google/exchange", { code, verifier }, NO_RETRY),
+  );
 }
 
 /** Apple sends name/email on FIRST authorization only — forward them so the server persists. */

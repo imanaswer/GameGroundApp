@@ -4,7 +4,9 @@
  */
 import { useQueryClient } from "@tanstack/react-query";
 import * as AppleAuthentication from "expo-apple-authentication";
-import * as Google from "expo-auth-session/providers/google";
+import Constants from "expo-constants";
+import * as Crypto from "expo-crypto";
+import * as WebBrowser from "expo-web-browser";
 import {
   createContext,
   createElement,
@@ -141,42 +143,94 @@ export function useAuth(): AuthContextValue {
 }
 
 /**
- * Native Google Sign-In (§5.2): PKCE via expo-auth-session, idToken → /auth/google/mobile.
- * Hidden until OAuth client ids are configured in the build env.
+ * Google sign-in via the website's OAuth client (§5.2, scope change).
+ *
+ * The app has no Google Cloud client of its own. It opens the site's existing `/api/auth/google`
+ * flow in a system browser; the site authenticates exactly as it does on the web and redirects to
+ * `/api/auth/google/handoff`, which bounces a one-time code back to this app's URL scheme. The code
+ * is then exchanged over HTTPS for a bearer token.
+ *
+ * `verifier` is the whole security story. A custom scheme is not exclusive — another installed app
+ * can register `ggredesign://` and receive the redirect — so the code alone must be useless. Only
+ * the SHA-256 goes into the browser; the verifier stays here and is required to redeem.
+ *
+ * Unlike the native flow this replaced, there is nothing to configure in the app: no client ids, no
+ * per-variant OAuth clients, and no extra URL scheme (so no native rebuild).
  */
 export function useGoogleLogin(onError: (e: unknown) => void) {
   const { adopt } = useAuth();
-  // Pass the ids straight through (already "" when unconfigured). Coercing "" to undefined trips
-  // expo-auth-session's invariantClientId, which throws on `undefined` during render — crashing the
-  // whole login screen. An empty string passes the invariant; the `available` gate below keeps the
-  // button hidden until real ids exist, which is the intended "hidden until configured" behavior.
-  const [request, response, promptAsync] = Google.useIdTokenAuthRequest({
-    iosClientId: env.googleIosClientId,
-    androidClientId: env.googleAndroidClientId,
-    webClientId: env.googleWebClientId,
-  });
+  const [busy, setBusy] = useState(false);
 
-  useEffect(() => {
-    if (response?.type !== "success") return;
-    const idToken = response.params.id_token;
-    if (!idToken) return onError(new Error("Google sign-in returned no token"));
-    authApi.loginWithGoogle(idToken).then(adopt).catch(onError);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [response]);
+  const prompt = useCallback(async () => {
+    if (busy) return;
+    setBusy(true);
+    try {
+      // 32 bytes of entropy, base64url — matches what the server's `isValidChallenge` accepts.
+      const verifier = base64url(await Crypto.getRandomBytesAsync(32));
+      const challenge = await Crypto.digestStringAsync(
+        Crypto.CryptoDigestAlgorithm.SHA256,
+        verifier,
+        { encoding: Crypto.CryptoEncoding.BASE64 },
+      ).then(toBase64Url);
 
-  const configured =
-    Platform.OS === "ios"
-      ? !!env.googleIosClientId
-      : Platform.OS === "android"
-        ? !!env.googleAndroidClientId
-        : !!env.googleWebClientId;
-  return { available: configured && !!request, prompt: () => promptAsync() };
+      const handoff = `/api/auth/google/handoff?c=${encodeURIComponent(challenge)}`;
+      const url = `${env.apiUrl}/api/auth/google?redirect=${encodeURIComponent(handoff)}`;
+      // Built from the manifest scheme rather than Linking.createURL: in a dev client that helper
+      // can hand back an `exp://<dev-server>` URL, which would never match the fixed
+      // `ggredesign://auth-callback` the server redirects to, leaving the browser tab open forever.
+      const returnUrl = `${appScheme()}://auth-callback`;
+
+      const result = await WebBrowser.openAuthSessionAsync(url, returnUrl);
+      // "cancel"/"dismiss" is the user closing the tab — an intentional exit, not an error.
+      if (result.type !== "success") return;
+
+      const params = new URL(result.url).searchParams;
+      const error = params.get("error");
+      if (error) throw new Error(googleErrorMessage(error));
+      const code = params.get("code");
+      if (!code) throw new Error("Google sign-in returned no code");
+
+      adopt(await authApi.exchangeGoogleCode(code, verifier));
+    } catch (e) {
+      onError(e);
+    } finally {
+      setBusy(false);
+    }
+  }, [busy, adopt, onError]);
+
+  // Always available: the flow depends only on the server's existing Google configuration, so there
+  // is no client-side id that can be missing.
+  return { available: true, prompt };
+}
+
+/** The app's own URL scheme, read from the manifest so it cannot drift from app.config.js. */
+function appScheme(): string {
+  const scheme = Constants.expoConfig?.scheme;
+  return (Array.isArray(scheme) ? scheme[0] : scheme) || "ggredesign";
+}
+
+function googleErrorMessage(code: string): string {
+  return code === "no_session"
+    ? "Google sign-in did not complete. Please try again."
+    : "Google sign-in failed. Please try again.";
+}
+
+/** expo-crypto returns standard base64 for digests and raw bytes for randoms — normalise both. */
+function toBase64Url(value: string): string {
+  return value.replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+
+function base64url(bytes: Uint8Array): string {
+  let binary = "";
+  for (const b of bytes) binary += String.fromCharCode(b);
+  return toBase64Url(global.btoa(binary));
 }
 
 /**
- * Apple button shows only where Apple auth actually works — which means BOTH the device
- * supporting it and the server route existing. Device capability alone is what made this button
- * ship visible on every iPhone while `/auth/apple/mobile` 404s (§5.2 is unshipped server work).
+ * Apple button shows only where Apple auth actually works — which means BOTH the device supporting
+ * it and the server being configured for it. Device capability alone would ship this visible on
+ * every iPhone, including against a deployment with no `APPLE_BUNDLE_IDS`, where
+ * `/auth/apple/mobile` answers 503. `env.appleAuthEnabled` is the build-time mirror of that.
  */
 export function useAppleAvailable(): boolean {
   const [deviceSupports, setDeviceSupports] = useState(false);

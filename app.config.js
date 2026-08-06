@@ -7,10 +7,13 @@
  */
 const profile = process.env.APP_ENV ?? "development";
 
+// The home-screen name is "GameGround"; the dev/preview suffixes stay so two installed builds are
+// still tellable apart. The IDs and `scheme` below carry the fork identity instead — they must keep
+// differing from the original app's, whatever the display name says.
 const variant = {
-  development: { name: "GG Redesign (Dev)", id: "net.gameground.redesigned.dev" },
-  preview: { name: "GG Redesign (Preview)", id: "net.gameground.redesigned.preview" },
-  production: { name: "GG Redesign", id: "net.gameground.redesigned" },
+  development: { name: "GameGround (Dev)", id: "net.gameground.redesigned.dev" },
+  preview: { name: "GameGround (Preview)", id: "net.gameground.redesigned.preview" },
+  production: { name: "GameGround", id: "net.gameground.redesigned" },
 }[profile];
 
 const sentryDsn = process.env.SENTRY_DSN ?? null;
@@ -65,12 +68,23 @@ module.exports = {
   orientation: "portrait",
   icon: "./assets/images/icon.png",
   // Distinct from the original's "gameground://" — two apps registering the same scheme on one
-  // device makes which one opens a deep link undefined.
+  // device makes which one opens a deep link undefined. This is also the scheme the Google browser
+  // handoff returns to (§5.2), so it needs no companion: the bundle-id scheme the native OAuth
+  // flow would have required is deliberately absent, which is what keeps that flow rebuild-free.
   scheme: "ggredesign",
-  // Decision 20 — the app ground is white. Locked to "light" rather than "automatic" because
-  // there is no dark variant of the ported system yet; letting the OS pick would hand system
-  // chrome a dark scheme the app itself cannot honour.
-  userInterfaceStyle: "light",
+  /**
+   * Decision 24 — there IS a dark variant now, so this is "automatic".
+   *
+   * This is not cosmetic: on iOS it writes `UIUserInterfaceStyle` into Info.plist, and while it
+   * said "light" the OS reported light to `useColorScheme()` no matter what the phone was set to.
+   * The app's own "System" option would have been permanently stuck on light with nothing in the
+   * JS to explain why. **Takes a native rebuild** — a JS reload cannot change Info.plist.
+   *
+   * `backgroundColor` is the window behind the app, seen during rotation and push transitions. It
+   * cannot follow a runtime theme either, so it stays the light page: it is visible for
+   * milliseconds, and a black flash on the light theme is more jarring than the reverse.
+   */
+  userInterfaceStyle: "automatic",
   backgroundColor: "#FFFFFF",
   // EAS Update is deliberately NOT configured. This project shares no OTA channel with the
   // original: inheriting its `updates.url` + projectId would push the ORIGINAL app's JS bundle
