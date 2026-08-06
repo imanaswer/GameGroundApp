@@ -15,9 +15,11 @@ import { toCoachCard, useCoaches } from "@/hooks/queries";
 import { useAuth } from "@/hooks/useAuth";
 import { prettySport } from "@/lib/format";
 import * as haptics from "@/lib/haptics";
-import { color, icon as iconSize, layout, space } from "@/lib/tokens";
+import { icon as iconSize, layout, space } from "@/lib/tokens";
+import { usePalette } from "@/theme/runtime";
 
 export default function CoachesTab() {
+  const color = usePalette();
   const router = useRouter();
   const { user } = useAuth();
   const [sport, setSport] = useState("all");
@@ -97,7 +99,11 @@ export default function CoachesTab() {
                   haptics.refresh();
                   refetch();
                 }}
-                tintColor={color.dim}
+                // iOS reads `tintColor`; Android reads `colors` + `progressBackgroundColor` and
+            // otherwise draws a dark spinner on a white disc whatever the app is set to.
+            tintColor={color.dim}
+            colors={[color.dim]}
+            progressBackgroundColor={color.elev}
               />
             }
           />

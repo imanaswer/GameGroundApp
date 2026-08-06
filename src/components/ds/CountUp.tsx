@@ -12,6 +12,7 @@ import Animated, {
   useSharedValue,
   withTiming,
 } from "react-native-reanimated";
+import {  } from "@/theme/runtime";
 
 const AnimatedTextInput = Animated.createAnimatedComponent(TextInput);
 
@@ -28,6 +29,7 @@ export function CountUp({
   suffix?: string;
   duration?: number;
 }) {
+  
   const v = useSharedValue(0);
   const reduced = useReducedMotion();
 

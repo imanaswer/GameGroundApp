@@ -1,11 +1,12 @@
 /** DESIGN_SYSTEM.md §4 SearchBar. Input variant with leading search icon, radius 16, red focus
  *  ring, and a trailing clear (×) once there's a query. */
 import { useState } from "react";
-import { StyleSheet, TextInput, View, type TextInputProps } from "react-native";
+import { TextInput, View, type TextInputProps } from "react-native";
 
 import { CloseIcon, SearchIcon } from "@/components/ds/icons";
 import { Press } from "@/components/ds/Press";
 import { color, space, type } from "@/lib/tokens";
+import { themed, usePalette, useThemedStyles, useThemeTick } from "@/theme/runtime";
 
 export function SearchBar({
   value,
@@ -13,6 +14,9 @@ export function SearchBar({
   placeholder = "Search",
   ...rest
 }: TextInputProps) {
+  const styles = useThemedStyles(sheets);
+  const color = usePalette();
+  const scheme = useThemeTick();
   const [focused, setFocused] = useState(false);
   return (
     <View style={[styles.wrap, focused && styles.focus]}>
@@ -22,6 +26,8 @@ export function SearchBar({
         onChangeText={onChangeText}
         placeholder={placeholder}
         placeholderTextColor={color.dim2}
+        keyboardAppearance={scheme === "dark" ? "dark" : "light"}
+        selectionColor={color.primary}
         returnKeyType="search"
         style={styles.input}
         {...rest}
@@ -50,7 +56,7 @@ export function SearchBar({
   );
 }
 
-const styles = StyleSheet.create({
+const sheets = themed(() => ({
   wrap: {
     flexDirection: "row",
     alignItems: "center",
@@ -65,4 +71,4 @@ const styles = StyleSheet.create({
   focus: { borderColor: color.focusRing },
   input: { flex: 1, color: color.text, fontFamily: type.body.fontFamily, fontSize: type.body.fontSize, paddingVertical: space(3) },
   clear: { width: 24, height: 24, alignItems: "center", justifyContent: "center" },
-});
+}));

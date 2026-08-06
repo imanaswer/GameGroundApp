@@ -1,4 +1,6 @@
 import NetInfo from "@react-native-community/netinfo";
+import { ThemeProvider as NavigationThemeProvider } from "@react-navigation/core";
+import { DarkTheme, DefaultTheme } from "@react-navigation/native";
 import { QueryClient, onlineManager, useQueryClient } from "@tanstack/react-query";
 import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
 import { useFonts } from "expo-font";
@@ -10,7 +12,7 @@ import { InteractionManager } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 
 import { setClientHandlers } from "@/api/client";
-import { SplashGate, ToastProvider, useToast } from "@/components/chrome";
+import { HandoffProvider, SplashGate, ToastProvider, useToast } from "@/components/chrome";
 import { TierUpProvider } from "@/components/social/TierUp";
 import { keys } from "@/hooks/queries";
 import { useAuth, AuthProvider } from "@/hooks/useAuth";
@@ -21,7 +23,8 @@ import { initAnalytics } from "@/lib/analytics";
 import { persistOptions } from "@/lib/query-persist";
 import { RazorpayHost } from "@/lib/razorpay";
 import { initSentry } from "@/lib/sentry";
-import { color } from "@/lib/tokens";
+import { ThemeProvider } from "@/theme/ThemeProvider";
+import { usePalette, useThemeTick } from "@/theme/runtime";
 
 // Held until <SplashGate /> paints; that component owns the dismissal and the minimum on-screen
 // time (Decision 18). Deliberately NOT hidden on font load — see SplashGate's handoff comment.
@@ -101,7 +104,64 @@ function ClientHandlerBridge() {
   return null;
 }
 
+/**
+ * The status bar is chrome the palette owns — NOT the OS's.
+ *
+ * expo-router mounts its own `AutoStatusBar` keyed on `useColorScheme()`, i.e. on the phone's
+ * setting. With the app overridden to light on a dark phone, that renders light glyphs on our
+ * light page and the clock disappears. This one follows the app, and being mounted below it wins.
+ */
+function SchemeStatusBar() {
+  const scheme = useThemeTick();
+  return <StatusBar style={scheme === "dark" ? "light" : "dark"} />;
+}
+
+/**
+ * The navigator paints surfaces we never touch — the scene container, the card behind a screen
+ * mid-transition, the gap a swipe between tabs opens. Those come from React Navigation's own
+ * theme, and expo-router does not set one, so it is `DefaultTheme`: white, permanently. On the
+ * dark palette that is a white flash between every screen.
+ *
+ * Mapped onto our palette rather than handed `DarkTheme`, whose greys are not ours.
+ */
+function useNavigationTheme() {
+  const scheme = useThemeTick();
+  const color = usePalette();
+  const base = scheme === "dark" ? DarkTheme : DefaultTheme;
+  return {
+    ...base,
+    colors: {
+      ...base.colors,
+      background: color.bg,
+      card: color.elev,
+      text: color.text,
+      border: color.border,
+      primary: color.primary,
+      notification: color.live,
+    },
+  };
+}
+
+/** Split out so the navigator re-reads its theme on a scheme change without RootLayout doing it. */
+function ThemedNavigator() {
+  // Reactive: identity changes with the scheme, so neither React nor the compiler can hand this
+  // navigator a stale theme.
+  const navigationTheme = useNavigationTheme();
+  const color = usePalette();
+  return (
+    <NavigationThemeProvider value={navigationTheme}>
+      <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: color.bg } }}>
+        <Stack.Screen name="(tabs)" />
+        <Stack.Screen name="game/create" options={{ presentation: "modal" }} />
+        <Stack.Screen name="search" options={{ presentation: "modal" }} />
+        <Stack.Screen name="upgrade-required" options={{ gestureEnabled: false }} />
+      </Stack>
+    </NavigationThemeProvider>
+  );
+}
+
 export default function RootLayout() {
+  
   // Vendored rather than pulled from @expo-google-fonts — those packages ship every weight and
   // italic (~14MB) and metro bundles the lot.
   //
@@ -130,30 +190,33 @@ export default function RootLayout() {
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
+      {/* Outermost of the providers: it decides which palette every token below resolves to, and
+          it holds the tree for one storage read so nothing paints in the wrong theme first. */}
+      <ThemeProvider>
       <PersistQueryClientProvider client={queryClient} persistOptions={persistOptions}>
         <AuthProvider>
           <ToastProvider>
             <DeepLinkProvider>
               <PushProvider>
                 <TierUpProvider>
+                {/* Wraps the navigator so the post-auth brand loader paints above every screen —
+                    the auth screens hand off to it and navigate underneath it. */}
+                <HandoffProvider>
                 <ClientHandlerBridge />
                 <PendingPaymentBridge />
                 <RazorpayHost />
-                {/* Dark glyphs: the app ground is white since Decision 20. "light" here means
-                    light-coloured TEXT, which is invisible on the ported surfaces. */}
-                <StatusBar style="dark" />
-                <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: color.bg } }}>
-                  <Stack.Screen name="(tabs)" />
-                  <Stack.Screen name="game/create" options={{ presentation: "modal" }} />
-                  <Stack.Screen name="search" options={{ presentation: "modal" }} />
-                  <Stack.Screen name="upgrade-required" options={{ gestureEnabled: false }} />
-                </Stack>
+                {/* Follows the palette: "dark" means dark GLYPHS, which are the legible ones on
+                    the light ground and invisible on the dark one. */}
+                <SchemeStatusBar />
+                <ThemedNavigator />
+                </HandoffProvider>
                 </TierUpProvider>
               </PushProvider>
             </DeepLinkProvider>
           </ToastProvider>
         </AuthProvider>
       </PersistQueryClientProvider>
+      </ThemeProvider>
       {/* Last sibling = on top of the whole app, and outside the providers so a slow session
           restore or query hydration can never delay the launch mark. */}
       <SplashGate />

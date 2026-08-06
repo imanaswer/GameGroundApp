@@ -3,15 +3,18 @@
  * actions (payments, log out, delete) live on the profile hub itself — this screen is toggles only.
  */
 import { useRouter } from "expo-router";
-import { ScrollView, StyleSheet, Switch, Text, View } from "react-native";
+import { ScrollView, Switch, Text, View } from "react-native";
 
 import { PageNav, Screen } from "@/components/chrome";
 import { usePushPrefs } from "@/hooks/usePushPrefs";
 import * as haptics from "@/lib/haptics";
 import { PUSH_CATEGORIES } from "@/lib/pushCategories";
 import { color, layout, radius, space, type } from "@/lib/tokens";
+import { themed, usePalette, useThemedStyles } from "@/theme/runtime";
 
 export default function NotificationSettings() {
+  const styles = useThemedStyles(sheets);
+  const color = usePalette();
   const router = useRouter();
   const { prefs, setPref } = usePushPrefs();
 
@@ -30,7 +33,10 @@ export default function NotificationSettings() {
                   setPref(c.key, v);
                 }}
                 trackColor={{ true: color.primary, false: color.border2 }}
-                thumbColor={color.text}
+                // The PAGE colour, not `text`: the thumb has to contrast with an active track
+                // that is `primary`, and `primary` inverts. A `text`-coloured thumb was a white
+                // disc on dark's white track — the toggle looked permanently off.
+                thumbColor={color.bg}
               />
             </View>
           ))}
@@ -40,10 +46,10 @@ export default function NotificationSettings() {
   );
 }
 
-const styles = StyleSheet.create({
+const sheets = themed(() => ({
   scroll: { paddingHorizontal: layout.screenX, paddingTop: space(2), paddingBottom: space(16) },
   card: { backgroundColor: color.card, borderRadius: radius.input, borderWidth: 1, borderColor: color.border, overflow: "hidden" },
   toggleRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: space(3.5), paddingVertical: space(3) },
   rowDivider: { borderTopWidth: 1, borderTopColor: color.border },
   toggleLabel: { ...type.body, color: color.text },
-});
+}));

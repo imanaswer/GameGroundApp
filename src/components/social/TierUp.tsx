@@ -15,7 +15,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { Pressable, StyleSheet, View } from "react-native";
+import { Pressable, View } from "react-native";
 import Animated, {
   FadeIn,
   FadeInDown,
@@ -31,6 +31,7 @@ import * as storage from "@/lib/storage";
 import { tierUpDecision } from "@/lib/tierUp";
 import { color, space, tier as tierMap, type, type Tier } from "@/lib/tokens";
 import { spring } from "@/theme/animations";
+import { themed, usePalette, useThemedStyles } from "@/theme/runtime";
 
 type TierUpMeta = { caption?: string };
 type Shown = { tier: Tier; caption?: string };
@@ -74,6 +75,8 @@ export function TierUpProvider({ children }: { children: ReactNode }) {
 }
 
 function TierUpOverlay({ tier, caption, onDismiss }: { tier: Tier; caption?: string; onDismiss: () => void }) {
+  const styles = useThemedStyles(sheets);
+  const color = usePalette();
   const reduced = useReducedMotion();
   const scale = useSharedValue(reduced ? 1 : 0.6);
 
@@ -120,7 +123,7 @@ export function useTierUp(): TierUpContextValue {
   return ctx;
 }
 
-const styles = StyleSheet.create({
+const sheets = themed(() => ({
   // Solid app-black, not a translucent scrim — the celebration owns the whole screen (no bleed-through).
   scrim: { position: "absolute", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: color.bg, zIndex: 200 },
   fill: { flex: 1 },
@@ -129,4 +132,4 @@ const styles = StyleSheet.create({
   headline: { ...type.title1, fontSize: 28, color: color.text, textAlign: "center", marginTop: space(4) },
   sub: { ...type.body, color: color.dim, textAlign: "center" },
   hint: { ...type.caption, color: color.dim2, marginTop: space(4) },
-});
+}));

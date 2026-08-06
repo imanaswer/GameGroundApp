@@ -57,6 +57,15 @@ type Schema = {
   "gg.recentSearches": string[];
   /** Home: the "set your sports" nudge is dismissible-once. Non-secret; this KV is our seam. */
   "gg.setupSportsDismissed": boolean;
+  /**
+   * Account setup ran (Decision 23). Set on the way OUT of the flow whether the questions were
+   * answered or skipped — it records that we asked, not what came back. Only the signup path
+   * enters the flow, so this exists to stop a repeat, never to trigger one.
+   */
+  "gg.setupComplete": boolean;
+  /** Appearance preference (Decision 24): "light" | "dark" | "system". Non-secret; this KV is
+   *  our only storage seam, and it is read before first paint. */
+  "gg.themeMode": string;
   /** Push (M12): whether the contextual pre-prompt has been shown (never re-ask on denial). */
   "gg.pushPromptSeen": boolean;
   /** Push (M12): per-category prefs, mirrored to the server; local is the offline source. */

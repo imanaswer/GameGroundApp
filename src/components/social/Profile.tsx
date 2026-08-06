@@ -25,10 +25,14 @@ import { formatAgo, formatWhen } from "@/lib/format";
 import { sportImage } from "@/lib/sportImages";
 import { nextTier } from "@/lib/tierLadder";
 import { color, radius, space, tier as tierMap, type } from "@/lib/tokens";
+import type { Palette, TierPalette } from "@/theme/palette";
+import { themed, usePalette, useThemedStyles } from "@/theme/runtime";
 
 const cap = (s: string) => s[0].toUpperCase() + s.slice(1);
 
 export function PlayerHeroCard({ profile, isSelf }: { profile: UserProfile; isSelf?: boolean }) {
+  const styles = useThemedStyles(sheets);
+  const color = usePalette();
   return (
     <View style={styles.hero}>
       {/* Sport-derived cover that fades into the card — gives the identity surface depth (DS §8). */}
@@ -69,6 +73,8 @@ export function PlayerHeroCard({ profile, isSelf }: { profile: UserProfile; isSe
 }
 
 export function RankProgress({ progress }: { progress: Progress }) {
+  const styles = useThemedStyles(sheets);
+  const color = usePalette();
   const ratio =
     progress.nextTierAt && progress.nextTierAt > 0
       ? Math.min(1, progress.points / progress.nextTierAt)
@@ -93,6 +99,7 @@ export function RankProgress({ progress }: { progress: Progress }) {
 }
 
 export function StatStrip({ stats }: { stats: ProfileStats }) {
+  const styles = useThemedStyles(sheets);
   return (
     <View style={styles.strip}>
       <Cell label="Games" value={<CountUp value={stats.games} style={styles.cellValue} />} />
@@ -113,6 +120,7 @@ export function StatStrip({ stats }: { stats: ProfileStats }) {
 }
 
 function Cell({ label, value, divider }: { label: string; value: React.ReactNode; divider?: boolean }) {
+  const styles = useThemedStyles(sheets);
   return (
     <View style={[styles.cell, divider && styles.cellDivider]}>
       {value}
@@ -123,6 +131,7 @@ function Cell({ label, value, divider }: { label: string; value: React.ReactNode
 
 /** 10 attendance-intensity bars (Decision 6 — attendance data only). */
 export function WeekStrip({ data }: { data: number[] }) {
+  const styles = useThemedStyles(sheets);
   if (data.length === 0) return null;
   return (
     <View style={styles.week}>
@@ -135,6 +144,8 @@ export function WeekStrip({ data }: { data: number[] }) {
 
 /** Games the viewer has joined that are still ahead — soonest first (DESIGN_SYSTEM.md §8). */
 export function UpcomingGames({ games, onOpen }: { games: ProfileGame[]; onOpen: (id: string) => void }) {
+  const styles = useThemedStyles(sheets);
+  const color = usePalette();
   if (games.length === 0) return null;
   return (
     <View style={styles.feed}>
@@ -167,27 +178,37 @@ export function UpcomingGames({ games, onOpen }: { games: ProfileGame[]; onOpen:
 
 type ActivityVisual = { Icon: React.ComponentType<{ size?: number; color?: string }>; tint: string; bg: string };
 
-/** Activity kind → badge glyph + tint (tokens only). The server's `kind` drives the icon. */
-const ACTIVITY_VISUALS: Record<string, ActivityVisual> = {
-  joined: { Icon: UserIcon, tint: color.success, bg: color.successSurface },
-  attended: { Icon: CheckIcon, tint: color.success, bg: color.successSurface },
-  played: { Icon: CheckIcon, tint: color.success, bg: color.successSurface },
-  created: { Icon: StarIcon, tint: color.gold, bg: tierMap.gold.bg },
-  organized: { Icon: StarIcon, tint: color.gold, bg: tierMap.gold.bg },
-  booked: { Icon: CardIcon, tint: color.primarySoft, bg: color.errorSurface },
-  tier_up: { Icon: TrophyIcon, tint: color.gold, bg: tierMap.gold.bg },
-};
-const ACTIVITY_FALLBACK: ActivityVisual = { Icon: InfoIcon, tint: color.dim, bg: color.track };
+/**
+ * Activity kind → badge glyph + tint (tokens only). The server's `kind` drives the icon.
+ *
+ * A FUNCTION, not a constant map. Every value here is a themed token, and a module-scope map
+ * would resolve them once, at import, freezing this feed in whichever palette happened to be
+ * active then — the one bug shape the theme proxy cannot fix on its own.
+ */
+const activityVisuals = (color: Palette, tierMap: TierPalette): Record<string, ActivityVisual> => ({
+  joined: { Icon: UserIcon, tint: color.successText, bg: color.successSurface },
+  attended: { Icon: CheckIcon, tint: color.successText, bg: color.successSurface },
+  played: { Icon: CheckIcon, tint: color.successText, bg: color.successSurface },
+  created: { Icon: StarIcon, tint: color.goldText, bg: tierMap.gold.bg },
+  organized: { Icon: StarIcon, tint: color.goldText, bg: tierMap.gold.bg },
+  // Neutral, not `errorSurface` — a completed booking is not an error, and the red tile sat in a
+  // feed where every other kind is semantically coloured (green = attended, gold = tier).
+  booked: { Icon: CardIcon, tint: color.primarySoft, bg: color.infoSurface },
+  tier_up: { Icon: TrophyIcon, tint: color.goldText, bg: tierMap.gold.bg },
+});
+const activityFallback = (color: Palette): ActivityVisual => ({ Icon: InfoIcon, tint: color.dim, bg: color.track });
 
 /** Recent reputation-earning events. The "+N REP" chip renders only when the server sends a delta. */
 export function ActivityFeed({ items }: { items: ActivityItem[] }) {
+  const styles = useThemedStyles(sheets);
+  const visuals = activityVisuals(color, tierMap);
   if (items.length === 0) return null;
   return (
     <View style={styles.feed}>
       <Text style={styles.feedLabel}>Recent Activity</Text>
       <View style={styles.feedCard}>
         {items.map((it, i) => {
-          const v = ACTIVITY_VISUALS[it.kind] ?? ACTIVITY_FALLBACK;
+          const v = visuals[it.kind] ?? activityFallback(color);
           return (
             <View key={it.id} style={[styles.feedRow, i > 0 && styles.feedDivider]}>
               <View style={[styles.badge, { backgroundColor: v.bg }]}>
@@ -209,7 +230,7 @@ export function ActivityFeed({ items }: { items: ActivityItem[] }) {
   );
 }
 
-const styles = StyleSheet.create({
+const sheets = themed(() => ({
   hero: {
     backgroundColor: color.card,
     borderRadius: radius.profileHero,
@@ -278,4 +299,4 @@ const styles = StyleSheet.create({
   feedMeta: { ...type.caption, color: color.dim },
   thumb: { width: 44, height: 44, borderRadius: radius.tile, backgroundColor: color.imagePlaceholder },
   badge: { width: 38, height: 38, borderRadius: 999, alignItems: "center", justifyContent: "center" },
-});
+}));

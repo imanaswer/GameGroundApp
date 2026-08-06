@@ -2,12 +2,13 @@
  *  an inline show/hide (eye) toggle. Forwards a ref to the inner TextInput so forms can chain
  *  focus (email → password → submit) off the keyboard's return key. */
 import { forwardRef, useState } from "react";
-import { StyleSheet, Text, TextInput, View, type TextInputProps } from "react-native";
+import { Text, TextInput, View, type TextInputProps } from "react-native";
 
 import { color, radius, ramp, space, type } from "@/lib/tokens";
 
 import { EyeIcon, EyeOffIcon } from "./icons";
 import { Press } from "./Press";
+import { themed, usePalette, useThemedStyles, useThemeTick } from "@/theme/runtime";
 
 type Props = TextInputProps & { label?: string; error?: string; hint?: string };
 
@@ -15,6 +16,9 @@ export const Input = forwardRef<TextInput, Props>(function Input(
   { label, error, hint, editable = true, secureTextEntry, ...rest },
   ref,
 ) {
+  const styles = useThemedStyles(sheets);
+  const color = usePalette();
+  const scheme = useThemeTick();
   const [focused, setFocused] = useState(false);
   const [revealed, setRevealed] = useState(false);
   const isPassword = !!secureTextEntry;
@@ -38,6 +42,10 @@ export const Input = forwardRef<TextInput, Props>(function Input(
           ref={ref}
           editable={editable}
           placeholderTextColor={color.dim2}
+          // The OS keyboard does not follow an in-app override on its own, and a light keyboard
+          // under a dark form is the most jarring seam in the theme.
+          keyboardAppearance={scheme === "dark" ? "dark" : "light"}
+          selectionColor={color.primary}
           onFocus={() => setFocused(true)}
           onBlur={() => setFocused(false)}
           // Reveal flips the mask; only password fields ever pass secureTextEntry.
@@ -71,7 +79,7 @@ export const Input = forwardRef<TextInput, Props>(function Input(
   );
 });
 
-const styles = StyleSheet.create({
+const sheets = themed(() => ({
   wrap: { marginBottom: space(4) },
   /**
    * The source notches the label INTO the field's top border rather than stacking it above
@@ -117,4 +125,4 @@ const styles = StyleSheet.create({
   eye: { paddingHorizontal: space(3.5), paddingVertical: space(2), alignItems: "center", justifyContent: "center" },
   errorLine: { ...type.caption, color: ramp.error[600], marginTop: space(1) },
   hintLine: { ...type.caption, color: color.dim2, marginTop: space(1) },
-});
+}));

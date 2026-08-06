@@ -16,7 +16,10 @@ export const keys = {
     detail: (id: string) => ["games", "detail", id] as const,
   },
   venues: {
+    // Prefix for invalidation — covers every sport's list and every venue's slots.
     all: ["venues"] as const,
+    /** Per-sport, because the list IS per-sport: one cache entry for all sports served the wrong one. */
+    list: (sport: string | null) => ["venues", "list", sport ?? "all"] as const,
     slots: (venueId: string) => ["venues", venueId, "slots"] as const,
   },
   coaches: {

@@ -19,7 +19,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { AppState, Modal, StyleSheet, Text, View } from "react-native";
+import { AppState, Modal, Text, View } from "react-native";
 import Constants, { ExecutionEnvironment } from "expo-constants";
 
 import { useToast } from "@/components/chrome";
@@ -35,6 +35,7 @@ import {
 } from "@/lib/notifications";
 import * as storage from "@/lib/storage";
 import { color, radius, space, type } from "@/lib/tokens";
+import { themed, useThemedStyles } from "@/theme/runtime";
 
 // expo-notifications is loaded lazily (absent in Expo Go), so its surface is untyped by design.
 type ExpoNotifications = any;
@@ -63,11 +64,18 @@ function Notif(): ExpoNotifications | null {
 type PushContextValue = {
   /** Call after a first successful join/booking to offer reminders (shown once). */
   promptForPush: () => void;
+  /**
+   * Go straight to the OS dialog, for a caller that has ALREADY explained itself — account
+   * setup's notification step, whose whole screen is the pre-prompt §10.2 requires (Decision 23).
+   * Resolves to whether permission ended up granted. Never call this from a bare button.
+   */
+  enablePush: () => Promise<boolean>;
 };
 
 const PushContext = createContext<PushContextValue | null>(null);
 
 export function PushProvider({ children }: { children: ReactNode }) {
+  const styles = useThemedStyles(sheets);
   const toast = useToast();
   const { status } = useAuth();
   const { route } = useDeepLinkRouter(); // shared validate → navigate / stash / home
@@ -156,7 +164,23 @@ export function PushProvider({ children }: { children: ReactNode }) {
     await storage.set("gg.pushPromptSeen", true); // don't nag; Settings can re-enable
   }, []);
 
-  const value = useMemo(() => ({ promptForPush }), [promptForPush]);
+  /**
+   * Marks the prompt as seen BEFORE asking, exactly as `accept` does: the OS dialog is one-shot
+   * per install, so once it has been raised there is nothing left for the contextual prompt to
+   * raise later. A user who SKIPS the setup step is untouched here and still meets the §10.2
+   * prompt after their first join — skipping a question is not a refusal.
+   */
+  const enablePush = useCallback(async () => {
+    const N = Notif();
+    if (!N) return false; // Expo Go — nothing to ask, and nothing to record.
+    await storage.set("gg.pushPromptSeen", true);
+    if (!(await requestPermission())) return false;
+    await configureAndroidChannel();
+    registerForPush();
+    return true;
+  }, []);
+
+  const value = useMemo(() => ({ promptForPush, enablePush }), [promptForPush, enablePush]);
 
   return (
     <PushContext.Provider value={value}>
@@ -184,7 +208,7 @@ export function usePush(): PushContextValue {
   return ctx;
 }
 
-const styles = StyleSheet.create({
+const sheets = themed(() => ({
   backdrop: { flex: 1, backgroundColor: color.scrim, justifyContent: "flex-end" },
   sheet: {
     backgroundColor: color.elev,
@@ -196,4 +220,4 @@ const styles = StyleSheet.create({
   },
   title: { ...type.title2, color: color.text },
   body: { ...type.body, color: color.dim, lineHeight: 20, marginBottom: space(2) },
-});
+}));

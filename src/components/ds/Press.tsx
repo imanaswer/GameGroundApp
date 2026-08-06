@@ -16,8 +16,8 @@ import Animated, {
   withSpring,
 } from "react-native-reanimated";
 
-import { color } from "@/lib/tokens";
 import { spring } from "@/theme/animations";
+import { usePalette } from "@/theme/runtime";
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
@@ -46,8 +46,18 @@ export const Press = forwardRef<typeof Pressable, Props>(function Press(
   { scaleTo = 0.965, tilt = false, brighten = false, onPressIn, onPressOut, style, children, ...rest },
   ref,
 ) {
+  const color = usePalette();
   const pressed = useSharedValue(0);
   const reduced = useReducedMotion();
+
+  /**
+   * Read on the JS thread, ON PURPOSE. `color` is a theme proxy, and a worklet does not run in
+   * this runtime — capturing the proxy would ship whatever snapshot Reanimated managed to make of
+   * it to the UI thread. Two strings are trivially shareable and re-capture on re-render, which is
+   * exactly when the theme changes.
+   */
+  const restBorder = color.border;
+  const pressedBorder = color.border2;
 
   const animatedStyle = useAnimatedStyle(() => {
     // Reduced motion: no transforms; hold the card border at its rest tone.
@@ -68,7 +78,7 @@ export const Press = forwardRef<typeof Pressable, Props>(function Press(
         : [{ perspective: PERSPECTIVE }, { rotateX: `${angle}deg` }, { scale }];
 
     return brighten
-      ? { transform, borderColor: interpolateColor(p, [0, 1], [color.border, color.border2]) }
+      ? { transform, borderColor: interpolateColor(p, [0, 1], [restBorder, pressedBorder]) }
       : { transform };
   });
 

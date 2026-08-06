@@ -3,13 +3,14 @@
  * UI thread (MOTION §11). Reduced-motion doesn't disable zoom — it's a control, not decoration.
  */
 import { Image } from "expo-image";
-import { Modal, StyleSheet, View, useWindowDimensions } from "react-native";
+import { Modal, View, useWindowDimensions } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, { useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
 
 import { CloseIcon, Press } from "@/components/ds";
 import { color, layout, space } from "@/lib/tokens";
 import { dur } from "@/theme/animations";
+import { themed, usePalette, useThemedStyles } from "@/theme/runtime";
 
 export function Lightbox({
   photos,
@@ -20,6 +21,8 @@ export function Lightbox({
   index: number;
   onClose: () => void;
 }) {
+  const styles = useThemedStyles(sheets);
+  const color = usePalette();
   const { width, height } = useWindowDimensions();
   const scale = useSharedValue(1);
   const savedScale = useSharedValue(1);
@@ -96,7 +99,7 @@ export function Lightbox({
   );
 }
 
-const styles = StyleSheet.create({
+const sheets = themed(() => ({
   root: { flex: 1, backgroundColor: color.bg },
   center: { flex: 1, alignItems: "center", justifyContent: "center" },
   close: {
@@ -111,4 +114,4 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-});
+}));

@@ -15,7 +15,8 @@ import { useAuth } from "@/hooks/useAuth";
 import type { GameSummary } from "@/api/types";
 import { isToday, prettySport } from "@/lib/format";
 import * as haptics from "@/lib/haptics";
-import { color, elevation, icon as iconSize, layout, space } from "@/lib/tokens";
+import { elevation, icon as iconSize, layout, space } from "@/lib/tokens";
+import { usePalette } from "@/theme/runtime";
 
 /** One feed card. Pulls the real joinee avatars from the detail cache when the game has players. */
 function GameFeedCard({ game, onPress }: { game: GameSummary; onPress: () => void }) {
@@ -24,6 +25,7 @@ function GameFeedCard({ game, onPress }: { game: GameSummary; onPress: () => voi
 }
 
 export default function GamesTab() {
+  const color = usePalette();
   const router = useRouter();
   const { user } = useAuth();
   const [sport, setSport] = useState("all");
@@ -128,7 +130,11 @@ export default function GamesTab() {
                   haptics.refresh();
                   refetch();
                 }}
-                tintColor={color.dim}
+                // iOS reads `tintColor`; Android reads `colors` + `progressBackgroundColor` and
+            // otherwise draws a dark spinner on a white disc whatever the app is set to.
+            tintColor={color.dim}
+            colors={[color.dim]}
+            progressBackgroundColor={color.elev}
               />
             }
           />

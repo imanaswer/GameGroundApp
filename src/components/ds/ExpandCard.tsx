@@ -3,7 +3,7 @@
  * body reveal. Selection haptic on toggle. Reduced-motion skips the height/chevron animation.
  */
 import { useState } from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { Text, View } from "react-native";
 import Animated, {
   LinearTransition,
   useAnimatedStyle,
@@ -17,6 +17,7 @@ import { ChevronDownIcon } from "./icons";
 import * as haptics from "@/lib/haptics";
 import { color, radius, space, type } from "@/lib/tokens";
 import { dur, spring } from "@/theme/animations";
+import { themed, usePalette, useThemedStyles } from "@/theme/runtime";
 
 export function ExpandCard({
   title,
@@ -27,6 +28,8 @@ export function ExpandCard({
   body: string;
   defaultOpen?: boolean;
 }) {
+  const styles = useThemedStyles(sheets);
+  const color = usePalette();
   const [open, setOpen] = useState(defaultOpen);
   const reduced = useReducedMotion();
   const rot = useSharedValue(defaultOpen ? 1 : 0);
@@ -62,10 +65,10 @@ export function ExpandCard({
   );
 }
 
-const styles = StyleSheet.create({
+const sheets = themed(() => ({
   card: { borderWidth: 1, borderColor: color.border, borderRadius: radius.expand, overflow: "hidden" },
   head: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", padding: space(3.5) },
   headText: { ...type.bodyStrong, color: color.text, flex: 1 },
   body: { paddingHorizontal: space(3.5), paddingBottom: space(3.5) },
   bodyText: { ...type.body, color: color.dim, lineHeight: 20 },
-});
+}));

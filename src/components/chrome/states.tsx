@@ -2,12 +2,14 @@
  * DESIGN_SYSTEM.md §9 — every screen ships loading / empty / error / offline.
  * ErrorState renders the server `error` verbatim + retry; OfflineBanner is the thin strip.
  */
-import { StyleSheet, Text, View } from "react-native";
+import { Text, View } from "react-native";
 
 import { AlertIcon, Button, OfflineIcon } from "@/components/ds";
 import { color, icon as iconSize, layout, space, type , ramp} from "@/lib/tokens";
+import { themed, usePalette, useThemedStyles } from "@/theme/runtime";
 
 export function ErrorState({ message, onRetry }: { message: string; onRetry: () => void }) {
+  const styles = useThemedStyles(sheets);
   return (
     <View style={styles.wrap}>
       <View style={styles.tile}>
@@ -21,6 +23,8 @@ export function ErrorState({ message, onRetry }: { message: string; onRetry: () 
 }
 
 export function OfflineBanner() {
+  const styles = useThemedStyles(sheets);
+  const color = usePalette();
   return (
     <View style={styles.banner}>
       <OfflineIcon size={14} color={color.dim} />
@@ -29,7 +33,7 @@ export function OfflineBanner() {
   );
 }
 
-const styles = StyleSheet.create({
+const sheets = themed(() => ({
   wrap: { flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: layout.screenX, gap: space(3) },
   tile: {
     width: 66,
@@ -54,4 +58,4 @@ const styles = StyleSheet.create({
     paddingVertical: space(2),
   },
   bannerText: { ...type.caption, color: color.dim },
-});
+}));

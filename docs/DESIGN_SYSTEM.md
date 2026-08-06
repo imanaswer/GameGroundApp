@@ -1,16 +1,77 @@
 # GameGround Mobile Design System v1 (DESIGN_SYSTEM.md)
 
 **Version:** 2.0 · **Status:** BINDING (Decision 9, foundations superseded by Decision 20) · **Scope:** every reusable component, foundation token, layout rule, and interaction binding for the v1 app.
-**Source-of-truth hierarchy:** (1) `src/lib/tokens.ts` — the ported values are the truth and are contrast-tested in CI; this document describes them · (2) this document for component anatomy/props/states · (3) `docs/MOTION.md` for anything that moves, celebrates, or vibrates · (4) `docs/NIKE_FIGMA_EXTRACTION.md` for what the source system actually specified, including the three defects deliberately not inherited.
-**v2 (2 Aug 2026):** Decision 20 ported the foundations to the Nike Figma light system and Decision 21 resolved the tier palette. §1–§3 below are rewritten; the old dark values are gone, not deprecated. The pre-port reference builds no longer describe this app and are not a tie-breaker for colour or type.
+**Source-of-truth hierarchy:** (1) `src/lib/tokens.ts` — the ported values are the truth and are contrast-tested in CI; this document describes them · (2) this document for component anatomy/props/states · (3) `docs/MOTION.md` for anything that moves, celebrates, or vibrates · (4) `docs/FIGMA_EXTRACTION.md` for what the source system actually specified, including the three defects deliberately not inherited.
+**v2 (2 Aug 2026):** Decision 20 ported the foundations to the reference Figma's light system and Decision 21 resolved the tier palette. §1–§3 below are rewritten; the old dark values are gone, not deprecated. The pre-port reference builds no longer describe this app and are not a tie-breaker for colour or type.
 **Hard rule:** new screens are COMPOSED from this library. A screen that needs a brand-new component triggers §10 governance, not improvisation.
 
 ---
 
 ## 1. Color
 
-All colors live in `src/lib/tokens.ts`. Nothing else may contain a color literal (lint-enforced).
-Ported from the Nike Figma (Decision 20). **The app ground is white.**
+All colors live in `src/theme/palette.ts` and reach screens through `src/lib/tokens.ts`. Nothing
+else may contain a color literal (lint-enforced). Ported from the reference Figma (Decision 20).
+
+**There are two palettes** (Decision 24): light, below, and a dark counterpart derived from it —
+same key set, same roles, greys reversed and semantics re-derived. `color.x` resolves against
+whichever is active when it is read, so no call site knows which answered.
+
+Consuming them, and the two ways to get this wrong:
+
+| Do | Not |
+|---|---|
+| `const sheets = themed(() => ({ … }))` at module scope | `StyleSheet.create({ … })` — evaluated once, frozen in the palette active at import |
+| `const styles = useThemedStyles(sheets)` in the component | `styles.x` read straight off the module binding |
+| `const color = usePalette()` in the component (also `useTierPalette` / `useGradients` / `useShadows`) | the `color` import — reserved for the `themed()` factory |
+| a module-scope helper that reads tokens takes the palette as a PARAMETER | reading `color.x` inside it |
+
+Guarded in `__tests__/lint-rules.test.ts`, because these fail silently: the screen is correct on
+first paint and never changes again.
+
+**Why hooks and not just the proxy.** The proxy is always *current*; it is not *reactive*, and the
+React Compiler (`experiments.reactCompiler`) treats a module-scope binding as constant. It will
+compute `[styles.a, styles.b]` — or the JSX holding it — once per component instance and reuse it
+for the life of that instance. The component re-renders on a theme change and hands React back its
+previous-palette output. It shipped as a switch that applied to some screens and not others:
+compiled components froze, ones the compiler bailed out of updated. Reading through a hook gives
+the compiler a reactive dependency to invalidate on.
+
+**Content on a filled surface names the fill's partner, never a fixed colour.** A label on a
+`primary` fill is `onPrimary`; a label on a `text` fill is `bg`. `inverse` means "white because
+this sits on a photograph", and it is only ever correct over imagery — using it as "the light one"
+shipped an invisible Log in label on dark's white pill. Note the co-located contrast test cannot
+catch this class: it reads a fill and a label in the SAME style object, and a component that
+splits `primary` and `primaryLabel` into two entries is invisible to it.
+
+**Tokens that do NOT invert.** `inverse` / `onInverse` / `inverseBorder` / `inverseTrack`, the
+photographic scrims (`imageScrim`, `heroSide`, `welcomeScrim`) and `shineWhite` are identical in both
+themes — a photograph is dark on any ground, so copy over it is white on any ground. `inverseTrack`
+(white 0.22) is the unfilled remainder of a progress indicator drawn on a photograph, dim enough for
+a solid-white arc to read against; `inverseBorder` at 0.55 sits too near white for that job.
+`heroSide` and `shineWhite` had per-theme values and both were bugs — see §6. `splash` is pinned to `app.config.js`'s native splash colour, which is compiled into
+the binary and cannot follow a runtime theme at all. `live` stays a saturated fill with a white
+label in both: it is a signal, not a surface.
+
+### 1.0 Dark core
+
+| Token | Value | Note |
+|---|---|---|
+| bg | #050505 | equals the native splash, so launch never steps (Decision 18) |
+| card | #121214 | the wash — LIGHTER than the page, mirroring light's darker-than-page |
+| elev | #17181B | shadows barely render on black, so raised surfaces carry a real lift |
+| border / border2 | #2A2C30 / #3C3F44 | separation moves from shadow to border |
+| text | #F4F5F6 | |
+| dim | #B5B9BF | AA on `bg` and on `card`, same contract as light's Gray/700 |
+| dim2 | #8A8F96 | AA-large only, never body |
+| primary / onPrimary | #FFFFFF / #000000 | the same decision as light, not its opposite: maximum contrast against the page |
+| successSurface / errorSurface | alpha washes | the ramp's 100 step is a lamp on a black page |
+| goldText / successText | ramp 300 | text moves UP the ramp on dark where it moves down on light |
+
+Tier accents invert too — bronze is re-derived (#C98A4B) rather than inverted, since light's
+#7A4A21 measures 2.1:1 on the dark page and no ramp we own contains a brown. Both palettes are
+contrast-tested per theme in `__tests__/tokens.test.ts`.
+
+**The app ground is white in light and #050505 in dark.**
 
 Two rules that are not obvious from the tables and that the CI contrast tests enforce:
 
@@ -81,7 +142,9 @@ reads as "coloured, then absolute".
 filled-vs-outlined `TierBadge` variant — a treatment change the `fg`/`bg` token shape cannot
 express. Not faked with a colour that would misrepresent the hierarchy.
 
-Avatar identity colours are darkened for legibility on white: #3d5ce0 · #7c4dd8 · #d63c86 ·
+Avatar identity fills are theme-invariant and carry WHITE initials: every fill clears 4.5:1 under
+white, and a fill that dark clears the near-black page for free, so one set serves both. A user's
+identity colour therefore does not change with the theme. Ring/gradient identity colours: #3d5ce0 · #7c4dd8 · #d63c86 ·
 #0a86c4 · #d96a10. Own avatar gradient 135° #3d5ce0→#7c4dd8.
 
 ### 1.4 Gradients & overlays (the only permitted ones)
@@ -185,7 +248,7 @@ Gold, fractional fill via path geometry from the kit. 10px in cards, 12px in det
 
 ### SlotBar / SlotRing
 SlotBar: 5px track (white .08), fill red; >75% → gold gradient + "hot"; width animates on mount; highlight sweep (MOTION.md §8). Paired `slotlab` caption row (10px, dim): "x/y joined · z left".
-SlotRing: 52pt SVG circle, 3.5 stroke, red progress on white .14 track, dashoffset animates 1s; center label 10px/800. Home hero only in v1.
+SlotRing: 48–52pt SVG circle, 3.5 stroke, dashoffset animates 1s; center label 10px/800. Home hero only in v1. **Photographic — every colour from the `inverse` family**: `inverse` progress arc on an `inverseTrack` remainder, `inverse` label, unit at 0.8 opacity. The light port had renamed these to page tokens (`primary` arc, `text`/`dim` label), which since Decision 20 drew "progress" in black over a photograph.
 
 ### Input
 Card bg, radius 14, border → red focus ring at 40% alpha, 13.5px text, placeholder dim2, floating error line (redLight, 10.5px) below.
@@ -208,13 +271,19 @@ Padding 48 top (safe area) / 18 sides. Left: brand mark (tinted `primary`, i.e. 
 HeroNav: transparent over hero, back + share icon buttons. SolidNav: appears at hero-collapse point — bg rgba(5,5,5,.94) + blur 14, hairline bottom border, back + 14px/700 title. Morph interpolated per MOTION.md §2. Collapse thresholds: game detail ~170px, coach ~130px.
 
 ### TabBar
-5 items (Home, Games, Coaches, Discover, Leaders), 70pt + safe-area, bg rgba(5,5,5,.86–.88) + blur 16–18, hairline top. Item: 20pt icon + 9px/600 label; active = red + icon spring + 24px indicator bar + halo (MOTION.md §2). Selection haptic.
+5 items (Home, Games, Coaches, Discover, Leaders), 70pt + safe-area, **opaque** `tabBarBg` fill (covering the safe-area inset, so the bar meets the bottom of the screen), hairline top. The fill was translucent — the tint intended to sit on the BlurView that Decision 11 removed — which without a blur behind it let card titles and prices read through the tab labels; an opaque bottom bar is also the Material 3 form. Reintroducing blur means putting a BlurView under this fill and returning the token to a tint, not making the token translucent again. Item: 20pt icon + 10px label. Active = `text` ink + bold label + 1.06 icon scale; idle = `dim` + medium label. **No indicator bar and no tinted halo** — the source nav has no accent, and the former red halo was the loudest element on a white page. Two channels carry selection (ink and weight), never colour alone; both label colours are held to 4.5:1 against the page (asserted in `surface-contrast.test.ts`).
+
+The active state **tracks the swipe**: idle and ink layers cross-fade off the navigator's `position`, so a half-finished drag shows a half-lit tab (MOTION.md §2). Both layers stay mounted — the bold label is wider than the medium one, and re-styling one Text in place would jog the row. RN `Animated`, not Reanimated, because `position` is an RN value. Selection haptic on tap. `TabBarView` is the presentational half (catalog, §10.3).
 
 ### StickyCTA
-Bottom-pinned over ctaFade gradient, safe-area aware. Slots: price block (16px/800 gold + 9px caption, or FREE in success) + Button primary. Success-morph after server confirmation only.
+Bottom-pinned **solid `bg` bar with a hairline top edge**, safe-area aware. Slots: price block (16px/800 gold + 9px caption, or FREE in success) + Button primary. Success-morph after server confirmation only.
+
+It was a `ctaFade` transparent→95% gradient; content scrolling under the ramp showed through half-dissolved (a `card`-filled batch row read as a grey smear above the coach price). Same leftover-translucency defect as the tab bar. Screens already pad their scroll past this bar, so opacity hides nothing. `ctaFade` is retained in §1.4 with no consumer.
+
+**The action is optional.** With no `ctaLabel`/`onPress` the bar is the price block alone — the form for a gate whose answer is "not from here". A disabled primary button plus a caption explaining its own disablement is more chrome saying less; see the coach WhatsApp gate (§6 note).
 
 ### SegmentedControl (Discover)
-Card bg container radius 14, padding 4; sliding red pill (spring.pop) under active 12px/700 segment; content fade-swap. Selection haptic.
+Card bg container radius 14, padding 4; sliding `primary` ink pill (spring.pop) under active 12px/700 segment, label flips to `onPrimary`; the `subtle` variant's pill is `border2` with a `text` label. Content fade-swap. Selection haptic.
 
 ### Toast
 Top-anchored, elev bg, radius 16, icon tile (32pt, semantic tint) + 12.5px/700 title + 10.5px dim body + 2px progress bar draining over its 2.4s life. Spring in from −100. One at a time; re-trigger resets.
@@ -226,7 +295,13 @@ Floating icon tile (66pt circle, `card` bg, `primary` icon, idle float, tap-reac
 96pt card, dark blue-gray gradient, grid overlay, road stroke, bouncing pin, red "Directions" mini-button bottom-right. Placeholder in prototype; static map image + intent link in app.
 
 ### BrandLoader (handoff)
-Full-bleed **black** field (`onInverse`), white mark centred at 52×39, with a 108pt ring at 1.5 stroke turning around it — a 0.72 arc so the rotation is legible, `dur.moment` per revolution, linear. Reduced motion keeps the ring static rather than removing it. Deliberately dark in a light app: like the splash, it is a moment where no content is on screen yet, so it belongs to the brand rather than the UI — the source's own file has exactly two black screens and these are both of them. Covers a real wait (post-signup handoff to the tabs); never shown on a timer for effect. See Decision 22.
+Full-bleed **black** field (`onInverse`), white mark centred at 64×48, with a 108pt ring at 1.5 stroke turning around it — a 0.72 arc so the rotation is legible, `dur.slow` per revolution, linear (was `dur.moment`; it read as sluggish on device). Reduced motion keeps the ring static rather than removing it. Deliberately dark in a light app: like the splash, it is a moment where no content is on screen yet, so it belongs to the brand rather than the UI — the black surfaces are the splash, this, and account setup (`app/setup.tsx`) — all three run before the app proper is on screen, and nothing else may go dark without a decision. Covers a real wait (post-signup handoff to the tabs); never shown on a timer for effect. Mounted by `<HandoffProvider>` above the navigator, never by a screen — a screen that renders it and then navigates unmounts it in the same commit. See Decisions 22 and 23.
+
+### Spinner / SpinnerBlock (in-app wait)
+
+The turning arc on its own — the geometry `BrandLoader` uses, extracted so there is ONE ring in the app. Props: `size` (default 30), `stroke` (2), `tint` (`dim`), `label`. Always a 0.72 arc, `dur.slow` per revolution, linear; reduced motion keeps a static outline rather than an empty hole. `SpinnerBlock` centres it in a `minHeight` area for a screen that has drawn its chrome and is waiting on content (source's Account Setup 18) — header and tab bar already up, the arc alone in the content region.
+
+**Not a general replacement for `Skeleton`.** Use the skeleton wherever the shape of what's coming is known and worth previewing (rails, cards, lists); use this where a spinner is the honest answer — a whole-feed first load, where a skeleton would promise a layout the response may not fill. MOTION §2 still forbids a spinner on filter and pagination changes, which keep previous data. Home's first load uses it (Decision 23 sibling change); nothing else does yet.
 
 ### SplashGate (launch)
 Full-bleed `bg` field, white brand mark centered at the same width as the native splash (`imageWidth` 140pt, 100 on Android — Android 12+ masks the outer third of its system splash). That puts the artwork at ~28.5% of a 393pt screen, deliberately under the reference's 33.5%: the reference mark is a thin ribbon and ours is a solid arrow, so equal bbox width reads oversized. Note `imageWidth` sizes the square canvas, not the artwork — this asset's alpha bbox is 79.9% of its canvas, so the two are not interchangeable. The value lives in `app.config.js` and `SplashGate.tsx` and must move in both. Mounts opaque, dismisses the native splash on its first layout, holds to a 1200ms floor measured from bundle evaluation, then fades on dur.base + ease.exit and unmounts. Blocks touches while up. Cold start only — no AppState listener, so it never replays on resume. Reduced motion drops the fade, keeps the hold. See Decision 18.
@@ -238,9 +313,13 @@ Card bg, radius 14, 12.5px/600 head + rotating chevron (spring), max-height body
 
 ## 6. Component library — content cards
 
-All cards are **editorial**: no fill, no border. The photograph and the type are the card; the radius belongs to the image, not to a container around it. Type sits flush to the image edge. The box treatment (fill + hairline + inset) existed because a dark card on a dark page is invisible without an edge — on white the image already has enormous contrast against the page, so a border is chrome drawing a line beside an edge that already reads. imageScrim on images, press physics (MOTION.md §3), placeholder Gray/200 → fade-in.
+All cards are **bordered**: no fill, 1px `border` (DS §3's rest elevation), radius 20, `overflow: hidden` so the border closes around the photograph. Type is inset 12pt. imageScrim on images, press physics (MOTION.md §3), placeholder Gray/200 → fade-in.
+
+Phase 5 made them *editorial* — no fill, no border, type flush to the image edge — on the argument that a white page plus a photograph is contrast enough and a hairline is chrome drawing a line beside an edge that already reads. That was true of light alone. Decision 24's #050505 ground is exactly the condition the box treatment existed for, and a borderless card there has no boundary at all, so a rail reads as loose images and captions adrift on the page. The edge is back in **both** themes; `surface-contrast.test.ts` asserts the border token is actually visible against the page in each, since "bordered" is worthless if the border matches the page.
 
 **Overlay pills on card images** (price, spots-left) sit on the `scrim` fill and therefore carry `inverse` text, not `text`. This is one of the few places `color.text` is wrong by construction, and the static contrast audit cannot see it — `scrim` is an rgba() it will not judge. Check overlays by eye.
+
+**Anything ON a photograph is photographic in BOTH themes** — `inverse` copy, secondary copy dimmed by opacity (0.8–0.86, the onboarding device), `inverseTrack` for a progress remainder, `inverseBorder` for an edge. Never the page ramp. UpNextHeroCard broke this and showed what it costs: its title and meta were left as `text`/`dim`, so light needed a **0.92 white** `heroSide` wash to make near-black ink sit on a photo, which bleached the image *and* turned the (correctly `inverse`) UP NEXT eyebrow white-on-white; dark ran the mirror image at 0.94 black and erased the picture. The scrim is now one photographic value in both themes at **0.70 → 0.06**, which is the measured floor for white copy over a pure-white pixel (8.5:1, and 6.8:1 at 0.86 opacity) — asserted in `surface-contrast.test.ts`, so scrim opacity is a number to argue with rather than a dial to turn up.
 
 | Card | Size/anatomy | Notes |
 |---|---|---|
@@ -249,7 +328,7 @@ All cards are **editorial**: no fill, no border. The photograph and the type are
 | CoachCard | image 100 + overlapping 48pt face avatar → name/sport vs stars/price columns | directory |
 | CoachCard `compact` | 150pt centered rail card: facility image, −22 overlap avatar, name, sport, stars | Home rail |
 | Camp/Workshop/EventCard | GameCard anatomy, section accents, + registration SlotBar ("x% registered") + FILLING FAST >70% | Discover segments |
-| UpNextHeroCard | 176pt, heroSide scrim, parallax image, shine sweep, UPNEXT eyebrow + pulse dot, `title2` title, meta + weather chip?, AvatarStack pop-in, countdown cells, SlotRing | Home only; the flagship |
+| UpNextHeroCard | 176pt, heroSide scrim, parallax image, shine sweep, UPNEXT eyebrow + pulse dot, `title2` title, meta + weather chip?, AvatarStack pop-in, countdown cells, SlotRing | Home only; the flagship. **Photographic in both themes** — see below |
 | Ticker | 26pt pill, live dot pulse, rotating 10.5px message ~3.4s | Home |
 | SetupCard | infoSurface bg, info border, icon tile + bold lead/body + chevron | dismissible one-time |
 
@@ -280,7 +359,7 @@ TierUp overlay, confetti, join-success burst: implement exactly per MOTION.md §
 ## 8. Component library — social proof & profile
 
 ### LeaderRow / PinnedRankRow / Podium
-LeaderRow: rank (12/800 tabular) + 32 avatar + name/TierBadge + score (12.5/800) + ▲/▼ delta (9/800, success/redLight). Podium: 1st 66pt gold-ring avatar + shine + bobbing crown + 58pt base; 2nd/3rd 52pt silver/bronze, 42/32pt bases; staggered rise + score count-ups on tab entry (once). PinnedRankRow: red 10% blurred strip above TabBar, slides in once, own rank always visible.
+LeaderRow: rank (12/800 tabular) + 32 avatar + name/TierBadge + score (12.5/800) + ▲/▼ delta (9/800, success/redLight). Podium: 1st 66pt gold-ring avatar + shine + bobbing crown + 58pt base; 2nd/3rd 52pt silver/bronze, 42/32pt bases; staggered rise + score count-ups on tab entry (once). PinnedRankRow: `elev` strip with a hairline top border pinned above TabBar, slides in once, own rank always visible; the own-row wash is neutral `card`, not the error ramp.
 
 ### PlayerHeroCard / StatStrip / WeekStrip
 PlayerHeroCard: cover image (118pt, fades to bg) over card (radius 24); 64pt avatar with shine; `title1` name + @handle·city; TierBadge; RankProgress (7px tier-gradient bar + shine) with pts count-up.

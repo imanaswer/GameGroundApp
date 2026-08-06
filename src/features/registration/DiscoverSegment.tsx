@@ -7,12 +7,14 @@ import { RegistrationCard } from "@/components/cards";
 import { EmptyState, ErrorState, useTabBarPadding } from "@/components/chrome";
 import { Appear, CardSkeleton, DiscoverIcon } from "@/components/ds";
 import * as haptics from "@/lib/haptics";
-import { color, icon as iconSize, layout, space } from "@/lib/tokens";
+import { icon as iconSize, layout, space } from "@/lib/tokens";
 
 import type { EntityConfig } from "./entities";
 import { toRegistrationCard, useRegisterableList } from "./hooks";
+import { usePalette } from "@/theme/runtime";
 
 export function DiscoverSegment({ config, q }: { config: EntityConfig; q: string }) {
+  const color = usePalette();
   const router = useRouter();
   const { data, isLoading, isError, error, refetch, isRefetching } = useRegisterableList(config, q);
   const empty = data && data.length === 0;
@@ -61,7 +63,11 @@ export function DiscoverSegment({ config, q }: { config: EntityConfig; q: string
               haptics.refresh();
               refetch();
             }}
+            // iOS reads `tintColor`; Android reads `colors` + `progressBackgroundColor` and
+            // otherwise draws a dark spinner on a white disc whatever the app is set to.
             tintColor={color.dim}
+            colors={[color.dim]}
+            progressBackgroundColor={color.elev}
           />
         }
       />

@@ -1,9 +1,10 @@
 /** DESIGN_SYSTEM.md §5 Header. Brand lockup (mark + wordmark) / screen name + right icon buttons. */
 import { Image } from "expo-image";
-import { StyleSheet, Text, View } from "react-native";
+import { Text, View } from "react-native";
 
 import { Avatar, Press } from "@/components/ds";
 import { color, font, layout, space, type } from "@/lib/tokens";
+import { themed, usePalette, useThemedStyles } from "@/theme/runtime";
 
 type Action = { key: string; icon: React.ReactNode; onPress: () => void; label: string };
 
@@ -25,6 +26,8 @@ export function Header({
   actions?: Action[];
   me?: { name: string; uri?: string | null; onPress: () => void };
 }) {
+  const styles = useThemedStyles(sheets);
+  const color = usePalette();
   return (
     <View style={styles.row}>
       <View style={styles.titleWrap}>
@@ -70,7 +73,7 @@ export function Header({
   );
 }
 
-const styles = StyleSheet.create({
+const sheets = themed(() => ({
   row: {
     flexDirection: "row",
     alignItems: "center",
@@ -95,4 +98,4 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-});
+}));

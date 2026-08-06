@@ -8,14 +8,17 @@ import { useEffect } from "react";
 import { Alert, Linking, ScrollView, StyleSheet, Text, View } from "react-native";
 
 import { ErrorState, PageNav, Screen } from "@/components/chrome";
-import { BellIcon, CardIcon, ChevronRightIcon, InfoIcon, LogOutIcon, MessageIcon, Press, Skeleton, StarIcon } from "@/components/ds";
+import { BellIcon, CardIcon, ChevronRightIcon, EyeIcon, InfoIcon, LogOutIcon, MessageIcon, Press, Skeleton, StarIcon } from "@/components/ds";
 import { ActivityFeed, PlayerHeroCard, StatStrip, UpcomingGames, WeekStrip } from "@/components/social/Profile";
 import { useTierUp } from "@/components/social/TierUp";
 import { useActivity, useProfile } from "@/hooks/queries";
 import { useAuth } from "@/hooks/useAuth";
 import { color, layout, space, type } from "@/lib/tokens";
+import { themed, usePalette, useThemedStyles } from "@/theme/runtime";
 
 export default function Profile() {
+  const styles = useThemedStyles(sheets);
+  const color = usePalette();
   const router = useRouter();
   const { user, logout } = useAuth();
   const params = useLocalSearchParams<{ userId?: string }>();
@@ -109,6 +112,12 @@ export default function Profile() {
                     onPress={() => router.push("/profile/settings")}
                   />
                   <MenuRow
+                    icon={<EyeIcon color={color.dim} />}
+                    label="Appearance"
+                    onPress={() => router.push("/profile/appearance")}
+                    divider
+                  />
+                  <MenuRow
                     icon={<CardIcon color={color.dim} />}
                     label="Payment history"
                     onPress={() => router.push("/profile/payments")}
@@ -173,6 +182,8 @@ function MenuRow({
   onPress: () => void;
   divider?: boolean;
 }) {
+  const styles = useThemedStyles(sheets);
+  const color = usePalette();
   return (
     <Press
       accessibilityRole="button"
@@ -190,7 +201,7 @@ function MenuRow({
   );
 }
 
-const styles = StyleSheet.create({
+const sheets = themed(() => ({
   scroll: { paddingHorizontal: layout.screenX, paddingBottom: space(20), gap: space(4) },
   gap: { marginTop: space(3) },
   formSection: { gap: space(2.5) },
@@ -203,4 +214,4 @@ const styles = StyleSheet.create({
   menuLabel: { ...type.body, color: color.text, flex: 1 },
   menuHint: { ...type.caption, color: color.dim2 },
   menuDanger: { color: color.primarySoft },
-});
+}));

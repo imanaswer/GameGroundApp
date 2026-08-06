@@ -1,10 +1,11 @@
 /** DESIGN_SYSTEM.md §4 Avatar / AvatarStack. Image → initials fallback on identity color. */
 import { Image } from "expo-image";
 import { useState } from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { Text, View } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 
 import { avatarColors, color, ownAvatarGradient, type } from "@/lib/tokens";
+import { themed, useThemedStyles } from "@/theme/runtime";
 
 function identityColor(seed: string): string {
   let hash = 0;
@@ -26,6 +27,7 @@ type Props = {
 };
 
 export function Avatar({ name, uri, size = 32, isSelf = false }: Props) {
+  const styles = useThemedStyles(sheets);
   const [failed, setFailed] = useState(false);
   const dim = { width: size, height: size, borderRadius: 999 };
   const label = <Text style={[styles.initials, { fontSize: size * 0.38 }]}>{initials(name)}</Text>;
@@ -66,6 +68,7 @@ export function AvatarStack({
   max?: number;
   size?: number;
 }) {
+  const styles = useThemedStyles(sheets);
   const shown = people.slice(0, max);
   const overflow = people.length - shown.length;
   return (
@@ -84,11 +87,13 @@ export function AvatarStack({
   );
 }
 
-const styles = StyleSheet.create({
+const sheets = themed(() => ({
   center: { alignItems: "center", justifyContent: "center" },
-  initials: { fontFamily: type.heading.fontFamily, color: color.text },
+  // WHITE, not `text`. These sit on a saturated identity fill in both themes — `text` is
+  // near-black since the light port, which put black initials on a near-black disc.
+  initials: { fontFamily: type.heading.fontFamily, color: color.inverse },
   stack: { flexDirection: "row", alignItems: "center" },
   ring: { borderWidth: 2, borderColor: color.card },
   overflow: { backgroundColor: color.overflowChip, alignItems: "center", justifyContent: "center", borderRadius: 999 },
   overflowText: { fontFamily: type.heading.fontFamily, color: color.text },
-});
+}));

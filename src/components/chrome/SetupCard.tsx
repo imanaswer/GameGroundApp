@@ -6,10 +6,11 @@
  * The icon tile is intentionally neutral (white on the blue info surface) rather than a brand
  * accent — one color note per card, so the informational surface reads as informational.
  */
-import { StyleSheet, Text, View, type StyleProp, type ViewStyle } from "react-native";
+import { Text, View, type StyleProp, type ViewStyle } from "react-native";
 
 import { ChevronRightIcon, CloseIcon, Press } from "@/components/ds";
 import { color, radius, space, type } from "@/lib/tokens";
+import { themed, usePalette, useThemedStyles } from "@/theme/runtime";
 
 export function SetupCard({
   icon,
@@ -27,6 +28,8 @@ export function SetupCard({
   onDismiss?: () => void;
   style?: StyleProp<ViewStyle>;
 }) {
+  const styles = useThemedStyles(sheets);
+  const color = usePalette();
   return (
     <View style={[styles.card, style]}>
       <Press
@@ -60,7 +63,7 @@ export function SetupCard({
   );
 }
 
-const styles = StyleSheet.create({
+const sheets = themed(() => ({
   card: {
     flexDirection: "row",
     alignItems: "center",
@@ -76,4 +79,4 @@ const styles = StyleSheet.create({
   title: { ...type.heading, color: color.text },
   body: { ...type.caption, color: color.dim },
   dismiss: { width: 34, height: 34, alignItems: "center", justifyContent: "center", borderRadius: 999 },
-});
+}));

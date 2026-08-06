@@ -15,7 +15,7 @@
  * Note: drag thresholds/velocity are tuned by reason here; confirm feel on a device.
  */
 import { useEffect } from "react";
-import { Pressable, StyleSheet, View, useWindowDimensions } from "react-native";
+import { Pressable, View, useWindowDimensions } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, {
   interpolate,
@@ -29,6 +29,7 @@ import Animated, {
 import * as haptics from "@/lib/haptics";
 import { color } from "@/lib/tokens";
 import { dur, ease } from "@/theme/animations";
+import { themed, useThemedStyles } from "@/theme/runtime";
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 const DRAG_DISMISS = 140; // px dragged past which a release closes the sheet
@@ -46,6 +47,7 @@ export function Sheet({
   dismissible?: boolean;
   children: React.ReactNode;
 }) {
+  const styles = useThemedStyles(sheets);
   const reduced = useReducedMotion();
   const { height: screenH } = useWindowDimensions();
   const open = useSharedValue(0); // 0 = closed, 1 = open — the ONLY writer is the effect below
@@ -115,8 +117,8 @@ export function Sheet({
   );
 }
 
-const styles = StyleSheet.create({
+const sheets = themed(() => ({
   overlay: { position: "absolute", top: 0, left: 0, right: 0, bottom: 0 },
   scrim: { position: "absolute", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: color.scrim },
   sheet: { position: "absolute", left: 0, right: 0, bottom: 0 },
-});
+}));

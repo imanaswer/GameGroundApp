@@ -16,12 +16,14 @@
  */
 import { allowScreenCaptureAsync, preventScreenCaptureAsync } from "expo-screen-capture";
 import { useEffect, useRef, useState } from "react";
-import { Modal, StyleSheet, View } from "react-native";
+import { Modal, View } from "react-native";
 import { WebView, type WebViewMessageEvent } from "react-native-webview";
 
 import type { CreatedOrder, RazorpayResult } from "@/api/types";
 import { RazorpayCancelledError, RazorpayUnavailableError } from "@/lib/razorpay-errors";
 import { color } from "@/lib/tokens";
+import type { Palette } from "@/theme/palette";
+import { themed, useThemedStyles } from "@/theme/runtime";
 
 export { RazorpayCancelledError, RazorpayUnavailableError };
 
@@ -53,7 +55,7 @@ export function openCheckout(order: CreatedOrder, prefill: CheckoutPrefill): Pro
 }
 
 /** Razorpay Standard Checkout page. checkout.js posts the signed result (or a cancel) back. */
-function checkoutHtml(order: CreatedOrder, prefill: CheckoutPrefill): string {
+function checkoutHtml(order: CreatedOrder, prefill: CheckoutPrefill, color: Palette): string {
   const options = {
     key: order.keyId,
     order_id: order.orderId,
@@ -85,6 +87,7 @@ function checkoutHtml(order: CreatedOrder, prefill: CheckoutPrefill): string {
 
 /** Mounted once in the root layout. Presents the checkout WebView on demand. */
 export function RazorpayHost() {
+  const styles = useThemedStyles(sheets);
   const [pending, setPending] = useState<Pending | null>(null);
   const settled = useRef(false);
 
@@ -149,7 +152,7 @@ export function RazorpayHost() {
       <View style={styles.root}>
         {pending && (
           <WebView
-            source={{ html: checkoutHtml(pending.order, pending.prefill) }}
+            source={{ html: checkoutHtml(pending.order, pending.prefill, color) }}
             onMessage={onMessage}
             javaScriptEnabled
             originWhitelist={["*"]}
@@ -161,7 +164,7 @@ export function RazorpayHost() {
   );
 }
 
-const styles = StyleSheet.create({
+const sheets = themed(() => ({
   root: { flex: 1, backgroundColor: color.bg },
   web: { flex: 1, backgroundColor: color.bg },
-});
+}));

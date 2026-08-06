@@ -303,11 +303,22 @@ export interface Leaderboard {
 export interface SearchHit {
   id: string;
   title: string;
+  /**
+   * The one date line the server actually sends: `"Football · July 1 – July 14, 2026"` for a camp,
+   * `"Football · Aug 20, 2026"` for an event, `"Football · Forza Turf Football"` for a game.
+   * Display copy, not a contract — `search.ts` reads a date out of it defensively and keeps any hit
+   * it cannot parse.
+   */
   subtitle: string | null;
   /**
-   * ISO end date, sent for camp and event hits only (added server-side 2 Aug 2026). Lets the app
-   * drop hits that have already ended instead of trusting the server's status sweep — the same
-   * backstop the Discover lists have. Absent for games and coaches, which have no end date here.
+   * ISO end date. **Production does not currently send this** — verified against
+   * `/api/search?q=football` on 3 Aug 2026, where camp and event hits carry only
+   * `{id, type, title, subtitle, image, href}`. The comment here used to assert it was added
+   * server-side on 2 Aug 2026; it was not, and that assertion turned `dropEnded` into a no-op that
+   * never dropped a single hit. A camp that ended on 14 July was still findable in August.
+   *
+   * Kept optional and still preferred when present — the moment the API starts sending it, it wins
+   * over the subtitle fallback in `search.ts` and that fallback can be deleted.
    */
   endDate?: string | null;
 }
@@ -330,6 +341,18 @@ export interface Venue {
   id: string;
   name: string;
   area: string | null;
+  /**
+   * Sports the venue is APPROVED for (`supportedSports` server-side). `GET /venues?sport=X` already
+   * filters on it; this is carried so the client can also verify what it was handed rather than
+   * trusting a list it may have cached from before the filter existed.
+   */
+  supportedSports: string[];
+  /**
+   * Bookable windows inside the server's 30-day look-ahead, counted with the same rules the slot
+   * picker applies, so the number cannot disagree with the next screen. `null` when the payload
+   * omits it — which is not the same as 0, and must not be rendered as "no slots".
+   */
+  openSlots: number | null;
 }
 
 export interface VenueSlot {

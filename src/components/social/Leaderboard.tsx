@@ -4,7 +4,7 @@
  * crown, own-rank pin slides in from below. Reduced-motion renders static.
  */
 import { useEffect } from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { Text, View } from "react-native";
 import Animated, {
   Easing,
   SlideInDown,
@@ -20,19 +20,31 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { LeaderRow as Row } from "@/api/types";
 import { TAB_BAR_HEIGHT } from "@/components/chrome/TabBar";
 import { Appear, Avatar, CountUp, CrownIcon, Press, TierBadge } from "@/components/ds";
-import { color, layout, radius, space, tier as tierTokens, type } from "@/lib/tokens";
+import { color, layout, radius, space, type } from "@/lib/tokens";
+import type { TierPalette } from "@/theme/palette";
+import { themed, usePalette, useThemedStyles, useTierPalette } from "@/theme/runtime";
 
 function Delta({ delta }: { delta: number | null }) {
+  const styles = useThemedStyles(sheets);
   if (!delta) return null;
   const up = delta > 0;
   return <Text style={[styles.delta, up ? styles.up : styles.down]}>{up ? "▲" : "▼"}{Math.abs(delta)}</Text>;
 }
 
 const PODIUM_SIZE: Record<number, number> = { 1: 66, 2: 52, 3: 52 };
-const RING: Record<number, string> = { 1: tierTokens.gold.fg, 2: tierTokens.silver.fg, 3: tierTokens.bronze.fg };
+/** A function of the palette, not a constant map: a module-scope map resolves once at import and
+ *  is frozen in whichever theme was active then — and the compiler would cache anything built
+ *  from it besides. */
+const ringFor = (tiers: TierPalette): Record<number, string> => ({
+  1: tiers.gold.fg,
+  2: tiers.silver.fg,
+  3: tiers.bronze.fg,
+});
 
 /** §8 crown bob: gentle vertical float above the #1 podium avatar. */
 function CrownBob() {
+  const styles = useThemedStyles(sheets);
+  const color = usePalette();
   const y = useSharedValue(0);
   const reduced = useReducedMotion();
   useEffect(() => {
@@ -48,6 +60,9 @@ function CrownBob() {
 }
 
 export function Podium({ top, onPress }: { top: Row[]; onPress: (id: string) => void }) {
+  const styles = useThemedStyles(sheets);
+  const color = usePalette();
+  const ring = ringFor(useTierPalette());
   // Visual order: 2nd, 1st, 3rd. Stagger index runs 1st → 2nd → 3rd so the winner lands first.
   const order = [top[1], top[0], top[2]].filter(Boolean);
   const staggerIndex: Record<number, number> = { 1: 0, 2: 1, 3: 2 };
@@ -65,7 +80,7 @@ export function Podium({ top, onPress }: { top: Row[]; onPress: (id: string) => 
             >
               <View>
                 {r.rank === 1 && <CrownBob />}
-                <View style={[styles.ring, { borderColor: RING[r.rank] ?? color.border2, borderRadius: 999 }]}>
+                <View style={[styles.ring, { borderColor: ring[r.rank] ?? color.border2, borderRadius: 999 }]}>
                   <Avatar name={r.user.name} uri={r.user.avatarUrl} size={size} />
                 </View>
               </View>
@@ -92,6 +107,7 @@ export function LeaderRow({
   /** When set, the row rises in with a per-index stagger (list entry). */
   index?: number;
 }) {
+  const styles = useThemedStyles(sheets);
   const inner = (
     <Press
       accessibilityRole="button"
@@ -114,6 +130,7 @@ export function LeaderRow({
 
 /** Own-rank strip pinned above the tab bar when the viewer is outside the visible list (§8). */
 export function PinnedRankRow({ row, onPress }: { row: Row; onPress: (id: string) => void }) {
+  const styles = useThemedStyles(sheets);
   const reduced = useReducedMotion();
   const insets = useSafeAreaInsets();
   return (
@@ -126,7 +143,7 @@ export function PinnedRankRow({ row, onPress }: { row: Row; onPress: (id: string
   );
 }
 
-const styles = StyleSheet.create({
+const sheets = themed(() => ({
   podium: { flexDirection: "row", alignItems: "flex-end", justifyContent: "center", gap: space(4), paddingVertical: space(5) },
   podCol: { alignItems: "center", maxWidth: 100 },
   podPress: { alignItems: "center", gap: space(1.5) },
@@ -138,7 +155,8 @@ const styles = StyleSheet.create({
   podRank: { ...type.micro, color: color.dim },
 
   row: { flexDirection: "row", alignItems: "center", gap: space(3), paddingVertical: space(2.5), paddingHorizontal: space(2) },
-  rowSelf: { backgroundColor: color.errorWash, borderRadius: radius.input },
+  /** "This row is you" — a neutral wash. The error ramp reads as a problem, not as identity. */
+  rowSelf: { backgroundColor: color.card, borderRadius: radius.input },
   rank: { fontFamily: type.heading.fontFamily, fontSize: 12, color: color.dim, width: 28 },
   rowText: { flex: 1, flexDirection: "row", alignItems: "center", gap: space(2) },
   name: { ...type.bodyStrong, color: color.text, flexShrink: 1 },
@@ -148,4 +166,4 @@ const styles = StyleSheet.create({
   score: { fontFamily: type.heading.fontFamily, fontSize: 12, color: color.text },
 
   pinnedWrap: { position: "absolute", left: 0, right: 0, paddingHorizontal: layout.screenX, paddingVertical: space(2), backgroundColor: color.elev, borderTopWidth: 1, borderTopColor: color.border },
-});
+}));

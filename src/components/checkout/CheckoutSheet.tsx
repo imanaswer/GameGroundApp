@@ -4,7 +4,7 @@
  * unresolved states (§9.4) are added. The sheet never fabricates progress on a timer.
  */
 import { useEffect, useState } from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Animated, {
   useAnimatedProps,
@@ -21,6 +21,7 @@ import { Button, CheckIcon, Confetti, Press } from "@/components/ds";
 import * as haptics from "@/lib/haptics";
 import { color, radius, ramp, space, type } from "@/lib/tokens";
 import { dur, ease, spring } from "@/theme/animations";
+import { themed, usePalette, useThemedStyles } from "@/theme/runtime";
 
 const AnimatedPath = Animated.createAnimatedComponent(Path);
 const CHECK_LEN = 24; // ~path length of "M6 13l4 4 8-9"
@@ -63,6 +64,7 @@ export function CheckoutSheet({
   /** Dismiss from a resolved state (the success "Done" action). */
   onClose?: () => void;
 }) {
+  const styles = useThemedStyles(sheets);
   const insets = useSafeAreaInsets();
   return (
     <View style={[styles.sheet, { paddingBottom: space(5) + insets.bottom }]}>
@@ -78,6 +80,7 @@ export function CheckoutSheet({
 }
 
 function Methods({ amount, onPay }: { amount: string; onPay?: () => void }) {
+  const styles = useThemedStyles(sheets);
   const [selected, setSelected] = useState(METHODS[0].key);
   return (
     <>
@@ -115,6 +118,8 @@ function Methods({ amount, onPay }: { amount: string; onPay?: () => void }) {
 
 /** VerificationTimeline (§7/§9.1): steps flip on the REAL machine phase, never on timers. */
 function Processing({ phase }: { phase: TimelinePhase }) {
+  const styles = useThemedStyles(sheets);
+  const color = usePalette();
   // How many steps are done: creating→0 done, gateway→1 done, verifying→2 done.
   const done = phase === "gateway" ? 1 : phase === "verifying" ? 2 : 0;
   return (
@@ -136,6 +141,7 @@ function Processing({ phase }: { phase: TimelinePhase }) {
 
 /** §9.4 — debited but not yet confirmed. Non-blocking, no spinner-as-failure. */
 function Reconciling() {
+  const styles = useThemedStyles(sheets);
   return (
     <View style={styles.centered}>
       <Text style={styles.header}>Payment received — confirming…</Text>
@@ -148,6 +154,7 @@ function Reconciling() {
 
 /** §9.4 — 5-minute cap elapsed unresolved. Route to support with the order ref. */
 function Unresolved({ onSupport }: { onSupport?: () => void }) {
+  const styles = useThemedStyles(sheets);
   return (
     <View style={styles.centered}>
       <Text style={styles.header}>Still confirming</Text>
@@ -161,6 +168,7 @@ function Unresolved({ onSupport }: { onSupport?: () => void }) {
 }
 
 function Success({ amount, onClose }: { amount: string; onClose?: () => void }) {
+  const styles = useThemedStyles(sheets);
   // Extended success (MOTION §5): check-circle spring-in + SVG draw-on, then confetti burst. The
   // reputation-gain card + avatar-into-stack need the server rep delta from the refetched profile
   // (never client-computed) — see BACKLOG (M14).
@@ -177,6 +185,8 @@ function Success({ amount, onClose }: { amount: string; onClose?: () => void }) 
 
 /** §5 check-circle: ring springs in, the check strokes on over dur.slow. Reduced-motion static. */
 function SuccessCheck() {
+  const styles = useThemedStyles(sheets);
+  const color = usePalette();
   const reduced = useReducedMotion();
   const scale = useSharedValue(reduced ? 1 : 0);
   const draw = useSharedValue(reduced ? 1 : 0);
@@ -209,6 +219,7 @@ function SuccessCheck() {
 }
 
 function Failure({ message, onRetry }: { message?: string | null; onRetry?: () => void }) {
+  const styles = useThemedStyles(sheets);
   return (
     <View style={styles.centered}>
       <Text style={styles.header}>Payment didn’t go through</Text>
@@ -218,7 +229,7 @@ function Failure({ message, onRetry }: { message?: string | null; onRetry?: () =
   );
 }
 
-const styles = StyleSheet.create({
+const sheets = themed(() => ({
   sheet: { backgroundColor: color.elev, borderTopLeftRadius: radius.sheet, borderTopRightRadius: radius.sheet, padding: space(5), gap: space(3) },
   handle: { width: 38, height: 4, borderRadius: 999, backgroundColor: color.border2, alignSelf: "center", marginBottom: space(2) },
   header: { ...type.heading, color: color.text },
@@ -236,7 +247,12 @@ const styles = StyleSheet.create({
     borderColor: color.border,
     padding: space(3.5),
   },
-  methodSelected: { borderColor: color.primary, backgroundColor: color.errorWash },
+  /**
+   * Selection is the ink border plus the filled radio — two channels, no fill tint. The former
+   * `errorWash` background put an error-ramp red under the CHOSEN payment method, which on a white
+   * sheet read as "this method failed" rather than "this one is picked".
+   */
+  methodSelected: { borderColor: color.primary },
   methodText: { gap: space(0.5) },
   methodName: { ...type.bodyStrong, color: color.text },
   methodCaption: { ...type.caption, color: color.dim },
@@ -256,4 +272,4 @@ const styles = StyleSheet.create({
   centered: { alignItems: "center", gap: space(2), paddingVertical: space(4) },
   successRing: { width: 64, height: 64, borderRadius: 999, backgroundColor: color.successSurface, alignItems: "center", justifyContent: "center", marginBottom: space(2) },
   retry: { alignSelf: "stretch", marginTop: space(2) },
-});
+}));

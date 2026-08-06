@@ -11,7 +11,7 @@ import {
   toSummaryList,
   type RawRegisterable,
 } from "@/api/registerable";
-import { dropEnded, search } from "@/api/search";
+import { dropEnded, hitEndsAt, search } from "@/api/search";
 
 // registerable imports the api client, which reads env at module load.
 jest.mock("@/lib/env", () => ({
@@ -67,6 +67,77 @@ describe("toSummaryList", () => {
     } finally {
       spy.mockRestore();
     }
+  });
+});
+
+/**
+ * These fixtures are the VERBATIM shape of `/api/search?q=football` in production on 3 Aug 2026:
+ *
+ *   {"id":"cmqdqcv35…","type":"camp","title":"Summer Football Development Camp 2026",
+ *    "subtitle":"Football · July 1 – July 14, 2026","image":"…","href":"/camps/…"}
+ *
+ * Note what is NOT there: `endDate`. The block below asserted the filter using fabricated
+ * `endDate`s, so it passed while the real thing did nothing at all — every production hit took the
+ * "no date, keep it" branch and a camp that finished on 14 July stayed findable in August. The
+ * tests were right about the logic and wrong about the wire.
+ *
+ * If the payload shape changes, this is the block to re-check against the live endpoint.
+ */
+describe("search: ended hits, on the real payload shape", () => {
+  const ENDED_CAMP = {
+    id: "cmqdqcv35000004l42kjgf1rq",
+    title: "Summer Football Development Camp 2026",
+    subtitle: "Football · July 1 – July 14, 2026",
+  };
+  const UPCOMING_EVENT = {
+    id: "cmqdvt8cx000004kqquez1kpy",
+    title: "Kozhikode Football Championship 2026",
+    subtitle: "Football · Aug 20, 2026",
+  };
+  const GAME = {
+    id: "cmsc4y7w2000004kyh86ddmcf",
+    title: "Evening Foots",
+    subtitle: "Football · Forza Turf Football",
+  };
+
+  test("drops the ended camp — the reported bug", () => {
+    expect(dropEnded([ENDED_CAMP, UPCOMING_EVENT, GAME], NOW).map((h) => h.id)).toEqual([
+      UPCOMING_EVENT.id,
+      GAME.id,
+    ]);
+  });
+
+  test("reads the END of a range, not its start", () => {
+    // "July 1 – July 14" on 2 Aug: taking the left side would still drop it, but a camp running
+    // "July 20 – Aug 30" would vanish mid-run. The right side is the only correct read.
+    const running = { ...ENDED_CAMP, subtitle: "Football · July 20 – Aug 30, 2026" };
+    expect(hitEndsAt(running)).toBe(new Date("Aug 30, 2026").getTime());
+    expect(dropEnded([running], NOW)).toEqual([running]);
+  });
+
+  test("a real endDate still wins when the server starts sending one", () => {
+    expect(hitEndsAt({ ...ENDED_CAMP, endDate: "2026-12-25T00:00:00.000Z" })).toBe(
+      new Date("2026-12-25T00:00:00.000Z").getTime(),
+    );
+  });
+
+  test.each([
+    ["no date in the subtitle", GAME.subtitle],
+    ["no year", "Football · July 14"],
+    // `new Date("Whenever, 2026")` returns 1 Jan 2027 — a year alone must never count as a date.
+    ["an unreadable month", "Football · Whenever, 2026"],
+    ["a venue that merely contains a year", "Football · Kozhikode Stadium 2026"],
+    [" a null subtitle", null],
+  ])("keeps a hit with %s rather than guessing", (_label, subtitle) => {
+    const hit = { ...GAME, subtitle };
+    expect(hitEndsAt(hit)).toBeNull();
+    expect(dropEnded([hit], NOW)).toEqual([hit]);
+  });
+
+  test("keeps an item on its own final day, drops it after (24h grace, as the Discover list)", () => {
+    const endsToday = { ...ENDED_CAMP, subtitle: "Football · Aug 2, 2026" };
+    expect(dropEnded([endsToday], NOW)).toEqual([endsToday]);
+    expect(dropEnded([endsToday], NOW + 2 * 24 * 60 * 60_000)).toEqual([]);
   });
 });
 

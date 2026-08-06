@@ -5,12 +5,15 @@
  * trailing action (e.g. Settings).
  */
 import type { ReactNode } from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { Text, View } from "react-native";
 
 import { BackIcon, Press } from "@/components/ds";
 import { color, space, type } from "@/lib/tokens";
+import { themed, usePalette, useThemedStyles } from "@/theme/runtime";
 
 export function PageNav({ onBack, title, right }: { onBack: () => void; title?: string; right?: ReactNode }) {
+  const styles = useThemedStyles(sheets);
+  const color = usePalette();
   return (
     <View style={styles.row}>
       <View style={styles.left}>
@@ -31,7 +34,7 @@ export function PageNav({ onBack, title, right }: { onBack: () => void; title?: 
   );
 }
 
-const styles = StyleSheet.create({
+const sheets = themed(() => ({
   row: {
     flexDirection: "row",
     alignItems: "center",
@@ -50,4 +53,4 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-});
+}));

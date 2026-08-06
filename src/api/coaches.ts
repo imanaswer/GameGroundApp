@@ -1,4 +1,5 @@
 /** Coaches endpoints (§3.3). Reviews have server-side eligibility rules. */
+import { resolveImageUrl } from "@/lib/imageUrl";
 import { toWhatsAppNumber } from "@/lib/phone";
 import { sportImage } from "@/lib/sportImages";
 
@@ -64,8 +65,8 @@ function toSummary(c: RawCoach): CoachSummary {
     id: c.id,
     name: c.name,
     sport: c.sport,
-    facilityImageUrl: c.coverImageUrl || sportImage(c.sport),
-    avatarUrl: c.imageUrl ?? null,
+    facilityImageUrl: resolveImageUrl(c.coverImageUrl) || sportImage(c.sport),
+    avatarUrl: resolveImageUrl(c.imageUrl),
     rating: c.rating ?? 0,
     reviewCount: c.reviewCount ?? 0,
     pricePaise: c.priceMin ? c.priceMin * 100 : null,

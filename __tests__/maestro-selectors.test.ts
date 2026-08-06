@@ -39,11 +39,18 @@ const source = SRC_GLOBS.flatMap(walk)
   .map((f) => readFileSync(f, "utf8"))
   .join("\n");
 
-/** Static `testID="x"` plus the one templated family, `registration-${f.key}`. */
+/**
+ * Static `testID="x"` plus the templated families (`registration-${f.key}`, `tab-${route.name}`).
+ *
+ * Both forms are matched with `testID` followed by `=` OR `:` — a testID is not always a JSX
+ * attribute. TabBar builds its items as a list of prop objects so the bar can also render without
+ * a navigator (catalog, DS §10.3), which puts `testID:` on an object literal. When this regex was
+ * attribute-only that refactor silently emptied every `tab-*` id and took six flows with it.
+ */
 const staticIds = new Set(
-  [...source.matchAll(/testID=\{?["'`]([A-Za-z0-9_-]+)["'`]\}?/g)].map((m) => m[1]),
+  [...source.matchAll(/testID[=:]\s*\{?["'`]([A-Za-z0-9_-]+)["'`]\}?/g)].map((m) => m[1]),
 );
-const templatedPrefixes = [...source.matchAll(/testID=\{`([a-z-]+)-\$\{/g)].map((m) => m[1]);
+const templatedPrefixes = [...source.matchAll(/testID[=:]\s*\{?`([a-z-]+)-\$\{/g)].map((m) => m[1]);
 
 function isDefined(id: string): boolean {
   if (staticIds.has(id)) return true;

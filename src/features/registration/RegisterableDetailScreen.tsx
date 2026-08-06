@@ -20,10 +20,13 @@ import { color, layout, radius, space, type } from "@/lib/tokens";
 import type { EntityConfig } from "./entities";
 import { RegistrationForm } from "./RegistrationForm";
 import { useCancelRegistration, useRegisterableDetail } from "./hooks";
+import { themed, usePalette, useThemedStyles } from "@/theme/runtime";
 
 /** Meta tile: a red-tinted rounded icon square with a bold value over a dim sub-line.
  *  When `onPress` is set it becomes a row action (e.g. venue → directions) with a chevron. */
 function MetaTile({ icon, label, sub, onPress }: { icon: React.ReactNode; label: string; sub?: string; onPress?: () => void }) {
+  const styles = useThemedStyles(sheets);
+  const color = usePalette();
   const content = (
     <>
       <View style={styles.metaIcon}>{icon}</View>
@@ -48,6 +51,7 @@ function MetaTile({ icon, label, sub, onPress }: { icon: React.ReactNode; label:
 const KIND_LABEL: Record<string, string> = { camp: "Camp", workshop: "Workshop", event: "Event" };
 
 function Section({ label, children }: { label: string; children: React.ReactNode }) {
+  const styles = useThemedStyles(sheets);
   return (
     <View style={styles.section}>
       <Text style={styles.label}>{label}</Text>
@@ -57,6 +61,8 @@ function Section({ label, children }: { label: string; children: React.ReactNode
 }
 
 function Bullets({ items }: { items: string[] }) {
+  const styles = useThemedStyles(sheets);
+  const color = usePalette();
   return (
     <View style={styles.bullets}>
       {items.map((it, i) => (
@@ -72,6 +78,7 @@ function Bullets({ items }: { items: string[] }) {
 }
 
 function DetailRow({ label, value }: { label: string; value: string }) {
+  const styles = useThemedStyles(sheets);
   return (
     <View style={styles.detailRow}>
       <Text style={styles.detailLabel}>{label}</Text>
@@ -81,6 +88,8 @@ function DetailRow({ label, value }: { label: string; value: string }) {
 }
 
 export function RegisterableDetailScreen({ config, id }: { config: EntityConfig; id: string }) {
+  const styles = useThemedStyles(sheets);
+  const color = usePalette();
   const router = useRouter();
   const { data: item, isLoading, isError, error, refetch } = useRegisterableDetail(config, id);
   const [registering, setRegistering] = useState(false);
@@ -341,7 +350,7 @@ export function RegisterableDetailScreen({ config, id }: { config: EntityConfig;
   );
 }
 
-const styles = StyleSheet.create({
+const sheets = themed(() => ({
   scroll: { paddingBottom: space(28) },
   body: { paddingHorizontal: layout.screenX, marginTop: space(4), gap: space(2) },
 
@@ -416,4 +425,4 @@ const styles = StyleSheet.create({
 
   formHost: { marginTop: space(5), marginHorizontal: -layout.screenX },
   gap: { marginTop: space(3) },
-});
+}));

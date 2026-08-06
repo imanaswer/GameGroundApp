@@ -2,10 +2,11 @@
  * DESIGN_SYSTEM.md §5 EmptyState. Floating icon tile + serif headline + body + CTA.
  * Copy comes from MOTION.md §6 catalog — callers pass exact strings, never improvised.
  */
-import { StyleSheet, Text, View } from "react-native";
+import { Text, View } from "react-native";
 
 import { Button } from "@/components/ds";
 import { color, layout, space, type } from "@/lib/tokens";
+import { themed, useThemedStyles } from "@/theme/runtime";
 
 export function EmptyState({
   icon,
@@ -20,6 +21,7 @@ export function EmptyState({
   cta?: { label: string; onPress: () => void };
   secondary?: { label: string; onPress: () => void };
 }) {
+  const styles = useThemedStyles(sheets);
   return (
     <View style={styles.wrap}>
       <View style={styles.tile}>{icon}</View>
@@ -31,7 +33,7 @@ export function EmptyState({
   );
 }
 
-const styles = StyleSheet.create({
+const sheets = themed(() => ({
   wrap: { flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: layout.screenX, gap: space(3) },
   tile: {
     width: 66,
@@ -45,4 +47,4 @@ const styles = StyleSheet.create({
   headline: { ...type.title2, color: color.text, textAlign: "center" },
   body: { ...type.body, color: color.dim, textAlign: "center", maxWidth: 280 },
   cta: { marginTop: space(2), alignSelf: "stretch" },
-});
+}));

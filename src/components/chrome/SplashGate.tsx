@@ -28,6 +28,7 @@ import Animated, {
 
 import { color } from "@/lib/tokens";
 import { dur, ease } from "@/theme/animations";
+import { themed, useThemedStyles } from "@/theme/runtime";
 
 const MARK = require("@/assets/images/splash-icon.png");
 
@@ -45,6 +46,7 @@ const MIN_MS = 1200;
 const launchedAt = Date.now();
 
 export function SplashGate() {
+  const styles = useThemedStyles(sheets);
   const [visible, setVisible] = useState(true);
   const reduced = useReducedMotion();
   const opacity = useSharedValue(1);
@@ -88,7 +90,9 @@ export function SplashGate() {
   );
 }
 
-const styles = StyleSheet.create({
-  field: { backgroundColor: color.bg, alignItems: "center", justifyContent: "center" },
+const sheets = themed(() => ({
+  // `splash`, not `bg`: this overlay continues the NATIVE splash, whose colour is compiled in
+  // and cannot follow the theme. On the light page `bg` made a white field under a white mark.
+  field: { backgroundColor: color.splash, alignItems: "center", justifyContent: "center" },
   mark: { width: MARK_SIZE, height: MARK_SIZE },
-});
+}));

@@ -15,7 +15,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Animated, {
   useAnimatedStyle,
@@ -29,6 +29,7 @@ import Animated, {
 import { BellIcon, Press } from "@/components/ds";
 import { color, radius, shadow, space, type } from "@/lib/tokens";
 import { dur, spring } from "@/theme/animations";
+import { themed, usePalette, useThemedStyles } from "@/theme/runtime";
 
 const LIFE_MS = 2400;
 const OFFSCREEN = -120;
@@ -39,6 +40,8 @@ type ToastContextValue = { show: (t: ToastInput) => void };
 const ToastContext = createContext<ToastContextValue | null>(null);
 
 export function ToastProvider({ children }: { children: ReactNode }) {
+  const styles = useThemedStyles(sheets);
+  const color = usePalette();
   const insets = useSafeAreaInsets();
   const reduced = useReducedMotion();
   const [toast, setToast] = useState<ToastInput | null>(null);
@@ -114,7 +117,7 @@ export function useToast(): ToastContextValue {
   return ctx;
 }
 
-const styles = StyleSheet.create({
+const sheets = themed(() => ({
   wrap: { position: "absolute", left: space(4), right: space(4), zIndex: 100 },
   card: {
     backgroundColor: color.elev,
@@ -136,4 +139,4 @@ const styles = StyleSheet.create({
   body: { ...type.caption, color: color.dim },
   track: { position: "absolute", left: 0, right: 0, bottom: 0, height: 2, backgroundColor: color.border },
   bar: { height: 2, backgroundColor: color.primary },
-});
+}));

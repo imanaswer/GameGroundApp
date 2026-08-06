@@ -1,7 +1,8 @@
-import { StyleSheet, View, type ViewProps } from "react-native";
+import { View, type ViewProps } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { color, layout } from "@/lib/tokens";
+import { themed, useThemedStyles } from "@/theme/runtime";
 
 type Props = ViewProps & {
   /** Screens with their own hero/scrim manage horizontal padding themselves. */
@@ -17,6 +18,7 @@ type Props = ViewProps & {
 
 /** Every screen's outermost element. Owns the app background and the 18pt gutter (DS §3). */
 export function Screen({ padded = true, fullBleed = false, style, children, ...rest }: Props) {
+  const styles = useThemedStyles(sheets);
   return (
     <SafeAreaView style={styles.root} edges={fullBleed ? [] : ["top"]}>
       <View style={[styles.body, padded && styles.padded, style]} {...rest}>
@@ -26,8 +28,8 @@ export function Screen({ padded = true, fullBleed = false, style, children, ...r
   );
 }
 
-const styles = StyleSheet.create({
+const sheets = themed(() => ({
   root: { flex: 1, backgroundColor: color.bg },
   body: { flex: 1 },
   padded: { paddingHorizontal: layout.screenX },
-});
+}));

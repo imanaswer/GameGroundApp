@@ -4,7 +4,7 @@
  */
 import { Redirect } from "expo-router";
 import { useState } from "react";
-import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { ScrollView, Text, View } from "react-native";
 
 import {
   RegistrationCard,
@@ -21,7 +21,9 @@ import {
   SegmentedControl,
   SetupCard,
   Sheet,
+  Spinner,
   StickyCTA,
+  TabBarView,
 } from "@/components/chrome";
 import {
   Avatar,
@@ -31,8 +33,12 @@ import {
   CardSkeleton,
   Chip,
   ChipRow,
+  CoachesIcon,
+  DiscoverIcon,
   GamesIcon,
+  HomeIcon,
   InfoIcon,
+  LeadersIcon,
   Input,
   LiveChip,
   SearchBar,
@@ -42,6 +48,8 @@ import {
   TierBadge,
 } from "@/components/ds";
 import { color, icon as iconSize, layout, space, tier, type as t } from "@/lib/tokens";
+import { useTheme } from "@/theme/ThemeProvider";
+import { themed, usePalette, useThemedStyles } from "@/theme/runtime";
 
 const PEOPLE = [
   { name: "Arjun Nair" },
@@ -67,7 +75,17 @@ const GAME: GameCardData = {
   total: 14,
 };
 
+/** Mirrors app/(tabs)/_layout's list (Decision 5) — the catalog shows the real five. */
+const TAB_DEMO = [
+  { key: "home", label: "Home", Icon: HomeIcon },
+  { key: "games", label: "Games", Icon: GamesIcon },
+  { key: "coaches", label: "Coaches", Icon: CoachesIcon },
+  { key: "discover", label: "Discover", Icon: DiscoverIcon },
+  { key: "leaders", label: "Leaders", Icon: LeadersIcon },
+] as const;
+
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
+  const styles = useThemedStyles(sheets);
   return (
     <View style={styles.section}>
       <Text style={styles.label}>{title}</Text>
@@ -77,10 +95,14 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 }
 
 export default function Catalog() {
+  const styles = useThemedStyles(sheets);
+  const color = usePalette();
   const [chip, setChip] = useState<"all" | "football" | "cricket">("all");
   const [seg, setSeg] = useState<"camps" | "workshops" | "events">("camps");
   const [checkout, setCheckout] = useState<CheckoutState>("methods");
   const [sheetOpen, setSheetOpen] = useState(false);
+  const [tab, setTab] = useState(0);
+  const { mode, setMode } = useTheme();
 
   if (!__DEV__) return <Redirect href="/home" />;
 
@@ -88,6 +110,17 @@ export default function Catalog() {
     <Screen padded={false}>
       <ScrollView contentContainerStyle={styles.scroll}>
         <Text style={styles.h1}>Component catalog</Text>
+
+        {/* DS §10.3 — the catalog is this document made executable, and since Decision 24 the
+            document describes two palettes. Every component below has to be checkable in both,
+            so the switch lives here rather than requiring a trip to Profile → Appearance. */}
+        <Section title="Theme — every component below renders in the active one">
+          <View style={styles.themeRow}>
+            {(["light", "dark", "system"] as const).map((m) => (
+              <Chip key={m} label={m} active={mode === m} onPress={() => setMode(m)} />
+            ))}
+          </View>
+        </Section>
 
         <Section title="Button — variants & states">
           <Button title="Primary" onPress={() => {}} />
@@ -192,6 +225,16 @@ export default function Catalog() {
           </ScrollView>
         </Section>
 
+        <Section title="Spinner — default, brand scale, tinted">
+          {/* The black tint is shown on the page ground; at brand scale it renders white inside
+              BrandLoader's black field, which the catalog cannot host without a full-bleed row. */}
+          <View style={{ flexDirection: "row", alignItems: "center", gap: space(6) }}>
+            <Spinner />
+            <Spinner size={54} stroke={1.5} />
+            <Spinner size={30} tint={color.text} />
+          </View>
+        </Section>
+
         <Section title="SetupCard — dismissible & static">
           <SetupCard
             icon={<InfoIcon color={color.text} />}
@@ -218,6 +261,24 @@ export default function Catalog() {
             value={seg}
             onChange={setSeg}
           />
+        </Section>
+
+        {/* The real bar needs a pager to cross-fade against, so the catalog renders the
+            presentational half with a static index — enough to check ink-vs-idle, the weight
+            change, and both palettes. The swipe-tracking cross-fade only exists under (tabs). */}
+        <Section title="TabBar — tap a tab to move the ink">
+          <View style={styles.tabBox}>
+            <TabBarView
+              floating={false}
+              index={tab}
+              items={TAB_DEMO.map(({ key, label, Icon }, i) => ({
+                key,
+                label,
+                icon: (tint: string) => <Icon color={tint} size={iconSize.tab} />,
+                onPress: () => setTab(i),
+              }))}
+            />
+          </View>
         </Section>
 
         <Section title="EmptyState">
@@ -289,7 +350,8 @@ export default function Catalog() {
   );
 }
 
-const styles = StyleSheet.create({
+const sheets = themed(() => ({
+  themeRow: { flexDirection: "row", gap: space(2) },
   scroll: { paddingHorizontal: layout.screenX, paddingTop: space(4), gap: space(6) },
   h1: { ...t.title1, color: color.text },
   section: { gap: space(3) },
@@ -299,9 +361,10 @@ const styles = StyleSheet.create({
   rail: { gap: space(3), paddingVertical: space(1) },
   stateBox: { height: 320, backgroundColor: color.bg, borderRadius: 20, borderWidth: 1, borderColor: color.border, overflow: "hidden" },
   sheetHost: { borderRadius: 20, overflow: "hidden", backgroundColor: color.bg },
+  tabBox: { borderRadius: 20, borderWidth: 1, borderColor: color.border, overflow: "hidden", backgroundColor: color.bg },
   ctaBox: { height: 130, position: "relative", borderRadius: 20, borderWidth: 1, borderColor: color.border, overflow: "hidden", backgroundColor: color.bg },
   demoSheet: { backgroundColor: color.elev, borderTopLeftRadius: 28, borderTopRightRadius: 28, padding: space(5), gap: space(3) },
   demoHandle: { width: 38, height: 4, borderRadius: 999, backgroundColor: color.border2, alignSelf: "center", marginBottom: space(2) },
   demoTitle: { ...t.title2, color: color.text },
   demoBody: { ...t.body, color: color.dim },
-});
+}));

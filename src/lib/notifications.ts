@@ -16,7 +16,7 @@ import * as pushApi from "@/api/push";
 import { captureException } from "@/lib/sentry";
 import * as storage from "@/lib/storage";
 import { DEFAULT_PREFS, type PushPrefs } from "@/lib/pushCategories";
-import { color } from "@/lib/tokens";
+import { ramp } from "@/lib/tokens";
 
 // expo-notifications is required lazily, so its surface is untyped here by design.
 type ExpoNotifications = any;
@@ -73,7 +73,10 @@ export async function configureAndroidChannel(): Promise<void> {
     await N.setNotificationChannelAsync("default", {
       name: "Game Ground",
       importance: N.AndroidImportance.DEFAULT,
-      lightColor: color.primary,
+      // Theme-INVARIANT on purpose: this is registered with the OS once and rendered by the
+      // system tray, which has no idea what the app is set to. It matches the notification
+      // accent in app.config.js rather than following a palette that cannot reach it.
+      lightColor: ramp.error[500],
     });
   } catch (e) {
     captureException(e, { where: "configureAndroidChannel" });

@@ -6,7 +6,7 @@
 import { Image } from "expo-image";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Suspense, lazy, useEffect, useState } from "react";
-import { Linking, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Linking, ScrollView, Text, View } from "react-native";
 import Animated, { useAnimatedScrollHandler, useSharedValue } from "react-native-reanimated";
 
 import type { CoachBatch } from "@/api/types";
@@ -34,6 +34,7 @@ import { shareEntity } from "@/lib/share";
 import { color, layout, radius, space, type } from "@/lib/tokens";
 
 import { ReviewForm } from "@/components/coach/ReviewForm";
+import { themed, usePalette, useThemedStyles } from "@/theme/runtime";
 
 // Lazy: the pinch-zoom lightbox module loads only when a photo is first tapped (M15).
 const Lightbox = lazy(() =>
@@ -43,6 +44,8 @@ const Lightbox = lazy(() =>
 /** Same tile as the game detail's meta list — kept local to each screen rather than promoted to
  *  the DS, which would be a §10 governance change. */
 function MetaTile({ icon, label, sub, onPress }: { icon: React.ReactNode; label: string; sub?: string; onPress?: () => void }) {
+  const styles = useThemedStyles(sheets);
+  const color = usePalette();
   const content = (
     <>
       <View style={styles.metaIcon}>{icon}</View>
@@ -64,6 +67,8 @@ function MetaTile({ icon, label, sub, onPress }: { icon: React.ReactNode; label:
 
 /** A "· item" list — the shape both `features` and `certifications` arrive in. */
 function TickList({ items }: { items: string[] }) {
+  const styles = useThemedStyles(sheets);
+  const color = usePalette();
   return (
     <View style={styles.tickList}>
       {items.map((item) => (
@@ -77,6 +82,8 @@ function TickList({ items }: { items: string[] }) {
 }
 
 export default function CoachDetail() {
+  const styles = useThemedStyles(sheets);
+  const color = usePalette();
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const { data: coach, isLoading, isError, error, refetch } = useCoach(id);
@@ -296,14 +303,23 @@ export default function CoachDetail() {
       </Animated.ScrollView>
 
       {/* WhatsApp is a post-booking channel: the coach's number is earned by booking, not by
-          browsing. `viewerHasBooking` is the server's answer, so the gate can't be faked client-side. */}
+          browsing. `viewerHasBooking` is the server's answer, so the gate can't be faked client-side.
+
+          The button is ABSENT until then, not disabled-with-an-explanation. It used to render greyed
+          out under "Unlocks once you book a batch", which put the loudest control on the screen in
+          the one state where it does nothing — the eye goes to it, and the caption is a consolation
+          note for a promise the screen is making and not keeping. Requested by Anaswer. Before
+          booking the bar carries the session price alone; the batches above it are the way forward,
+          and they are already the only thing on the screen with a Book button. */}
       {coach && !booking && (
         <StickyCTA
           price={sessionLabel}
-          caption={coach.viewerHasBooking ? undefined : "Unlocks once you book a batch"}
-          ctaLabel="Message on WhatsApp"
-          onPress={() => coach.whatsapp && Linking.openURL(`https://wa.me/${coach.whatsapp}`)}
-          disabled={!coach.viewerHasBooking || !coach.whatsapp}
+          {...(coach.viewerHasBooking && coach.whatsapp
+            ? {
+                ctaLabel: "Message on WhatsApp",
+                onPress: () => Linking.openURL(`https://wa.me/${coach.whatsapp}`),
+              }
+            : {})}
         />
       )}
 
@@ -331,7 +347,7 @@ export default function CoachDetail() {
   );
 }
 
-const styles = StyleSheet.create({
+const sheets = themed(() => ({
   scroll: { paddingBottom: space(28) },
   body: { paddingHorizontal: layout.screenX, marginTop: -space(8), gap: space(5) },
   headRow: { flexDirection: "row", alignItems: "center", gap: space(3) },
@@ -384,4 +400,4 @@ const styles = StyleSheet.create({
 
   gap: { marginTop: space(3) },
   gapSm: { marginTop: space(1.5) },
-});
+}));

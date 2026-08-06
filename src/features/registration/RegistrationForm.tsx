@@ -4,7 +4,7 @@
  * code (§9). Free entities register through the same path with a ₹0 confirm.
  */
 import { useEffect, useState } from "react";
-import { Linking, StyleSheet, Text, View } from "react-native";
+import { Linking, Text, View } from "react-native";
 
 import type { EntityType } from "@/api/types";
 import { CheckoutSheet } from "@/components/checkout";
@@ -19,6 +19,7 @@ import { color, layout, space, type } from "@/lib/tokens";
 import type { EntityConfig } from "./entities";
 import { useRegisterFree } from "./hooks";
 import { schemaFromFields } from "./schema";
+import { themed, usePalette, useThemedStyles } from "@/theme/runtime";
 
 export function RegistrationForm({
   config,
@@ -31,6 +32,8 @@ export function RegistrationForm({
   amountPaise: number;
   onClose: () => void;
 }) {
+  const styles = useThemedStyles(sheets);
+  const color = usePalette();
   const [values, setValues] = useState<Record<string, string>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [registration, setRegistration] = useState<Record<string, unknown> | null>(null);
@@ -143,7 +146,7 @@ export function RegistrationForm({
   );
 }
 
-const styles = StyleSheet.create({
+const sheets = themed(() => ({
   form: { paddingHorizontal: layout.screenX, gap: space(1), paddingTop: space(2) },
   headerRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: space(3) },
   header: { ...type.heading, color: color.text, flex: 1 },
@@ -153,4 +156,4 @@ const styles = StyleSheet.create({
   chipRow: { flexDirection: "row", flexWrap: "wrap", gap: space(2) },
   err: { ...type.caption, color: color.primarySoft, marginTop: space(1) },
   sheetHost: { paddingBottom: space(4) },
-});
+}));

@@ -15,6 +15,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useDebounce } from "@/hooks/useDebounce";
 import { useIsOnline } from "@/hooks/useIsOnline";
 import { layout, space } from "@/lib/tokens";
+import {  } from "@/theme/runtime";
 
 const SEGMENTS: { key: RegisterableKind; label: string }[] = [
   { key: "camp", label: "Camps" },
@@ -23,6 +24,7 @@ const SEGMENTS: { key: RegisterableKind; label: string }[] = [
 ];
 
 export default function DiscoverTab() {
+  
   const router = useRouter();
   const { user } = useAuth();
   const [segment, setSegment] = useState<RegisterableKind>("camp");

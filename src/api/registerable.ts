@@ -4,6 +4,8 @@
  * pricePaise, participants/maxParticipants vs registered/capacity) and carry rich detail content
  * (highlights, included, whatToBring, requirements, instructor). One mapper serves all three (§4.2).
  */
+import { resolveImageUrl } from "@/lib/imageUrl";
+
 import { api } from "./client";
 import type {
   Announcement,
@@ -71,7 +73,7 @@ export type RawRegisterable = {
  * Errs toward showing: a listing that lingers a few hours past its last day is a much smaller
  * failure than one that vanishes while it is still running.
  */
-const END_DATE_GRACE_MS = 24 * 60 * 60_000;
+export const END_DATE_GRACE_MS = 24 * 60 * 60_000;
 
 export function hasEnded(r: RawRegisterable, now: number = Date.now()): boolean {
   const end = r.endDate ?? r.startDate;
@@ -125,7 +127,7 @@ export function toSummary(r: RawRegisterable, kind: RegisterableKind): Registera
     dateLabel: r.dates ?? null,
     // price is whole rupees; 0/absent → null → "FREE".
     pricePaise: r.price ? r.price * 100 : null,
-    imageUrl: r.imageUrl ?? null,
+    imageUrl: resolveImageUrl(r.imageUrl),
     // `registeredCount` is derived from the actual rows on the detail route; `participants` is the
     // denormalized counter and the only thing the list route sends. Prefer the derived one.
     registered: r.registeredCount ?? r.participants ?? 0,
@@ -141,7 +143,7 @@ function toInstructor(i: RawRegisterable["instructor"]): RegisterableInstructor 
     name: i.name,
     bio: i.bio || null,
     credentials: i.credentials || null,
-    imageUrl: i.imageUrl || null,
+    imageUrl: resolveImageUrl(i.imageUrl),
   };
 }
 

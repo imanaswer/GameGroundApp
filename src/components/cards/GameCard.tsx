@@ -4,12 +4,13 @@
  * used by Home rails (title / meta / price / joined-count).
  */
 import { memo } from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { Text, View } from "react-native";
 
 import { AvatarStack, Badge, ClockIcon, LiveChip, MapPinIcon, Press, SlotBar, TierBadge } from "@/components/ds";
 import { color, radius, space, type, type Tier } from "@/lib/tokens";
 
 import { CardImage, MetaRow, cardStyles } from "./parts";
+import { themed, usePalette, useThemedStyles } from "@/theme/runtime";
 
 export type GameCardData = {
   id: string;
@@ -39,13 +40,18 @@ export const GameCard = memo(function GameCard({
   onPress: () => void;
   compact?: boolean;
 }) {
+  const styles = useThemedStyles(sheets);
+  // The SHARED card sheet needs the hook exactly as much as the local one does — see the note on
+  // `cards` in CompactGameCard.
+  const cards = useThemedStyles(cardStyles);
+  const color = usePalette();
   if (compact) return <CompactGameCard data={data} onPress={onPress} />;
 
   const left = Math.max(0, data.total - data.joined);
   const low = left > 0 && left <= 2;
 
   return (
-    <Press testID="game-card" accessibilityRole="button" accessibilityLabel={data.title} onPress={onPress} brighten style={cardStyles.card}>
+    <Press testID="game-card" accessibilityRole="button" accessibilityLabel={data.title} onPress={onPress} brighten style={cards.card}>
       <CardImage uri={data.imageUrl} height={172}>
         <View style={styles.imageTop}>
           <View style={styles.badges}>
@@ -69,7 +75,7 @@ export const GameCard = memo(function GameCard({
           </Text>
         </View>
       </CardImage>
-      <View style={cardStyles.body}>
+      <View style={cards.body}>
         <MetaRow icon={<MapPinIcon size={14} color={color.dim} />} text={data.venue} />
         <MetaRow icon={<ClockIcon size={14} color={color.dim} />} text={data.when} />
 
@@ -93,18 +99,32 @@ export const GameCard = memo(function GameCard({
 });
 
 const CompactGameCard = memo(function CompactGameCard({ data, onPress }: { data: GameCardData; onPress: () => void }) {
+  const styles = useThemedStyles(sheets);
+  /**
+   * `useThemedStyles(cardStyles)`, never `cardStyles.title` straight from the import.
+   *
+   * This is the bug that shipped: the rail titles rendered #101828 — LIGHT's `color.text` — on the
+   * dark ground, i.e. near-black on near-black, invisible. `cardStyles` is a themed proxy and so is
+   * always CURRENT, but a module-scope binding is not REACTIVE, and under the React Compiler the
+   * JSX holding it is computed once per component instance and reused. Decision 24 documented the
+   * rule for locally-declared sheets; nothing was stopping a sheet IMPORTED from another module
+   * from being read raw, and the lint guard only checked that a file mentioning `themed(() =>`
+   * called the hook SOMEWHERE — which this file did, for its own sheet. Guard widened.
+   */
+  const cards = useThemedStyles(cardStyles);
+  const color = usePalette();
   return (
     <Press testID="game-card" accessibilityRole="button" accessibilityLabel={data.title} onPress={onPress} brighten style={styles.compact}>
       <CardImage uri={data.imageUrl} height={88}>
         {data.fillingFast ? <LiveChip label="Filling fast" /> : <View />}
       </CardImage>
       <View style={styles.compactBody}>
-        <Text style={cardStyles.title} numberOfLines={1}>
+        <Text style={cards.title} numberOfLines={1}>
           {data.title}
         </Text>
         <MetaRow icon={<MapPinIcon size={13} color={color.dim} />} text={`${data.venue} · ${data.when}`} />
         <View style={styles.compactFoot}>
-          <Text style={data.price ? cardStyles.price : cardStyles.free}>{data.price ?? "FREE"}</Text>
+          <Text style={data.price ? cards.price : cards.free}>{data.price ?? "FREE"}</Text>
           <Text style={styles.joined}>
             {data.joined}/{data.total}
           </Text>
@@ -114,7 +134,7 @@ const CompactGameCard = memo(function CompactGameCard({ data, onPress }: { data:
   );
 });
 
-const styles = StyleSheet.create({
+const sheets = themed(() => ({
   // ── image overlay ──
   imageTop: { flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between", gap: space(2) },
   badges: { flexDirection: "row", gap: space(1.5), flexShrink: 1, flexWrap: "wrap" },
@@ -158,9 +178,10 @@ const styles = StyleSheet.create({
   spotsCountLow: { color: color.goldLight },
   footer: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: space(0.5) },
 
-  // Editorial, matching cardStyles.card — image and type, no box. See parts.tsx.
-  compact: { width: 210, borderRadius: radius.card, overflow: "hidden" },
+  // Bordered, matching cardStyles.card — the rail variant needs the edge more than the full-width
+  // one does, since siblings sit beside it with only a 12pt gap. See parts.tsx.
+  compact: { width: 210, borderRadius: radius.card, borderWidth: 1, borderColor: color.border, overflow: "hidden" },
   compactBody: { padding: space(3), gap: space(2) },
   compactFoot: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: space(1) },
   joined: { ...type.caption, color: color.dim, fontVariant: ["tabular-nums"] },
-});
+}));

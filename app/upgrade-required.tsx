@@ -2,11 +2,12 @@
  * HTTP 426 blocking wall (Developer PRD §4.1.3). No dismiss, no back — the api client
  * routes here and the root Stack disables the gesture. Buttons deep-link to the stores.
  */
-import { Linking, Platform, StyleSheet, Text, View } from "react-native";
+import { Linking, Platform, Text, View } from "react-native";
 
 import { Screen } from "@/components/chrome";
 import { Button, InfoIcon } from "@/components/ds";
 import { color, icon as iconSize, layout, space, type } from "@/lib/tokens";
+import { themed, usePalette, useThemedStyles } from "@/theme/runtime";
 
 // ponytail: real store URLs land at M17 submission; bundle id is stable now.
 const STORE_URL = Platform.select({
@@ -16,6 +17,8 @@ const STORE_URL = Platform.select({
 });
 
 export default function UpgradeRequired() {
+  const styles = useThemedStyles(sheets);
+  const color = usePalette();
   return (
     <Screen>
       <View style={styles.center}>
@@ -32,7 +35,7 @@ export default function UpgradeRequired() {
   );
 }
 
-const styles = StyleSheet.create({
+const sheets = themed(() => ({
   center: { flex: 1, alignItems: "center", justifyContent: "center", gap: space(3), paddingHorizontal: layout.screenX },
   tile: {
     width: 66,
@@ -46,4 +49,4 @@ const styles = StyleSheet.create({
   title: { ...type.title1, color: color.text, textAlign: "center" },
   body: { ...type.body, color: color.dim, textAlign: "center", maxWidth: 300 },
   cta: { marginTop: space(3), alignSelf: "stretch" },
-});
+}));

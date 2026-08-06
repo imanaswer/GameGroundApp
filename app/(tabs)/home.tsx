@@ -8,18 +8,19 @@
  */
 import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useState } from "react";
-import { RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
+import { RefreshControl, ScrollView, Text, View } from "react-native";
 import Animated, { useAnimatedScrollHandler, useSharedValue, type SharedValue } from "react-native-reanimated";
 
 import { CoachCard, GameCard, UpNextHeroCard } from "@/components/cards";
-import { EmptyState, Header, OfflineBanner, Screen, SetupCard, useTabBarPadding } from "@/components/chrome";
-import { Appear, ChevronRightIcon, GamesIcon, InfoIcon, Press, SearchIcon, Skeleton } from "@/components/ds";
+import { EmptyState, Header, OfflineBanner, Screen, SetupCard, SpinnerBlock, useTabBarPadding } from "@/components/chrome";
+import { Appear, ChevronRightIcon, GamesIcon, InfoIcon, Press, SearchIcon } from "@/components/ds";
 import type { GameSummary } from "@/api/types";
 import { toCoachCard, toGameCard, toUpNext, useGamePlayers, useHome, useProfile } from "@/hooks/queries";
 import { useAuth } from "@/hooks/useAuth";
 import * as haptics from "@/lib/haptics";
 import * as storage from "@/lib/storage";
-import { color, icon as iconSize, layout, radius, space, type } from "@/lib/tokens";
+import { color, icon as iconSize, layout, space, type } from "@/lib/tokens";
+import { themed, usePalette, useThemedStyles } from "@/theme/runtime";
 
 const AnimatedScrollView = Animated.createAnimatedComponent(ScrollView);
 
@@ -35,6 +36,8 @@ function firstName(name?: string | null): string {
 }
 
 export default function HomeTab() {
+  const styles = useThemedStyles(sheets);
+  const color = usePalette();
   const router = useRouter();
   const { user } = useAuth();
   const home = useHome();
@@ -99,7 +102,11 @@ export default function HomeTab() {
               haptics.refresh();
               home.refetch();
             }}
+            // iOS reads `tintColor`; Android reads `colors` + `progressBackgroundColor` and
+            // otherwise draws a dark spinner on a white disc whatever the app is set to.
             tintColor={color.dim}
+            colors={[color.dim]}
+            progressBackgroundColor={color.elev}
           />
         }
       >
@@ -131,7 +138,7 @@ export default function HomeTab() {
         )}
 
         {home.isLoading ? (
-          <HomeSkeleton />
+          <SpinnerBlock label="Loading your feed" />
         ) : empty ? (
           <View style={styles.emptyWrap}>
             <EmptyState
@@ -211,26 +218,6 @@ function HeroCard({
 }
 
 /** Loading state, shaped like the real first paint (DS §4): a 176pt hero + one rail of cards. */
-function HomeSkeleton() {
-  return (
-    <View style={styles.skeleton}>
-      <View style={styles.heroWrap}>
-        <Skeleton height={176} round={radius.card} />
-      </View>
-      <View>
-        <View style={styles.sectionHead}>
-          <Skeleton width={110} height={12} />
-        </View>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} scrollEnabled={false} contentContainerStyle={styles.rail}>
-          {[0, 1, 2].map((i) => (
-            <Skeleton key={i} width={210} height={158} round={radius.card} />
-          ))}
-        </ScrollView>
-      </View>
-    </View>
-  );
-}
-
 function Section({
   label,
   onSeeAll,
@@ -240,6 +227,8 @@ function Section({
   onSeeAll?: () => void;
   children: React.ReactNode;
 }) {
+  const styles = useThemedStyles(sheets);
+  const color = usePalette();
   return (
     <View style={styles.section}>
       <View style={styles.sectionHead}>
@@ -256,7 +245,7 @@ function Section({
   );
 }
 
-const styles = StyleSheet.create({
+const sheets = themed(() => ({
   // flexGrow lets the empty state fill the viewport below the greeting instead of floating.
   scroll: { flexGrow: 1, paddingBottom: space(28) },
   greetWrap: { paddingHorizontal: layout.screenX, marginTop: space(1), marginBottom: space(4) },
@@ -269,7 +258,6 @@ const styles = StyleSheet.create({
 
   setup: { marginHorizontal: layout.screenX, marginBottom: space(5) },
 
-  skeleton: { gap: space(6) },
   emptyWrap: { flex: 1 },
   heroWrap: { paddingHorizontal: layout.screenX, marginBottom: space(2) },
   heroLabel: { ...type.label, color: color.dim, marginBottom: space(2.5) },
@@ -282,4 +270,4 @@ const styles = StyleSheet.create({
   seeAllText: { ...type.bodyStrong, fontSize: 12, color: color.primarySoft },
 
   rail: { paddingHorizontal: layout.screenX, gap: layout.railGap },
-});
+}));

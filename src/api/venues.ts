@@ -29,10 +29,16 @@ function str(...vals: unknown[]): string | null {
 }
 
 function toVenue(r: Raw): Venue {
+  const sports = Array.isArray(r.supportedSports) ? r.supportedSports : Array.isArray(r.sports) ? r.sports : [];
+  const open = r.openSlots ?? r.availableSlots;
   return {
     id: String(r.id ?? r.venueId ?? ""),
     name: str(r.name, r.title) ?? "Venue",
     area: str(r.area, r.locality, r.address, r.location),
+    supportedSports: sports.filter((s): s is string => typeof s === "string" && s.length > 0),
+    // Absent ≠ zero. `null` means "the server didn't say", which the UI renders as nothing rather
+    // than as "No open slots" — the latter would libel every venue on an older payload.
+    openSlots: typeof open === "number" && Number.isFinite(open) ? open : null,
   };
 }
 
@@ -54,11 +60,32 @@ function toSlot(r: Raw): VenueSlot | null {
   };
 }
 
-export async function list(): Promise<Venue[]> {
-  const raw = await api.get<unknown>("/venues");
-  return unwrap(raw, "data", "items", "venues")
+/**
+ * Approved venues, **for one sport**.
+ *
+ * `sport` is not optional decoration: `GET /venues` unfiltered returns every ACTIVE venue in the
+ * system (11 of them today), so the create flow was offering football turfs to someone hosting
+ * badminton — the venue list simply had nothing to do with the sport chosen a step earlier. The web
+ * flow has always sent `?sport=`, and the server filters on `supportedSports`; the app just never
+ * passed it. Reported by Anaswer.
+ *
+ * Omitting `sport` still queries the whole list, which is the right behaviour for any caller that
+ * genuinely wants every venue — but the create picker must pass one.
+ */
+export async function list(sport?: string | null): Promise<Venue[]> {
+  const query = sport ? `?sport=${encodeURIComponent(sport)}` : "";
+  const raw = await api.get<unknown>(`/venues${query}`);
+  const venues = unwrap(raw, "data", "items", "venues")
     .map(toVenue)
     .filter((v) => v.id);
+
+  // Defence in depth, not distrust: the server does filter. But this list is cached for 5 minutes
+  // client-side and 60s at the edge, so a response fetched before a sport was selected — or by an
+  // older build — can still be in hand, and putting a table-tennis court in a badminton flow is the
+  // exact bug being fixed. Only venues that DECLARE their sports are judged: an empty list means
+  // "unknown", and dropping those would empty the picker the moment the field is renamed.
+  if (!sport) return venues;
+  return venues.filter((v) => v.supportedSports.length === 0 || v.supportedSports.includes(sport));
 }
 
 export async function slots(venueId: string): Promise<VenueSlot[]> {

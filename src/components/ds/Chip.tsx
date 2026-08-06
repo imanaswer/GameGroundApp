@@ -1,10 +1,11 @@
 /** DESIGN_SYSTEM.md §4 Chip / ChipRow. Selection haptic; active list animates in the consumer. */
-import { ScrollView, StyleSheet, Text } from "react-native";
+import { ScrollView, Text } from "react-native";
 
 import * as haptics from "@/lib/haptics";
 import { color, layout, radius, space, type } from "@/lib/tokens";
 
 import { Press } from "./Press";
+import { themed, useThemedStyles } from "@/theme/runtime";
 
 export function Chip({
   label,
@@ -20,6 +21,7 @@ export function Chip({
   /** `sm` — a tighter, secondary-filter chip (e.g. the leaderboard time window). */
   size?: "md" | "sm";
 }) {
+  const styles = useThemedStyles(sheets);
   const sm = size === "sm";
   return (
     <Press
@@ -50,6 +52,7 @@ export function ChipRow<T extends string>({
   value: T;
   onChange: (key: T) => void;
 }) {
+  const styles = useThemedStyles(sheets);
   return (
     <ScrollView
       horizontal
@@ -68,7 +71,7 @@ export function ChipRow<T extends string>({
   );
 }
 
-const styles = StyleSheet.create({
+const sheets = themed(() => ({
   row: { gap: layout.chipGap, paddingHorizontal: layout.screenX },
   chip: {
     borderRadius: radius.chip,
@@ -87,5 +90,6 @@ const styles = StyleSheet.create({
   label: { fontFamily: type.bodyStrong.fontFamily, fontSize: 12 },
   labelSm: { fontSize: 12 },
   restLabel: { color: color.dim },
-  activeLabel: { color: color.inverse },
-});
+  // The active chip is a `primary` fill; its label follows `primary`, not a fixed white.
+  activeLabel: { color: color.onPrimary },
+}));

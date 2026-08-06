@@ -4,7 +4,7 @@
  */
 import { useRouter } from "expo-router";
 import { useState } from "react";
-import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { ScrollView, Text, View } from "react-native";
 
 import type { LeaderScope, LeaderWindow } from "@/api/types";
 import { EmptyState, ErrorState, Header, OfflineBanner, Screen, useTabBarPadding } from "@/components/chrome";
@@ -14,6 +14,7 @@ import { useLeaderboard } from "@/hooks/queries";
 import { useIsOnline } from "@/hooks/useIsOnline";
 import * as haptics from "@/lib/haptics";
 import { color, icon as iconSize, layout, space, type } from "@/lib/tokens";
+import { themed, usePalette, useThemedStyles } from "@/theme/runtime";
 
 const SCOPES: { key: LeaderScope; label: string }[] = [
   { key: "players", label: "Players" },
@@ -25,6 +26,8 @@ const WINDOWS: { key: LeaderWindow; label: string }[] = [
 ];
 
 export default function LeadersTab() {
+  const styles = useThemedStyles(sheets);
+  const color = usePalette();
   const router = useRouter();
   const [scope, setScope] = useState<LeaderScope>("players");
   const [window, setWindow] = useState<LeaderWindow>("all");
@@ -103,7 +106,7 @@ export default function LeadersTab() {
   );
 }
 
-const styles = StyleSheet.create({
+const sheets = themed(() => ({
   controls: {
     flexDirection: "row",
     alignItems: "center",
@@ -120,4 +123,4 @@ const styles = StyleSheet.create({
   windowChips: { flexDirection: "row", gap: space(2) },
   list: { paddingHorizontal: layout.screenX, paddingBottom: space(6) },
   skel: { marginBottom: space(2) },
-});
+}));

@@ -3,7 +3,8 @@ import type { ComponentProps } from "react";
 import type { ColorValue } from "react-native";
 import Svg, { Path } from "react-native-svg";
 
-import { color, google, icon as iconSize } from "@/lib/tokens";
+import { google, icon as iconSize } from "@/lib/tokens";
+import { usePalette } from "@/theme/runtime";
 
 /**
  * The single icon source (DS §3). No component may import an icon family directly.
@@ -18,8 +19,16 @@ type Props = {
 } & Omit<ComponentProps<typeof Feather>, "name" | "size" | "color">;
 
 function make(name: ComponentProps<typeof Feather>["name"], defaultSize: number = iconSize.meta) {
-  function Icon({ size = defaultSize, color: tint = color.text, ...rest }: Props) {
-    return <Feather name={name} size={size} color={tint} {...rest} />;
+  /**
+   * The default tint is resolved from a HOOK, not a default parameter reading the module token.
+   * A default parameter is evaluated per render and so is always current — but "current" is not
+   * "reactive", and the React Compiler will happily reuse this element's last output when its
+   * props (a size, maybe nothing) have not changed. An icon left in the previous palette is the
+   * most visible version of that bug, since icons are everywhere.
+   */
+  function Icon({ size = defaultSize, color: tint, ...rest }: Props) {
+    const palette = usePalette();
+    return <Feather name={name} size={size} color={tint ?? palette.text} {...rest} />;
   }
   Icon.displayName = `Icon(${name})`;
   return Icon;
@@ -62,7 +71,9 @@ export const FilterIcon = make("sliders");
  * Podium crown (DS §8) — the one celebratory glyph Feather doesn't carry. Filled, gold by default;
  * a deliberate, documented exception to the single-family rule for the leaderboard #1 topper only.
  */
-export function CrownIcon({ size = 18, color: tint = color.gold }: { size?: number; color?: ColorValue }) {
+export function CrownIcon({ size = 18, color: tint }: { size?: number; color?: ColorValue }) {
+  const palette = usePalette();
+  tint = tint ?? palette.gold;
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill={tint}>
       <Path d="M3 18h18l-2-9-4.5 4L12 5l-2.5 8L5 9z" />
@@ -98,7 +109,9 @@ export function GoogleGlyph({ size = 18 }: { size?: number }) {
   );
 }
 
-export function AppleGlyph({ size = 18, color: tint = color.text }: { size?: number; color?: ColorValue }) {
+export function AppleGlyph({ size = 18, color: tint }: { size?: number; color?: ColorValue }) {
+  const palette = usePalette();
+  tint = tint ?? palette.text;
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill={tint}>
       <Path d="M17.05 20.28c-.98.95-2.05.86-3.08.38-1.09-.5-2.08-.48-3.24 0-1.44.62-2.2.44-3.06-.38C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09z" />
@@ -108,7 +121,9 @@ export function AppleGlyph({ size = 18, color: tint = color.text }: { size?: num
 }
 
 /** Trophy — the tier-up celebration glyph (Feather has no cup). Stroked, inherits `color`. */
-export function TrophyIcon({ size = 24, color: tint = color.text }: { size?: number; color?: ColorValue }) {
+export function TrophyIcon({ size = 24, color: tint }: { size?: number; color?: ColorValue }) {
+  const palette = usePalette();
+  tint = tint ?? palette.text;
   return (
     <Svg
       width={size}

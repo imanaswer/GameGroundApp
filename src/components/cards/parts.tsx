@@ -3,7 +3,8 @@ import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { StyleSheet, Text, View } from "react-native";
 
-import { color, gradient, radius, space, type } from "@/lib/tokens";
+import { color, radius, space, type } from "@/lib/tokens";
+import { themed, useGradients, useThemedStyles } from "@/theme/runtime";
 
 export function CardImage({
   uri,
@@ -14,6 +15,8 @@ export function CardImage({
   height: number;
   children?: React.ReactNode;
 }) {
+  const styles = useThemedStyles(sheets);
+  const gradient = useGradients();
   return (
     <View style={[styles.imageWrap, { height }]}>
       <Image
@@ -35,6 +38,7 @@ export function CardImage({
 }
 
 export function MetaRow({ icon, text }: { icon: React.ReactNode; text: string }) {
+  const styles = useThemedStyles(sheets);
   return (
     <View style={styles.meta}>
       {icon}
@@ -45,27 +49,34 @@ export function MetaRow({ icon, text }: { icon: React.ReactNode; text: string })
   );
 }
 
-export const cardStyles = StyleSheet.create({
+export const cardStyles = themed(() => ({
   /**
-   * EDITORIAL card (Phase 5). No fill, no border — the photograph and the type are the card.
+   * BORDERED card. The edge is back, and it is back in both themes.
    *
-   * This is the shape change the port had not yet made. The box treatment (fill + hairline +
-   * padding) existed because on `#050505` a card had to announce itself: a dark box on a dark
-   * page is invisible without an edge. On white the opposite is true — the image already has
-   * enormous contrast against the page, so a border around it is chrome drawing a line next to
-   * something that was already a clear edge.
+   * Phase 5 made these editorial — no fill, no border — on the argument that a white page plus a
+   * photograph is already contrast enough, so a hairline was chrome drawing a line beside an edge
+   * that already read. That argument was true, and it was true only of light. Decision 24 gave the
+   * app a #050505 ground, which is the exact condition the box treatment existed for in the first
+   * place: a card with no fill and no edge on near-black has no boundary at all, so a rail of them
+   * reads as loose images and captions floating on the page. Reported on device by Anaswer.
    *
-   * `overflow: hidden` + radius still clips the image corners; the rounding now belongs to the
-   * photograph rather than to a container around it.
+   * `border` (not `border2`) is DS §3's rest elevation; `border2` stays the raised weight, which is
+   * what UpNextHeroCard uses to sit forward of the cards around it. No fill: the request was an
+   * edge, and a `card` fill would also flatten the photograph's own contrast against the page.
+   *
+   * `overflow: hidden` + radius clips the image corners to the box, so the border closes around the
+   * photograph instead of crossing it.
    */
   card: {
     backgroundColor: "transparent",
     borderRadius: radius.card,
+    borderWidth: 1,
+    borderColor: color.border,
     overflow: "hidden",
   },
-  // Type sits flush to the image edge — no horizontal inset, because there is no longer a box for
-  // it to be inset FROM. Vertical rhythm is kept so stacked cards do not collide.
-  body: { paddingTop: space(2.5), paddingBottom: space(2), gap: space(1.5) },
+  // Now that there IS a box, type is inset from it — 12pt, DS §3's card internal padding. Flush
+  // type was correct only while the only edge was the photograph's.
+  body: { paddingTop: space(2.5), paddingBottom: space(2), paddingHorizontal: space(3), gap: space(1.5) },
   title: { ...type.heading, color: color.text },
   // Price is plain ink. It was `gold` (warning-500), which measures ~3.6:1 on a card — under AA
   // for what is often the single most decision-relevant string on the screen. The source prices
@@ -73,9 +84,9 @@ export const cardStyles = StyleSheet.create({
   price: { fontFamily: type.heading.fontFamily, fontSize: 14, color: color.text },
   // `success` is a fill colour: 2.2:1 as text. Same trap as StickyCTA in Phase 2.
   free: { fontFamily: type.heading.fontFamily, fontSize: 14, color: color.successText },
-});
+}));
 
-const styles = StyleSheet.create({
+const sheets = themed(() => ({
   imageWrap: { backgroundColor: color.imagePlaceholder },
   // absoluteFillObject, not absoluteFill: only the former is typed as a plain object, so it is
   // the one that can be spread. (RN 0.86 typed both loosely enough; 0.81 does not.)
@@ -86,4 +97,4 @@ const styles = StyleSheet.create({
   },
   meta: { flexDirection: "row", alignItems: "center", gap: space(1.5) },
   metaText: { ...type.caption, color: color.dim, flexShrink: 1 },
-});
+}));

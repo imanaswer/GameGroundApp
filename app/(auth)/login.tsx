@@ -1,18 +1,22 @@
 import { useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
-import { StyleSheet, Text, TextInput, View } from "react-native";
+import { Text, TextInput, View } from "react-native";
 
 import { LoginSchema } from "@/api/schemas";
 import { AppleButton, AuthShell, Divider, GoogleButton, SwitchLink } from "@/components/auth/AuthShell";
 import { FormError, fieldErrorsFrom } from "@/components/auth/fields";
+import { useHandoff } from "@/components/chrome";
 import { Button, Input } from "@/components/ds";
 import { Press } from "@/components/ds/Press";
 import { useAppleAvailable, useAuth, useGoogleLogin } from "@/hooks/useAuth";
 import { color, space, type } from "@/lib/tokens";
+import { themed, useThemedStyles } from "@/theme/runtime";
 
 export default function Login() {
+  const styles = useThemedStyles(sheets);
   const router = useRouter();
   const { login, loginWithApple, status: authStatus } = useAuth();
+  const { begin: beginHandoff } = useHandoff();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
@@ -30,14 +34,20 @@ export default function Login() {
   const clearError = (k: string) => setFieldErrors((e) => (e[k] ? { ...e, [k]: "" } : e));
 
   /**
-   * Google sign-in never navigates from its hook — it relied on the entry route redirecting once
-   * the status flipped, which no longer happens now that route latches its decision (see
-   * app/index.tsx). Without this, a successful Google login would leave the user on this screen.
-   * Email/password and Apple navigate from their own handlers and reach this as a no-op.
+   * ANY successful sign-in on this screen leaves through the brand loader, whatever produced it —
+   * email/password, Apple, or Google (whose hook never navigates at all; it relies on the status
+   * flipping). Keying off the status rather than the individual handlers is what stops a path
+   * from silently opting out of the handoff, which is exactly how Apple and Google skipped
+   * signup's success screen.
+   *
+   * `begin()` raises the loader ABOVE the navigator, so replacing the route in the same commit is
+   * fine — and wanted. The tabs mount behind the loader instead of after it.
    */
   useEffect(() => {
-    if (authStatus === "signedIn") router.replace("/home");
-  }, [authStatus, router]);
+    if (authStatus !== "signedIn") return;
+    beginHandoff();
+    router.replace("/home");
+  }, [authStatus, beginHandoff, router]);
 
   const back = () => (router.canGoBack() ? router.back() : router.replace("/onboarding"));
 
@@ -52,8 +62,8 @@ export default function Login() {
     setFieldErrors({});
     setBusy(true);
     try {
+      // No navigation here — the effect above drives every successful sign-in through the loader.
       await login(parsed.data.email, parsed.data.password);
-      router.replace("/home");
     } catch (e) {
       const inline = fieldErrorsFrom(e);
       if (Object.keys(inline).length) setFieldErrors(inline);
@@ -67,7 +77,7 @@ export default function Login() {
     if (appleBusy) return;
     setAppleBusy(true);
     loginWithApple()
-      .then(() => router.replace("/home"))
+      .then(() => {})
       // Code ERR_REQUEST_CANCELED = user dismissed the native sheet — an intentional exit, not an error.
       .catch((e) => {
         if ((e as { code?: string })?.code !== "ERR_REQUEST_CANCELED") setFormError(e);
@@ -146,8 +156,8 @@ export default function Login() {
   );
 }
 
-const styles = StyleSheet.create({
+const sheets = themed(() => ({
   forgot: { alignSelf: "flex-end", marginTop: -space(2), marginBottom: space(4) },
   forgotText: { ...type.bodyStrong, color: color.dim },
   spacer: { flex: 1, minHeight: space(6) },
-});
+}));

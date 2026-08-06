@@ -2,7 +2,6 @@
 import {
   ActivityIndicator,
   type GestureResponderEvent,
-  StyleSheet,
   Text,
   View,
   type StyleProp,
@@ -23,6 +22,7 @@ import { color, radius, space, type } from "@/lib/tokens";
 import { dur } from "@/theme/animations";
 
 import { Press } from "./Press";
+import { themed, usePalette, useThemedStyles } from "@/theme/runtime";
 
 type Variant = "primary" | "secondary" | "ghost" | "mini";
 
@@ -52,6 +52,8 @@ export function Button({
   style,
   testID,
 }: Props) {
+  const styles = useThemedStyles(sheets);
+  const color = usePalette();
   const isPrimary = variant === "primary";
   const off = disabled || loading;
 
@@ -66,7 +68,7 @@ export function Button({
   const onColor = off
     ? color.dim2
     : isPrimary || variant === "mini"
-      ? color.inverse
+      ? color.onPrimary
       : variant === "ghost"
         ? color.dim
         : color.text;
@@ -146,7 +148,7 @@ export function Button({
 const H_MD = 44;
 const H_SM = 33;
 
-const styles = StyleSheet.create({
+const sheets = themed(() => ({
   base: { alignItems: "center", justifyContent: "center", minHeight: H_MD, overflow: "hidden" },
   row: { flexDirection: "row", alignItems: "center", gap: space(2) },
   ripple: {
@@ -154,9 +156,10 @@ const styles = StyleSheet.create({
     width: RIPPLE_SIZE,
     height: RIPPLE_SIZE,
     borderRadius: RIPPLE_SIZE / 2,
-    // White: the ripple only fires on `primary`, which is now a BLACK fill. `color.text` here
-    // would be near-black on near-black — an invisible ripple, not a missing one.
-    backgroundColor: color.inverse,
+    // `onPrimary`, because the ripple only fires on the `primary` fill and has to be whatever
+    // reads against it — white on light's black pill, black on dark's white one. A fixed white
+    // ripple is invisible in dark, and `color.text` was invisible in light.
+    backgroundColor: color.onPrimary,
   },
 
   primary: {
@@ -189,9 +192,11 @@ const styles = StyleSheet.create({
   miniDisabled: { backgroundColor: color.border },
 
   label: { ...type.heading, color: color.text },
-  primaryLabel: { color: color.inverse },
+  // On the `primary` fill, so it follows `primary` across themes. NOT `inverse` (always white),
+  // which was invisible on dark's white pill — reported on the login screen.
+  primaryLabel: { color: color.onPrimary },
   secondaryLabel: { color: color.text },
   ghostLabel: { color: color.dim },
-  miniLabel: { fontFamily: type.heading.fontFamily, fontSize: 12, color: color.inverse },
+  miniLabel: { fontFamily: type.heading.fontFamily, fontSize: 12, color: color.onPrimary },
   labelDisabled: { color: color.dim2 },
-});
+}));

@@ -2,7 +2,7 @@
 export { Screen } from "./Screen";
 export { Placeholder } from "./Placeholder";
 export { Header } from "./Header";
-export { TabBar, TAB_BAR_HEIGHT, useTabBarPadding } from "./TabBar";
+export { TabBar, TabBarView, TAB_BAR_HEIGHT, useTabBarPadding, type TabBarItem } from "./TabBar";
 export { HeroNav } from "./HeroNav";
 export { PageNav } from "./PageNav";
 export { ParallaxHero } from "./ParallaxHero";
@@ -16,3 +16,5 @@ export { ErrorState, OfflineBanner } from "./states";
 export { ToastProvider, useToast, type ToastInput } from "./Toast";
 export { SplashGate } from "./SplashGate";
 export { BrandLoader } from "./BrandLoader";
+export { Spinner, SpinnerBlock } from "./Spinner";
+export { HandoffProvider, useHandoff } from "./Handoff";

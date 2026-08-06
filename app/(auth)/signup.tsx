@@ -1,6 +1,6 @@
 import { useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
-import { Linking, StyleSheet, Text, TextInput, View } from "react-native";
+import { Linking, Text, TextInput, View } from "react-native";
 import Animated, {
   useAnimatedStyle,
   useReducedMotion,
@@ -10,26 +10,29 @@ import Animated, {
 
 import { RegisterSchema } from "@/api/schemas";
 import { AppleButton, AuthShell, Divider, GoogleButton, SwitchLink } from "@/components/auth/AuthShell";
-import { BrandLoader } from "@/components/chrome";
+import { useHandoff } from "@/components/chrome";
 import { FormError, PasswordRules, fieldErrorsFrom } from "@/components/auth/fields";
 import { Button, Input } from "@/components/ds";
 import { useAppleAvailable, useAuth, useGoogleLogin } from "@/hooks/useAuth";
 import { color, space, type } from "@/lib/tokens";
 import { dur, ease } from "@/theme/animations";
+import { themed, useThemedStyles } from "@/theme/runtime";
 
 const TERMS_URL = "https://www.gameground.net/terms";
 const PRIVACY_URL = "https://www.gameground.net/privacy";
 
 export default function Signup() {
+  const styles = useThemedStyles(sheets);
   const router = useRouter();
   const { register, loginWithApple, status: authStatus } = useAuth();
+  const { begin: beginHandoff } = useHandoff();
   /**
    * Two-step signup, ported from the source's Sign up 04→06 flow: email alone, then the rest.
    * Purely client-side sequencing of the SAME single /auth/register call — the source verifies the
    * address with an emailed code between the steps, which needs endpoints we do not have. So this
    * borrows the pacing, not the verification, and nothing is sent until step two completes.
    */
-  const [step, setStep] = useState<"email" | "details" | "done" | "handoff">("email");
+  const [step, setStep] = useState<"email" | "details" | "done">("email");
   /** +1 advancing, -1 going back — the panel slides in from the side you came from. */
   const [dir, setDir] = useState(1);
   const [form, setForm] = useState({ name: "", username: "", email: "", password: "" });
@@ -129,17 +132,23 @@ export default function Signup() {
   }, [authStatus, step]);
 
   /**
-   * Hold the loader for one full ring revolution before handing off. The tab tree really is
-   * mounting behind this — five tabs mount at launch (Decision 17) and fire their queries — so
-   * this covers genuine work rather than inventing a pause. The floor exists because that work
-   * may finish faster than the eye can register a screen, and a loader nobody sees is worse than
-   * no loader: it reads as a flicker.
+   * Straight into the app, skipping account setup. The loader is raised first and lives above the
+   * navigator, so replacing the route in the same handler is fine — the tabs mount behind it
+   * (five mount at launch, Decision 17) instead of after it. Doing this inside the screen is what
+   * failed before: the loader was a child of the very screen the navigation unmounted.
    */
-  useEffect(() => {
-    if (step !== "handoff") return;
-    const timer = setTimeout(() => router.replace("/home"), dur.moment);
-    return () => clearTimeout(timer);
-  }, [step, router]);
+  const enterApp = () => {
+    beginHandoff();
+    router.replace("/home");
+  };
+
+  /**
+   * The signup path is the ONLY way into account setup (Decision 23) — it is a new-member flow,
+   * so it hangs off the acknowledgement rather than off the auth status, which every login would
+   * also satisfy. No loader here: setup raises it on the way out, and a loader between two
+   * screens the user is already looking at would be a pause, not a cover.
+   */
+  const continueToSetup = () => router.replace("/setup");
 
   // Declared BEFORE the `done` early return: these are hooks, and a return above them makes
   // them conditional — React would tear down state the moment signup succeeded.
@@ -163,25 +172,11 @@ export default function Signup() {
     transform: [{ translateX: (1 - enter.value) * STEP_SLIDE * dir }],
   }));
 
-  // Source's Sign up 09, between the acknowledgement and the app.
-  if (step === "handoff") return <BrandLoader />;
-
   if (step === "done") {
     return (
-      <AuthShell
-        title="You have been signed in successfully."
-        accent=""
-        subtitle=""
-        onBack={() => router.replace("/home")}
-      >
-        <Button
-          testID="signup-continue"
-          title="Continue"
-          // Enter the loader only; the navigation is scheduled by the effect below. Calling
-          // `replace` here unmounts this screen — and the loader with it — in the same commit, so
-          // the loader would flash for a frame or two and never actually be seen.
-          onPress={() => setStep("handoff")}
-        />
+      <AuthShell title="You have been signed in successfully." accent="" subtitle="" onBack={enterApp}>
+        {/* Continue → account setup. Back is the way past it, straight into the app. */}
+        <Button testID="signup-continue" title="Continue" onPress={continueToSetup} />
       </AuthShell>
     );
   }
@@ -307,7 +302,7 @@ export default function Signup() {
 /** MOTION §2 — a step change inside one form, not a screen push. Short travel on purpose. */
 const STEP_SLIDE = 28;
 
-const styles = StyleSheet.create({
+const sheets = themed(() => ({
   // Left-aligned like the source. Centred legal copy reads as a footer; theirs is part of the
   // form column, set flush with the fields above it.
   // No negative margin. It previously tucked upward by 4px, which was fine under a field and an
@@ -317,4 +312,4 @@ const styles = StyleSheet.create({
   // underline did not read as tappable at all.
   termsLink: { color: color.text, textDecorationLine: "underline" },
   spacer: { flex: 1, minHeight: space(6) },
-});
+}));

@@ -12,11 +12,12 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   type ReactNode,
 } from "react";
 
 import { useAuth } from "@/hooks/useAuth";
-import { planNavigation } from "@/lib/deeplinks";
+import { planNavigation, resolveDeepLink } from "@/lib/deeplinks";
 import { breadcrumb } from "@/lib/sentry";
 import * as storage from "@/lib/storage";
 
@@ -45,12 +46,38 @@ export function DeepLinkProvider({ children }: { children: ReactNode }) {
     [isSignedIn, router],
   );
 
-  // Cold start: a URL that launched the app. Wait until auth has resolved so the
-  // signed-in/out branch (and thus stash-vs-navigate) is correct.
+  /**
+   * Cold start: a URL that launched the app. Wait until auth has resolved so the
+   * signed-in/out branch (and thus stash-vs-navigate) is correct — then never look again.
+   *
+   * **Exactly once, hence the ref.** `getInitialURL()` keeps returning the launch URL for the
+   * whole process lifetime, and this effect depends on `route`, whose identity changes the moment
+   * `isSignedIn` flips. So every successful sign-in re-ran the launch URL through the router. An
+   * unmappable one — which is what a development-client launch URL is
+   * (`exp+gameground://expo-development-client/?url=…`) — plans `home`, so signing up or logging
+   * in fired `router.push("/home")` a beat after the session was adopted. That is what kept
+   * yanking the signup acknowledgement and the brand loader off screen: not the screens, this.
+   *
+   * It reaches production too — any launch from a notification or a universal link arms the same
+   * re-fire, and it would land mid-flow rather than at launch.
+   */
+  const launchUrlConsumed = useRef(false);
   useEffect(() => {
-    if (status === "restoring") return;
+    if (status === "restoring" || launchUrlConsumed.current) return;
+    launchUrlConsumed.current = true;
     Linking.getInitialURL()
-      .then((url) => url && route(url))
+      .then((url) => {
+        if (!url) return;
+        /**
+         * A launch URL we cannot map is NOT routed home, unlike one that arrives while the app is
+         * running. At launch the entry route (app/index.tsx) already owns the destination —
+         * onboarding, login or home — and overriding it with `home` both bounces off the tabs'
+         * signed-out guard and skips first-run onboarding. Nothing was deep-linked; there is
+         * nothing to fall back FROM.
+         */
+        if (!resolveDeepLink(url)) return breadcrumb("deeplink.launch-unresolved", { url });
+        route(url);
+      })
       .catch(() => {});
   }, [status, route]);
 

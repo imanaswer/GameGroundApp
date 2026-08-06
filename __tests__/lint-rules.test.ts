@@ -101,3 +101,103 @@ test("hardcoded fontSize values stay on the ported type scale", () => {
 
   expect(offenders).toEqual([]);
 });
+
+/**
+ * Theming guards (Decision 24). Both failures below are silent: the app compiles, lints, renders,
+ * and is simply stuck in whichever palette was active when the module was first imported. Neither
+ * is visible until someone switches theme on a device and finds one screen that didn't.
+ */
+test("module-scope stylesheets that read a token use themed(), not StyleSheet.create", () => {
+  const roots = [join(__dirname, "..", "src"), join(__dirname, "..", "app")];
+  const walk = (dir: string): string[] =>
+    readdirSync(dir, { withFileTypes: true }).flatMap((e) => {
+      const p = join(dir, e.name);
+      return e.isDirectory() ? walk(p) : p.endsWith(".tsx") || p.endsWith(".ts") ? [p] : [];
+    });
+
+  const offenders: string[] = [];
+  for (const file of roots.flatMap(walk)) {
+    const text = readFileSync(file, "utf8");
+    // Balanced-brace matching is overkill here: a StyleSheet.create body that mentions a themed
+    // token anywhere is already the bug, wherever the braces close.
+    for (const [, body] of text.matchAll(/StyleSheet\.create\(\{([\s\S]*?)\n\}\)/g)) {
+      if (/\b(?:color|tier|gradient|shadow)\.[a-zA-Z]/.test(body)) {
+        offenders.push(file.split(/[\/]/).pop() as string);
+      }
+    }
+  }
+
+  expect(offenders).toEqual([]);
+});
+
+test("every themed stylesheet is read through the reactive hook", () => {
+  const roots = [join(__dirname, "..", "src"), join(__dirname, "..", "app")];
+  const walk = (dir: string): string[] =>
+    readdirSync(dir, { withFileTypes: true }).flatMap((e) => {
+      const p = join(dir, e.name);
+      return e.isDirectory() ? walk(p) : p.endsWith(".tsx") ? [p] : [];
+    });
+
+  /**
+   * `const styles = useThemedStyles(sheets)`, not a module-scope `styles.x` read.
+   *
+   * Both forms are CURRENT — the proxy always answers with the active palette — but only the hook
+   * is REACTIVE, and under the React Compiler that gap is the bug. The compiler treats a
+   * module-scope binding as constant, so it caches `[styles.a, styles.b]`, or the JSX holding it,
+   * once per component instance and reuses it forever. The component then re-renders on a theme
+   * change and hands back its previous-palette output. It surfaced as a switch that applied to
+   * some screens and not others: compiled components froze, bailed-out ones updated.
+   */
+  const offenders = roots
+    .flatMap(walk)
+    .filter((f) => {
+      const text = readFileSync(f, "utf8");
+      return text.includes("themed(() =>") && !text.includes("useThemedStyles(");
+    })
+    .map((f) => f.split(/[\/]/).pop() as string);
+
+  expect(offenders).toEqual([]);
+});
+
+/**
+ * The same rule for a SHARED sheet — one module's `export const x = themed(...)` read by another.
+ *
+ * The test above only asks whether a file that declares a themed sheet calls the hook *somewhere*,
+ * which is not the same question. Every card file passed it — each has its own local `sheets` and
+ * hooks that — while reading `cardStyles.title` straight off the import from `parts.tsx`. The rail
+ * titles rendered light's #101828 on the dark ground: near-black on near-black, invisible, and
+ * reported from a device rather than by anything here.
+ *
+ * Comments are stripped first: a doc line that mentions `cardStyles.card` to explain why a local
+ * style matches it is exactly the kind of note worth keeping, and it is not a read.
+ */
+test("a themed stylesheet imported from another module is read through the hook too", () => {
+  const roots = [join(__dirname, "..", "src"), join(__dirname, "..", "app")];
+  const walk = (dir: string): string[] =>
+    readdirSync(dir, { withFileTypes: true }).flatMap((e) => {
+      const p = join(dir, e.name);
+      return e.isDirectory() ? walk(p) : p.endsWith(".tsx") || p.endsWith(".ts") ? [p] : [];
+    });
+
+  const files = roots.flatMap(walk);
+  const withoutComments = (t: string) => t.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/.*$/gm, "");
+
+  // Every `export const <name> = themed(...)`, and where it is declared.
+  const shared = new Map<string, string>();
+  for (const file of files)
+    for (const [, name] of readFileSync(file, "utf8").matchAll(/export const (\w+) = themed\(/g))
+      shared.set(name, file);
+
+  const offenders: string[] = [];
+  for (const [name, declaredIn] of shared) {
+    for (const file of files) {
+      if (file === declaredIn) continue;
+      // Remove the legal form, then look for anything left that still reaches into the sheet.
+      const body = withoutComments(readFileSync(file, "utf8")).split(`useThemedStyles(${name})`).join("");
+      const raw = body.match(new RegExp(`\\b${name}\\.\\w+`, "g"));
+      if (raw) offenders.push(`${file.split(/[\/]/).pop()}: ${[...new Set(raw)].join(", ")}`);
+    }
+  }
+
+  expect(offenders).toEqual([]);
+});

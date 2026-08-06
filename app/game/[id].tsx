@@ -5,7 +5,7 @@
  */
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
-import { Alert, Linking, StyleSheet, Text, View } from "react-native";
+import { Alert, Linking, Text, View } from "react-native";
 import Animated, { useAnimatedScrollHandler, useSharedValue } from "react-native-reanimated";
 
 import { DateBadge, ErrorState, HeroNav, ParallaxHero, Screen, Sheet, StickyCTA, useToast } from "@/components/chrome";
@@ -32,10 +32,13 @@ import { formatAmount, formatPrice, formatSessionWhen } from "@/lib/format";
 import * as haptics from "@/lib/haptics";
 import { shareEntity } from "@/lib/share";
 import { color, layout, radius, space, type } from "@/lib/tokens";
+import { themed, usePalette, useThemedStyles } from "@/theme/runtime";
 
 /** Meta tile: a red-tinted rounded icon square with a bold value over a dim sub-line.
  *  When `onPress` is set it becomes a row action (e.g. venue → directions) with a chevron. */
 function MetaTile({ icon, label, sub, onPress }: { icon: React.ReactNode; label: string; sub?: string; onPress?: () => void }) {
+  const styles = useThemedStyles(sheets);
+  const color = usePalette();
   const content = (
     <>
       <View style={styles.metaIcon}>{icon}</View>
@@ -58,6 +61,8 @@ function MetaTile({ icon, label, sub, onPress }: { icon: React.ReactNode; label:
 }
 
 export default function GameDetail() {
+  const styles = useThemedStyles(sheets);
+  const color = usePalette();
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const { data: game, isLoading, isError, error, refetch } = useGame(id);
@@ -520,6 +525,7 @@ function AttendanceRow({
   present: boolean;
   onToggle: () => void;
 }) {
+  const styles = useThemedStyles(sheets);
   return (
     <View style={styles.attRow}>
       <Avatar name={player.name} uri={player.avatarUrl} size={32} />
@@ -539,7 +545,7 @@ function AttendanceRow({
 
 const HERO_H = 260;
 
-const styles = StyleSheet.create({
+const sheets = themed(() => ({
   scroll: { paddingBottom: space(28) },
   body: { paddingHorizontal: layout.screenX, marginTop: space(4), gap: space(2) },
 
@@ -599,4 +605,4 @@ const styles = StyleSheet.create({
   orgName: { ...type.heading, color: color.text },
   gap: { marginTop: space(3) },
   gapSm: { marginTop: space(1.5) },
-});
+}));

@@ -13,7 +13,7 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 
-import { confetti as palette } from "@/lib/tokens";
+import { confettiColors, useThemeTick } from "@/theme/runtime";
 
 const COUNT = 26;
 
@@ -46,6 +46,7 @@ type Piece = {
 };
 
 function Confetto({ piece }: { piece: Piece }) {
+  
   const t = useSharedValue(0);
   useEffect(() => {
     t.value = withTiming(1, { duration: piece.duration, easing: Easing.out(Easing.quad) });
@@ -72,11 +73,15 @@ function Confetto({ piece }: { piece: Piece }) {
 }
 
 export function Confetti() {
+  const scheme = useThemeTick();
   const reduced = useReducedMotion();
   const { width } = useWindowDimensions();
   const id = useId();
 
   const pieces = useMemo<Piece[]>(() => {
+    // Read inside the memo, keyed on the scheme: the light set contains black, which is invisible
+    // on the dark scrim these fall against.
+    const palette = confettiColors(scheme);
     const rnd = makeRng(hash(id));
     return Array.from({ length: COUNT }, () => ({
       color: palette[Math.floor(rnd() * palette.length)],
@@ -87,7 +92,8 @@ export function Confetti() {
       duration: 700 + rnd() * 500,
       size: 6 + rnd() * 6,
     }));
-  }, [width, id]);
+  // `scheme` is a real dependency: the palette these pieces are built from changes with it.
+  }, [width, id, scheme]);
 
   if (reduced) return null;
 

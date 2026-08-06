@@ -5,7 +5,7 @@
  */
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useState } from "react";
-import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from "react-native";
+import { KeyboardAvoidingView, Platform, ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { CreateGameStep } from "@/api/schemas";
@@ -18,6 +18,7 @@ import { formatWhen } from "@/lib/format";
 import * as haptics from "@/lib/haptics";
 import { hasWhatsAppNumber } from "@/lib/phone";
 import { color, icon as iconSize, layout, radius, space, type } from "@/lib/tokens";
+import { themed, usePalette, useThemedStyles } from "@/theme/runtime";
 
 const SPORTS = ["Football", "Cricket", "Badminton", "Basketball", "Tennis", "Volleyball"];
 // Must match the server's skillLevel enum exactly (no "Any").
@@ -38,6 +39,8 @@ const FIELD_STEP: Record<string, number> = {
 };
 
 export default function CreateGame() {
+  const styles = useThemedStyles(sheets);
+  const color = usePalette();
   const router = useRouter();
   const toast = useToast();
   const insets = useSafeAreaInsets();
@@ -187,7 +190,7 @@ export default function CreateGame() {
           </>
         )}
 
-        {step === 1 && <VenueStep form={form} set={set} errors={errors} />}
+        {step === 1 && <VenueStep form={form} set={set} errors={errors} sport={form.sport} />}
 
         {step === 2 && (
           <>
@@ -257,23 +260,37 @@ export default function CreateGame() {
   );
 }
 
+/**
+ * Venue + slot picker, scoped to the sport chosen in step 0.
+ *
+ * It used to list EVERY active venue in the system, so hosting badminton offered football turfs —
+ * the step had no relationship to the sport at all. `CreateGameStep.basics` requires a sport before
+ * this step can be reached, so `sport` is always set here; the guard below is for the impossible
+ * case rather than an expected one.
+ */
 function VenueStep({
   form,
   set,
   errors,
+  sport,
 }: {
   form: { venueId: string; slotId: string };
   set: (k: "venueId" | "slotId") => (v: string) => void;
   errors: Record<string, string>;
+  sport: string;
 }) {
-  const venues = useVenues();
+  const styles = useThemedStyles(sheets);
+  const venues = useVenues(sport || null);
   const slots = useVenueSlots(form.venueId || null);
   const openSlots = (slots.data ?? []).filter((s) => s.available);
 
   return (
     <>
       <Text style={styles.label}>Venue</Text>
-      {venues.isLoading ? (
+      <Text style={styles.hint}>Approved {sport.toLowerCase()} venues only.</Text>
+      {!sport ? (
+        <Text style={styles.note}>Pick a sport first to see approved venues.</Text>
+      ) : venues.isLoading ? (
         <Skeleton height={44} />
       ) : venues.isError ? (
         <View style={styles.stateRow}>
@@ -281,20 +298,44 @@ function VenueStep({
           <Button title="Retry" variant="ghost" onPress={() => venues.refetch()} />
         </View>
       ) : (venues.data?.length ?? 0) === 0 ? (
-        <Text style={styles.note}>No venues available yet.</Text>
+        <Text style={styles.note}>No approved {sport.toLowerCase()} venues yet — check back soon.</Text>
       ) : (
-        <View style={styles.chipWrap}>
-          {venues.data?.map((v) => (
-            <Chip
-              key={v.id}
-              label={v.name}
-              active={form.venueId === v.id}
-              onPress={() => {
-                set("venueId")(v.id);
-                set("slotId")("");
-              }}
-            />
-          ))}
+        /* A row per venue rather than a Chip: the open-slot count is the thing that decides the
+           choice (today only 3 of 11 venues have any openings), and a chip has room for a name
+           alone. Same Press + card shape as the slot rows below, so the two halves of this step
+           read as one control. */
+        <View style={styles.slotList}>
+          {venues.data?.map((v) => {
+            const open = v.openSlots;
+            return (
+              <Press
+                key={v.id}
+                accessibilityRole="button"
+                accessibilityState={{ selected: form.venueId === v.id }}
+                accessibilityLabel={
+                  open === null ? v.name : `${v.name}, ${open} open ${open === 1 ? "slot" : "slots"}`
+                }
+                onPress={() => {
+                  set("venueId")(v.id);
+                  set("slotId")("");
+                }}
+                style={[styles.slot, form.venueId === v.id && styles.slotOn, open === 0 && styles.venueEmpty]}
+              >
+                <Text style={styles.slotText}>{v.name}</Text>
+                {!!v.area && (
+                  <Text style={styles.venueArea} numberOfLines={1}>
+                    {v.area}
+                  </Text>
+                )}
+                {/* null means the server didn't say — render nothing rather than claim zero. */}
+                {open !== null && (
+                  <Text style={open > 0 ? styles.venueOpen : styles.venueOpenNone}>
+                    {open > 0 ? `${open} open slot${open === 1 ? "" : "s"}` : "No open slots yet"}
+                  </Text>
+                )}
+              </Press>
+            );
+          })}
         </View>
       )}
       {!!errors.venueId && <Text style={styles.err}>{errors.venueId}</Text>}
@@ -332,7 +373,7 @@ function VenueStep({
   );
 }
 
-const styles = StyleSheet.create({
+const sheets = themed(() => ({
   flex: { flex: 1 },
   header: { flexDirection: "row", alignItems: "center", gap: space(3), paddingHorizontal: layout.screenX, paddingTop: space(2) },
   backBtn: { width: 34, height: 34, borderRadius: 999, backgroundColor: color.card, alignItems: "center", justifyContent: "center" },
@@ -352,5 +393,13 @@ const styles = StyleSheet.create({
   slot: { backgroundColor: color.card, borderRadius: radius.input, borderWidth: 1, borderColor: color.border, padding: space(3.5) },
   slotOn: { borderColor: color.primary, backgroundColor: color.errorWash },
   slotText: { ...type.body, color: color.text },
+  hint: { ...type.caption, color: color.dim2, marginTop: -space(1), marginBottom: space(2) },
+  venueArea: { ...type.caption, color: color.dim, marginTop: space(0.5) },
+  // `successText`, never `success` — the fill token measures ~2.2:1 as type (DS §1).
+  venueOpen: { ...type.caption, color: color.successText, marginTop: space(1.5) },
+  venueOpenNone: { ...type.caption, color: color.dim2, marginTop: space(1.5) },
+  // Still selectable, matching the web: the slot step explains the emptiness better than a
+  // disabled row can, and a venue with no openings today may be the one the host wants to check.
+  venueEmpty: { opacity: 0.6 },
   footer: { paddingHorizontal: layout.screenX, paddingTop: space(3) },
-});
+}));

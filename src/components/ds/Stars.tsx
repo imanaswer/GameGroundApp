@@ -2,12 +2,14 @@
 import { StyleSheet, View } from "react-native";
 import Svg, { Defs, LinearGradient, Path, Rect, Stop } from "react-native-svg";
 
-import { color, space } from "@/lib/tokens";
+import { space } from "@/lib/tokens";
+import { usePalette } from "@/theme/runtime";
 
 /** Lucide star path on a 24-box. */
 const STAR = "M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z";
 
 function Star({ fill, size }: { fill: number; size: number }) {
+  const color = usePalette();
   const clamped = Math.max(0, Math.min(1, fill));
   const gradId = `star-${Math.round(clamped * 100)}`;
   return (
@@ -25,6 +27,7 @@ function Star({ fill, size }: { fill: number; size: number }) {
 }
 
 export function Stars({ value, size = 10 }: { value: number; size?: number }) {
+  
   return (
     <View style={styles.row} accessibilityLabel={`${value.toFixed(1)} out of 5 stars`}>
       {[0, 1, 2, 3, 4].map((i) => (

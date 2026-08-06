@@ -3,15 +3,18 @@
  * server `error` verbatim (§16.4). Stars are tappable input here, not the static display.
  */
 import { useState } from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { Text, View } from "react-native";
 
 import { fieldErrorsFrom } from "@/components/auth/fields";
 import { Button, Input, Press, StarIcon } from "@/components/ds";
 import { useSubmitReview } from "@/hooks/queries";
 import * as haptics from "@/lib/haptics";
 import { color, radius, space, type , ramp} from "@/lib/tokens";
+import { themed, usePalette, useThemedStyles } from "@/theme/runtime";
 
 export function ReviewForm({ coachId }: { coachId: string }) {
+  const styles = useThemedStyles(sheets);
+  const color = usePalette();
   const submit = useSubmitReview(coachId);
   const [rating, setRating] = useState(0);
   const [body, setBody] = useState("");
@@ -69,10 +72,10 @@ export function ReviewForm({ coachId }: { coachId: string }) {
   );
 }
 
-const styles = StyleSheet.create({
+const sheets = themed(() => ({
   wrap: { gap: space(2.5), backgroundColor: color.card, borderRadius: radius.input, borderWidth: 1, borderColor: color.border, padding: space(3.5), marginBottom: space(2) },
   label: { ...type.label, color: color.dim },
   stars: { flexDirection: "row", gap: space(1.5) },
   error: { ...type.caption, color: ramp.error[600] },
   thanks: { ...type.body, color: color.successText, paddingVertical: space(2) },
-});
+}));

@@ -24,7 +24,8 @@ import Animated, {
 } from "react-native-reanimated";
 
 import { AvatarStack, Press, SlotRing } from "@/components/ds";
-import { color, font, gradient, radius, space, type } from "@/lib/tokens";
+import { color, font, radius, space, type } from "@/lib/tokens";
+import { themed, useGradients, usePalette, useThemedStyles } from "@/theme/runtime";
 
 const HERO_H = 176;
 
@@ -52,6 +53,8 @@ export function UpNextHeroCard({
   onPress: () => void;
   scrollY?: SharedValue<number>;
 }) {
+  const styles = useThemedStyles(sheets);
+  const gradient = useGradients();
   const reduced = useReducedMotion();
 
   // Parallax: image drifts at 0.18× scroll (§8). No-op without scrollY or under reduced motion.
@@ -113,6 +116,7 @@ export function UpNextHeroCard({
 
 /** §8 live dot: gentle opacity/scale pulse. */
 function PulseDot({ reduced }: { reduced: boolean }) {
+  const styles = useThemedStyles(sheets);
   const p = useSharedValue(0);
   useEffect(() => {
     if (reduced) return;
@@ -124,6 +128,8 @@ function PulseDot({ reduced }: { reduced: boolean }) {
 
 /** §8 ambient shine: a soft light band sweeps across every ~5.5s (≤10% white). */
 function Shine({ reduced }: { reduced: boolean }) {
+  const styles = useThemedStyles(sheets);
+  const color = usePalette();
   const x = useSharedValue(-1);
   useEffect(() => {
     if (reduced) return;
@@ -151,6 +157,7 @@ const DAY_MS = 86_400_000;
  * reads "Starting now". Ticks every second; static under reduced motion is irrelevant (it's data).
  */
 function Countdown({ startsAt }: { startsAt: string }) {
+  const styles = useThemedStyles(sheets);
   const [remaining, setRemaining] = useState(() => Math.max(0, new Date(startsAt).getTime() - Date.now()));
   // Below a day the value ticks per-second; further out it barely changes, so poll each minute.
   const near = remaining < DAY_MS;
@@ -195,6 +202,7 @@ function Countdown({ startsAt }: { startsAt: string }) {
 }
 
 function Cell({ value, unit }: { value: string; unit: string }) {
+  const styles = useThemedStyles(sheets);
   return (
     <View style={styles.cell}>
       <Text style={styles.cellValue}>{value}</Text>
@@ -203,7 +211,7 @@ function Cell({ value, unit }: { value: string; unit: string }) {
   );
 }
 
-const styles = StyleSheet.create({
+const sheets = themed(() => ({
   card: {
     height: HERO_H,
     borderRadius: radius.card,
@@ -224,10 +232,19 @@ const styles = StyleSheet.create({
 
   bottomRow: { flexDirection: "row", alignItems: "flex-end", justifyContent: "space-between", gap: space(3) },
   bottomLeft: { flex: 1, gap: space(1) },
-  title: { ...type.title2, color: color.text },
-  meta: { ...type.caption, color: color.dim },
+  /**
+   * On the photograph, so `inverse` — not `text`/`dim`, which are PAGE colours.
+   *
+   * These three were the reason light's scrim had to be a 0.92 white wash: near-black ink cannot sit
+   * on a photo without one, and buying that wash cost the picture and hid the (correctly white)
+   * eyebrow beside them. Secondary copy dims with OPACITY rather than a dimmer token — the same
+   * device onboarding uses for body copy over its photo — because a photographic surface has no
+   * grey ramp to reach for. DS §6.
+   */
+  title: { ...type.title2, color: color.inverse },
+  meta: { ...type.caption, color: color.inverse, opacity: 0.86 },
   social: { flexDirection: "row", alignItems: "center", gap: space(2), marginTop: space(1.5) },
-  joined: { ...type.caption, color: color.dim },
+  joined: { ...type.caption, color: color.inverse, opacity: 0.86 },
 
   countdown: { flexDirection: "row", gap: space(1.5) },
   farPill: {
@@ -252,4 +269,4 @@ const styles = StyleSheet.create({
   },
   cellValue: { fontFamily: font.sansExtra, fontSize: 14, color: color.text, fontVariant: ["tabular-nums"] },
   cellUnit: { fontFamily: font.sansSemi, fontSize: 10, color: color.dim, letterSpacing: 0.6, marginTop: 1 },
-});
+}));

@@ -4,7 +4,7 @@
  */
 import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
-import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { ScrollView, Text, View } from "react-native";
 
 import type { SearchHit, SearchResults } from "@/api/types";
 import { Screen } from "@/components/chrome";
@@ -13,6 +13,7 @@ import { useSearch } from "@/hooks/queries";
 import { useDebounce } from "@/hooks/useDebounce";
 import * as storage from "@/lib/storage";
 import { color, layout, space, type } from "@/lib/tokens";
+import { themed, usePalette, useThemedStyles } from "@/theme/runtime";
 
 /**
  * Only the four groups the server actually searches. The web `/search` route queries coaches,
@@ -29,6 +30,8 @@ const GROUPS: { key: keyof SearchResults; label: string; route: string }[] = [
 const TRENDING = ["Football", "Cricket", "Badminton", "This weekend"];
 
 export default function SearchModal() {
+  const styles = useThemedStyles(sheets);
+  const color = usePalette();
   const router = useRouter();
   const [raw, setRaw] = useState("");
   const q = useDebounce(raw.trim(), 300);
@@ -130,6 +133,7 @@ export default function SearchModal() {
 }
 
 function Section({ label, action, children }: { label: string; action?: React.ReactNode; children: React.ReactNode }) {
+  const styles = useThemedStyles(sheets);
   return (
     <View style={styles.section}>
       <View style={styles.sectionHead}>
@@ -141,7 +145,7 @@ function Section({ label, action, children }: { label: string; action?: React.Re
   );
 }
 
-const styles = StyleSheet.create({
+const sheets = themed(() => ({
   top: { flexDirection: "row", alignItems: "center", gap: space(2), paddingHorizontal: layout.screenX, paddingTop: space(2), paddingBottom: space(3) },
   searchWrap: { flex: 1 },
   close: { width: 34, height: 34, borderRadius: 999, backgroundColor: color.card, alignItems: "center", justifyContent: "center" },
@@ -158,4 +162,4 @@ const styles = StyleSheet.create({
   empty: { alignItems: "center", paddingTop: space(12), gap: space(2) },
   emptyTitle: { ...type.title2, color: color.text, textAlign: "center" },
   emptyBody: { ...type.body, color: color.dim, textAlign: "center" },
-});
+}));

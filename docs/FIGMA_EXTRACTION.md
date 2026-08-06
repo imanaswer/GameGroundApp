@@ -1,6 +1,6 @@
-# Nike Figma — extraction report
+# Reference Figma — extraction report
 
-Source: `App Clone - Nike App (FULL VERSION) - Community`, file `ARFuxrQIE8GgZzbyy6osiU`.
+Source: the reference sportswear-app community file, `ARFuxrQIE8GgZzbyy6osiU`.
 Extracted 2 Aug 2026 via the Figma MCP. Two pages: `2:7312` Template (164 screens), `1:2` Component.
 
 **This is a report, not a decision.** Nothing here has been applied to the app. Read the
@@ -70,8 +70,8 @@ Semantic ramps, 100→800 each:
 - **Error** `#F8E2DD · #EDB7AA · #E79A88 · #DC6E57 · #CA462A · #99351F · #662415 · #44180E`
 
 **There is no brand accent colour.** No red, no signature hue — the system is black, white, grey,
-plus semantic states. Nike's brand presence comes from the swoosh and photography, not from a
-palette accent. GameGround's `#e63946` red has no counterpart here.
+plus semantic states. The source's brand presence comes from its logo mark and photography, not
+from a palette accent. GameGround's `#e63946` red has no counterpart here.
 
 ## 3. Elevation
 
@@ -101,7 +101,7 @@ with/without title/hints), checkboxes and radios (`status=normal|hover`, `checke
 
 164 screen-sized frames. Grouped:
 
-| Nike group | Count | GameGround counterpart |
+| Source group | Count | GameGround counterpart |
 |---|---|---|
 | Sign up 01–09 | 9 | `app/(auth)/signup.tsx` ✅ |
 | Login 01–07 | 7 | `app/(auth)/login.tsx` ✅ |
@@ -115,13 +115,13 @@ with/without title/hints), checkboxes and radios (`status=normal|hover`, `checke
 | **Order 01** | 1 | ❌ none |
 | **Favourites 01–03** | 3 | ❌ none |
 
-**Nike's app is e-commerce; GameGround is bookings.** Roughly 40 of the 164 screens — the entire
-Shop → Product → Bag → Order spine — model buying physical products and have no GameGround
-equivalent. Conversely, GameGround's core has **no Nike counterpart at all**: games browse/detail/
-create, coaches and batches, camps, workshops, events, the leaderboard and tier system, slot
-selection, and Razorpay checkout.
+**The source app is e-commerce; GameGround is bookings.** Roughly 40 of the 164 screens — the
+entire Shop → Product → Bag → Order spine — model buying physical products and have no GameGround
+equivalent. Conversely, GameGround's core has **no counterpart in the source at all**: games
+browse/detail/create, coaches and batches, camps, workshops, events, the leaderboard and tier
+system, slot selection, and Razorpay checkout.
 
-Tab bars differ too: Nike is Home · Shop · Favourites · Bag · Profile; ours is
+Tab bars differ too: the source is Home · Shop · Favourites · Bag · Profile; ours is
 Home · Games · Coaches · Discover · Leaders (Decision 5).
 
 ---
@@ -137,7 +137,7 @@ Home · Games · Coaches · Discover · Leaders (Decision 5).
    and gradient tokens assume a dark ground today. This is a product decision, not a restyle.
 3. **No brand accent.** Adopting the palette wholesale discards GameGround red, which currently
    carries tier states, CTAs, live badges, and the leaderboard.
-4. **Coverage.** ~25% of Nike's screens map to something we have; our highest-traffic screens map
+4. **Coverage.** ~25% of the source's screens map to something we have; our highest-traffic screens map
    to nothing. A literal "redesign everything with the Figma" is not achievable — most of our app
    would still have to be designed, just in a new visual language.
 

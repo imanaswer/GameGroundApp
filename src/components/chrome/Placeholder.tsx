@@ -1,14 +1,16 @@
-import { StyleSheet, Text, View } from "react-native";
+import { Text, View } from "react-native";
 
 import { color, layout, space, type } from "@/lib/tokens";
 
 import { Screen } from "./Screen";
+import { themed, useThemedStyles } from "@/theme/runtime";
 
 /**
  * M0 scaffold stand-in. Every route renders one until its milestone builds the real screen.
  * Deleting the last usage of this file is how you know the scaffold is fully replaced.
  */
 export function Placeholder({ route, milestone }: { route: string; milestone: string }) {
+  const styles = useThemedStyles(sheets);
   return (
     <Screen>
       <View style={styles.center}>
@@ -20,9 +22,9 @@ export function Placeholder({ route, milestone }: { route: string; milestone: st
   );
 }
 
-const styles = StyleSheet.create({
+const sheets = themed(() => ({
   center: { flex: 1, alignItems: "center", justifyContent: "center", gap: space(2) },
   label: { ...type.label, color: color.dim },
   title: { ...type.title1, color: color.text, textAlign: "center" },
   body: { ...type.body, color: color.dim2, textAlign: "center", maxWidth: layout.screenX * 16 },
-});
+}));

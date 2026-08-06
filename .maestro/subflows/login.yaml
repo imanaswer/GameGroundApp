@@ -24,6 +24,7 @@ appId: net.gameground.app.preview
 - tapOn:
     id: "auth-submit"
 
+# The brand loader covers the tabs while they mount; the wait below absorbs it.
 - extendedWaitUntil:
     visible:
       id: "tab-games"

@@ -1,9 +1,9 @@
 /**
- * DESIGN_SYSTEM.md §5 SegmentedControl (Discover). Sliding red pill under the active
+ * DESIGN_SYSTEM.md §5 SegmentedControl (Discover). Sliding `primary` (ink) pill under the active
  * segment (spring.pop), selection haptic. Content fade-swap is the consumer's job.
  */
 import { useEffect, useState } from "react";
-import { LayoutChangeEvent, StyleSheet, Text, View } from "react-native";
+import { LayoutChangeEvent, Text, View } from "react-native";
 import Animated, {
   useAnimatedStyle,
   useReducedMotion,
@@ -16,9 +16,10 @@ import { Press } from "@/components/ds";
 import * as haptics from "@/lib/haptics";
 import { color, radius, space, type } from "@/lib/tokens";
 import { dur, spring } from "@/theme/animations";
+import { themed, useThemedStyles } from "@/theme/runtime";
 
 /**
- * `primary` — red pill, the main category switch. `subtle` — neutral pill + tighter
+ * `primary` — ink pill, the main category switch. `subtle` — neutral pill + tighter
  * height, for a secondary filter that must read below a primary control (§5).
  */
 type Variant = "primary" | "subtle";
@@ -34,6 +35,7 @@ export function SegmentedControl<T extends string>({
   onChange: (key: T) => void;
   variant?: Variant;
 }) {
+  const styles = useThemedStyles(sheets);
   const [width, setWidth] = useState(0);
   const reduced = useReducedMotion();
   const subtle = variant === "subtle";
@@ -82,13 +84,14 @@ export function SegmentedControl<T extends string>({
   );
 }
 
-const styles = StyleSheet.create({
+const sheets = themed(() => ({
   container: { flexDirection: "row", backgroundColor: color.card, borderRadius: radius.input, padding: 4 },
   pill: { position: "absolute", top: 4, bottom: 4, left: 4, borderRadius: radius.tileSm, backgroundColor: color.primary },
   pillSubtle: { backgroundColor: color.border2 },
   segment: { flex: 1, alignItems: "center", justifyContent: "center", paddingVertical: space(2.5) },
   segmentSubtle: { paddingVertical: space(1.75) },
   label: { fontFamily: type.heading.fontFamily, fontSize: 12, color: color.dim },
-  active: { color: color.inverse },
+  // Sits on the `primary` pill, so it follows it across themes.
+  active: { color: color.onPrimary },
   activeSubtle: { color: color.text },
-});
+}));

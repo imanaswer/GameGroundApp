@@ -52,6 +52,23 @@ name: 01 signup and join a free game
 - tapOn:
     id: "signup-continue"
 
+# Account setup (Decision 23): welcome → why → sports → notifications → congrats.
+# The welcome and congrats screens carry no CTA — they advance themselves after a reading hold —
+# so this waits for the first pill rather than counting taps from the acknowledgement.
+- extendedWaitUntil:
+    visible:
+      id: "setup-primary"
+    timeout: 20000
+- tapOn:
+    id: "setup-primary" # why → sports
+# Nothing selected, so the pill reads "Skip".
+- tapOn:
+    id: "setup-primary" # sports → notifications
+# "Not now", NOT the pill: tapping Next raises the OS permission dialog, which Maestro cannot
+# dismiss and which would block the rest of the run.
+- tapOn:
+    id: "setup-skip" # notifications → congrats (self-advancing → brand loader → tabs)
+
 # Then the tabs. Allow for the network plus the entrance stagger.
 - extendedWaitUntil:
     visible:

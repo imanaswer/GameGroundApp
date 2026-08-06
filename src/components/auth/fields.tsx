@@ -8,6 +8,7 @@ import { StyleSheet, Text, View } from "react-native";
 import { ApiClientError } from "@/api/client";
 import { CheckIcon } from "@/components/ds";
 import { color, ramp, space, type } from "@/lib/tokens";
+import { themed, usePalette, useThemedStyles } from "@/theme/runtime";
 
 /** Renders a thrown form error. 429s show a live countdown; everything else, the server string. */
 export function FormError({ error }: { error: unknown }) {
@@ -19,6 +20,7 @@ export function FormError({ error }: { error: unknown }) {
 }
 
 function RateLimitCountdown({ seconds }: { seconds: number }) {
+  
   const [left, setLeft] = useState(seconds);
   useEffect(() => {
     const timer = setInterval(() => setLeft((s) => (s > 0 ? s - 1 : s)), 1000);
@@ -55,8 +57,8 @@ const styles = StyleSheet.create({
  * password field that ticks green as each rule is satisfied.
  *
  * The source lists two rules ("minimum of 8 characters", "uppercase, lowercase and one number")
- * because Nike enforces both. **We list only what our server actually enforces** — `RegisterSchema`
- * requires 8 characters and nothing more. Rendering Nike's second rule would invent a constraint
+ * because that app enforces both. **We list only what our server actually enforces** — `RegisterSchema`
+ * requires 8 characters and nothing more. Rendering their second rule would invent a constraint
  * the API does not apply: the user would be told their valid password is invalid, and a rule that
  * the server ignores is worse than no rule at all.
  *
@@ -68,6 +70,8 @@ const PASSWORD_RULES: { label: string; test: (v: string) => boolean }[] = [
 ];
 
 export function PasswordRules({ value }: { value: string }) {
+  const ruleStyles = useThemedStyles(ruleSheets);
+  const color = usePalette();
   return (
     <View style={ruleStyles.wrap}>
       {PASSWORD_RULES.map((r) => {
@@ -83,10 +87,10 @@ export function PasswordRules({ value }: { value: string }) {
   );
 }
 
-const ruleStyles = StyleSheet.create({
+const ruleSheets = themed(() => ({
   // Sits directly under the field, inside its bottom margin rather than adding to it.
   wrap: { marginTop: -space(2.5), marginBottom: space(4), gap: space(1) },
   row: { flexDirection: "row", alignItems: "center", gap: space(1.5) },
   label: { ...type.caption, color: color.dim2 },
   labelMet: { color: color.successText },
-});
+}));

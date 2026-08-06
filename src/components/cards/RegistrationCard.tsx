@@ -4,12 +4,13 @@
  * One component, section accent per kind.
  */
 import { memo } from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { Text, View } from "react-native";
 
 import { Badge, CalendarIcon, ClockIcon, FeaturedChip, Press, SlotBar } from "@/components/ds";
 import { color, radius, space, type } from "@/lib/tokens";
 
 import { CardImage, MetaRow, cardStyles } from "./parts";
+import { themed, usePalette, useThemedStyles } from "@/theme/runtime";
 
 export type RegistrationCardData = {
   id: string;
@@ -41,13 +42,17 @@ export const RegistrationCard = memo(function RegistrationCard({
   data: RegistrationCardData;
   onPress: () => void;
 }) {
+  const styles = useThemedStyles(sheets);
+  // Through the hook, not read off the import — see the note in GameCard's CompactGameCard.
+  const cards = useThemedStyles(cardStyles);
+  const color = usePalette();
   const capped = data.capacity > 0;
   const left = capped ? Math.max(0, data.capacity - data.registered) : 0;
   const ratio = capped ? data.registered / data.capacity : 0;
   const low = capped && left > 0 && left <= 5;
 
   return (
-    <Press testID="registerable-card" accessibilityRole="button" accessibilityLabel={data.title} onPress={onPress} brighten style={cardStyles.card}>
+    <Press testID="registerable-card" accessibilityRole="button" accessibilityLabel={data.title} onPress={onPress} brighten style={cards.card}>
       <CardImage uri={data.imageUrl} height={172}>
         <View style={styles.imageTop}>
           <View style={styles.badges}>
@@ -71,7 +76,7 @@ export const RegistrationCard = memo(function RegistrationCard({
           </Text>
         </View>
       </CardImage>
-      <View style={cardStyles.body}>
+      <View style={cards.body}>
         {!!data.when && <MetaRow icon={<CalendarIcon size={14} color={color.dim} />} text={data.when} />}
         {!!data.time && <MetaRow icon={<ClockIcon size={14} color={color.dim} />} text={data.time} />}
 
@@ -97,7 +102,7 @@ export const RegistrationCard = memo(function RegistrationCard({
   );
 });
 
-const styles = StyleSheet.create({
+const sheets = themed(() => ({
   // ── image overlay ──
   imageTop: { flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between", gap: space(2) },
   badges: { flexDirection: "row", gap: space(1.5), flexShrink: 1, flexWrap: "wrap" },
@@ -142,4 +147,4 @@ const styles = StyleSheet.create({
   openText: { ...type.caption, color: color.dim, marginTop: space(0.5) },
   // Dimmer than `open`: a closed item is still real content, just not actionable.
   closedText: { ...type.caption, color: color.dim2, marginTop: space(0.5) },
-});
+}));

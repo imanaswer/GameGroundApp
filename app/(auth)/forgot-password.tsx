@@ -1,6 +1,6 @@
 import { useRouter } from "expo-router";
 import { useState } from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { Text, View } from "react-native";
 
 import * as authApi from "@/api/auth";
 import { LoginSchema } from "@/api/schemas";
@@ -9,8 +9,11 @@ import { FormError } from "@/components/auth/fields";
 import { Button, CheckIcon, Input } from "@/components/ds";
 import { Press } from "@/components/ds/Press";
 import { color, radius, space, type } from "@/lib/tokens";
+import { themed, usePalette, useThemedStyles } from "@/theme/runtime";
 
 export default function ForgotPassword() {
+  const styles = useThemedStyles(sheets);
+  const color = usePalette();
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [fieldError, setFieldError] = useState<string | undefined>();
@@ -85,7 +88,7 @@ export default function ForgotPassword() {
   );
 }
 
-const styles = StyleSheet.create({
+const sheets = themed(() => ({
   doneCard: {
     alignItems: "center",
     gap: space(3),
@@ -109,4 +112,4 @@ const styles = StyleSheet.create({
   resend: { marginTop: space(1) },
   resendText: { ...type.bodyStrong, color: color.primarySoft },
   spacer: { flex: 1, minHeight: space(6) },
-});
+}));

@@ -16,7 +16,6 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
-  StyleSheet,
   Text,
   View,
 } from "react-native";
@@ -26,6 +25,7 @@ import { Screen } from "@/components/chrome/Screen";
 import { AppleGlyph, BackIcon, GoogleGlyph } from "@/components/ds";
 import { Press } from "@/components/ds/Press";
 import { color, google, radius, space, type } from "@/lib/tokens";
+import { themed, usePalette, useThemedStyles } from "@/theme/runtime";
 
 const MARK = require("@/assets/images/logo-mark.png");
 
@@ -40,6 +40,8 @@ type ShellProps = {
 
 /** Scrolls, keyboard-avoids, and lays out back → mark → heading → children. */
 export function AuthShell({ title, accent, subtitle, onBack, children }: ShellProps) {
+  const styles = useThemedStyles(sheets);
+  const color = usePalette();
   const insets = useSafeAreaInsets();
   return (
     // Full-bleed with the scroll content inset by hand, so the back button clears the notch.
@@ -83,6 +85,7 @@ export function AuthShell({ title, accent, subtitle, onBack, children }: ShellPr
 
 /** White Google button with the 4-color mark. Bordered since the page ground is now white. */
 export function GoogleButton({ label, onPress, disabled }: { label: string; onPress: () => void; disabled?: boolean }) {
+  const styles = useThemedStyles(sheets);
   return (
     <Press accessibilityRole="button" accessibilityState={{ disabled }} disabled={disabled} onPress={onPress} style={[styles.social, styles.google, disabled && styles.socialDisabled]}>
       <GoogleGlyph size={18} />
@@ -93,9 +96,11 @@ export function GoogleButton({ label, onPress, disabled }: { label: string; onPr
 
 /** Black Apple button — kept for iOS alongside Google. */
 export function AppleButton({ label, onPress, disabled }: { label: string; onPress: () => void; disabled?: boolean }) {
+  const styles = useThemedStyles(sheets);
+  const color = usePalette();
   return (
     <Press accessibilityRole="button" accessibilityState={{ disabled }} disabled={disabled} onPress={onPress} style={[styles.social, styles.apple, disabled && styles.socialDisabled]}>
-      <AppleGlyph size={18} color={color.inverse} />
+      <AppleGlyph size={18} color={color.onPrimary} />
       <Text style={[styles.socialLabel, styles.appleLabel]}>{label}</Text>
     </Press>
   );
@@ -103,6 +108,7 @@ export function AppleButton({ label, onPress, disabled }: { label: string; onPre
 
 /** Hairline "or" divider between the social buttons and the form. */
 export function Divider() {
+  const styles = useThemedStyles(sheets);
   return (
     <View style={styles.divider}>
       <View style={styles.rule} />
@@ -122,6 +128,7 @@ export function SwitchLink({
   action: string;
   onPress: () => void;
 }) {
+  const styles = useThemedStyles(sheets);
   return (
     <View style={styles.switch}>
       <Text style={styles.switchPrompt}>{prompt} </Text>
@@ -134,7 +141,7 @@ export function SwitchLink({
 
 const SOCIAL_H = 50;
 
-const styles = StyleSheet.create({
+const sheets = themed(() => ({
   flex: { flex: 1 },
   scroll: { flexGrow: 1, paddingHorizontal: 24, paddingTop: space(2), paddingBottom: space(7) },
 
@@ -186,7 +193,9 @@ const styles = StyleSheet.create({
   apple: { backgroundColor: color.primary },
   socialDisabled: { opacity: 0.5 },
   socialLabel: { ...type.bodyStrong, color: color.text },
-  appleLabel: { color: color.inverse },
+  // The Apple button is a `primary` fill: black pill/white mark in light, inverted in dark —
+  // which is also both of Apple's own sanctioned treatments.
+  appleLabel: { color: color.onPrimary },
   googleLabel: { color: google.onSurface },
 
   divider: { flexDirection: "row", alignItems: "center", gap: space(3.5), marginVertical: space(5) },
@@ -196,4 +205,4 @@ const styles = StyleSheet.create({
   switch: { flexDirection: "row", justifyContent: "center", alignItems: "center", marginTop: space(6) },
   switchPrompt: { ...type.body, color: color.dim },
   switchAction: { ...type.bodyStrong, color: color.text, textDecorationLine: "underline" },
-});
+}));

@@ -35,8 +35,18 @@ export function useGame(id: string) {
   });
 }
 
-export function useVenues() {
-  return useQuery({ queryKey: keys.venues.all, queryFn: venuesApi.list, staleTime: 300_000 });
+/**
+ * Approved venues for one sport. `sport` is required by the create picker and the query stays idle
+ * without it — an unfiltered fetch is what listed every venue in the system regardless of the sport
+ * the host had just chosen, so "no sport yet" is a state to wait in, not to fetch through.
+ */
+export function useVenues(sport: string | null) {
+  return useQuery({
+    queryKey: keys.venues.list(sport),
+    queryFn: () => venuesApi.list(sport),
+    enabled: !!sport,
+    staleTime: 300_000,
+  });
 }
 
 export function useVenueSlots(venueId: string | null) {

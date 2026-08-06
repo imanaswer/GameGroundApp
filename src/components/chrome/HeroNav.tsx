@@ -17,6 +17,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { BackIcon, Press, ShareIcon } from "@/components/ds";
 import { color, layout, space, type } from "@/lib/tokens";
+import { themed, usePalette, useThemedStyles } from "@/theme/runtime";
 
 export function HeroNav({
   onBack,
@@ -32,6 +33,8 @@ export function HeroNav({
   title?: string;
   collapseAt?: number;
 }) {
+  const styles = useThemedStyles(sheets);
+  const color = usePalette();
   const insets = useSafeAreaInsets();
 
   const solidStyle = useAnimatedStyle(() => {
@@ -66,7 +69,7 @@ export function HeroNav({
   );
 }
 
-const styles = StyleSheet.create({
+const sheets = themed(() => ({
   solid: {
     position: "absolute",
     top: 0,
@@ -99,4 +102,4 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-});
+}));

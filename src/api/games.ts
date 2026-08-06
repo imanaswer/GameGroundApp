@@ -2,6 +2,8 @@
  * Games endpoints (Developer PRD §3.3). Response types in api/types.ts — the single
  * place to reconcile when the web route select changes.
  */
+import { resolveImageUrl } from "@/lib/imageUrl";
+
 import { api } from "./client";
 import type { GameDetail, GameStatus, GameSummary, Tier } from "./types";
 
@@ -87,7 +89,9 @@ function toSummary(r: RawGame): GameSummary {
     status: r.status,
     // costAmount is whole rupees; the app renders paise. 0/absent → null → "FREE".
     pricePaise: r.costAmount ? r.costAmount * 100 : null,
-    imageUrl: r.imageUrl,
+    // Root-relative on this route ("/sports/football-01.webp") — absolutised or the card renders
+    // as an empty placeholder on device. See lib/imageUrl.
+    imageUrl: resolveImageUrl(r.imageUrl),
     slotsTotal: r.slots ?? 0,
     slotsFilled: Math.max(0, (r.slots ?? 0) - (r.slotsLeft ?? 0)),
     players: (r.players ?? []).map((p) => ({

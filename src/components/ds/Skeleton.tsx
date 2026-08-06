@@ -1,6 +1,6 @@
 /** DESIGN_SYSTEM.md §4 / MOTION.md §7 Skeleton. Shimmer 1.3–1.4s, shaped like the real component. */
 import { useEffect } from "react";
-import { StyleSheet, View, type DimensionValue, type StyleProp, type ViewStyle } from "react-native";
+import { View, type DimensionValue, type StyleProp, type ViewStyle } from "react-native";
 import Animated, {
   useAnimatedStyle,
   useReducedMotion,
@@ -10,6 +10,7 @@ import Animated, {
 } from "react-native-reanimated";
 
 import { color, radius, space } from "@/lib/tokens";
+import { themed, usePalette, useThemedStyles } from "@/theme/runtime";
 
 export function Skeleton({
   width = "100%",
@@ -22,6 +23,7 @@ export function Skeleton({
   round?: number;
   style?: StyleProp<ViewStyle>;
 }) {
+  const color = usePalette();
   const shimmer = useSharedValue(0.4);
   const reduced = useReducedMotion();
   useEffect(() => {
@@ -35,6 +37,7 @@ export function Skeleton({
 
 /** Card-shaped skeleton: image block + 2 text lines + bar (§4). */
 export function CardSkeleton() {
+  const styles = useThemedStyles(sheets);
   return (
     <View style={styles.card}>
       <Skeleton height={118} round={radius.card} />
@@ -45,8 +48,8 @@ export function CardSkeleton() {
   );
 }
 
-const styles = StyleSheet.create({
+const sheets = themed(() => ({
   card: { backgroundColor: color.card, borderRadius: radius.card, borderWidth: 1, borderColor: color.border, padding: space(3.5), gap: space(2) },
   line: { marginTop: space(1) },
   bar: { marginTop: space(2) },
-});
+}));

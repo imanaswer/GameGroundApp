@@ -19,7 +19,8 @@ import { Screen } from "@/components/chrome";
 import { Appear } from "@/components/ds";
 import { Press } from "@/components/ds/Press";
 import * as storage from "@/lib/storage";
-import { color, gradient, layout, space, type } from "@/lib/tokens";
+import { color, layout, space, type } from "@/lib/tokens";
+import { themed, useGradients, useThemedStyles } from "@/theme/runtime";
 
 const PHOTO = require("@/assets/images/onboarding/welcome.jpg");
 const MARK = require("@/assets/images/splash-icon.png");
@@ -50,6 +51,7 @@ function Pill({
   filled?: boolean;
   testID?: string;
 }) {
+  const styles = useThemedStyles(sheets);
   return (
     <Press
       accessibilityRole="button"
@@ -63,6 +65,8 @@ function Pill({
 }
 
 export default function Welcome() {
+  const styles = useThemedStyles(sheets);
+  const gradient = useGradients();
   const router = useRouter();
   const insets = useSafeAreaInsets();
 
@@ -107,7 +111,7 @@ export default function Welcome() {
 
 const PILL_H = 52;
 
-const styles = StyleSheet.create({
+const sheets = themed(() => ({
   // Bottom-anchored: the photo owns the top two-thirds, copy and CTAs sit in the scrim.
   content: { flex: 1, justifyContent: "flex-end", paddingHorizontal: layout.screenX, gap: space(6) },
   copy: { gap: space(3) },
@@ -128,4 +132,4 @@ const styles = StyleSheet.create({
   pillOutlined: { borderWidth: 1, borderColor: color.inverseBorder },
   pillLabel: { ...type.heading, color: color.inverse },
   pillLabelFilled: { color: color.onInverse },
-});
+}));

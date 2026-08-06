@@ -9,7 +9,6 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
-  StyleSheet,
   Text,
   TextInput,
   View,
@@ -34,9 +33,12 @@ import {
 import { useDeleteAccount, useProfile, useUpdateProfile } from "@/hooks/queries";
 import { useAuth } from "@/hooks/useAuth";
 import * as haptics from "@/lib/haptics";
+// Shared with account setup (Decision 23) — both write the same `sports` field, so both offer
+// the same list.
+import { SPORTS } from "@/lib/sports";
 import { color, layout, radius, space, type } from "@/lib/tokens";
+import { themed, usePalette, useThemedStyles } from "@/theme/runtime";
 
-const SPORTS = ["Football", "Cricket", "Badminton", "Basketball", "Tennis", "Swimming", "Volleyball"];
 const BIO_MAX = 200;
 
 // Preset avatar "looks". These are real image URLs, so the choice persists via avatarUrl (the app
@@ -70,6 +72,7 @@ function SectionCard({
   hint?: string;
   children: React.ReactNode;
 }) {
+  const styles = useThemedStyles(sheets);
   return (
     <View style={styles.card}>
       <View style={styles.cardHead}>
@@ -83,6 +86,8 @@ function SectionCard({
 }
 
 function EditForm({ profile }: { profile: UserProfile }) {
+  const styles = useThemedStyles(sheets);
+  const color = usePalette();
   const router = useRouter();
   const { logout } = useAuth();
   const update = useUpdateProfile(profile.id);
@@ -280,6 +285,7 @@ function AvatarOption({
   onPress: () => void;
   children: React.ReactNode;
 }) {
+  const styles = useThemedStyles(sheets);
   return (
     <Press
       accessibilityRole="button"
@@ -295,6 +301,7 @@ function AvatarOption({
 }
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  const styles = useThemedStyles(sheets);
   return (
     <View style={styles.field}>
       <Text style={styles.fieldLabel}>{label}</Text>
@@ -303,7 +310,7 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   );
 }
 
-const styles = StyleSheet.create({
+const sheets = themed(() => ({
   flex: { flex: 1 },
   header: {
     flexDirection: "row",
@@ -434,4 +441,4 @@ const styles = StyleSheet.create({
   },
   cancelText: { ...type.heading, color: color.dim },
   saveBtn: { flex: 1 },
-});
+}));

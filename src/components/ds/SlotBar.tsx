@@ -3,7 +3,7 @@
  * Width animates on mount (MOTION.md §8). Paired slotlab caption row.
  */
 import { useEffect } from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { Text, View } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import Animated, {
   useAnimatedStyle,
@@ -13,6 +13,7 @@ import Animated, {
 } from "react-native-reanimated";
 
 import { color, space, type } from "@/lib/tokens";
+import { themed, usePalette, useThemedStyles } from "@/theme/runtime";
 
 const HOT = 0.75;
 
@@ -26,6 +27,8 @@ export function SlotBar({
   /** Suppress the built-in "N/M joined · X left" caption when the screen renders its own. */
   hideCaption?: boolean;
 }) {
+  const styles = useThemedStyles(sheets);
+  const color = usePalette();
   const ratio = total > 0 ? Math.min(1, joined / total) : 0;
   const hot = ratio >= HOT;
   const left = Math.max(0, total - joined);
@@ -63,10 +66,10 @@ export function SlotBar({
   );
 }
 
-const styles = StyleSheet.create({
+const sheets = themed(() => ({
   track: { height: 5, borderRadius: 999, backgroundColor: color.track, overflow: "hidden" },
   fill: { height: 5, borderRadius: 999, overflow: "hidden" },
   grow: { flex: 1 },
   red: { backgroundColor: color.primary },
   lab: { ...type.caption, color: color.dim, marginTop: space(1.5) },
-});
+}));
