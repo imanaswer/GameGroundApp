@@ -35,12 +35,41 @@ const STATIC_ROUTE: Record<string, string> = {
   home: "/home",
 };
 
-/** Parse a URL (scheme or https) into its path segments; null if unusable. */
+/**
+ * Any custom (non-http) scheme: `ggredesign://`, `gameground://`, `exp+something://`.
+ * Matched by SHAPE rather than by name — see `segmentsOf`.
+ */
+const CUSTOM_SCHEME = /^[a-z][a-z0-9+.-]*:\/\//i;
+
+/**
+ * Parse a URL (custom scheme or https) into its path segments; null if unusable.
+ *
+ * **Every non-http scheme is rewritten, not one hardcoded name.** This used to special-case
+ * `gameground://` — which is the ORIGINAL app's scheme. This app deliberately registers
+ * `ggredesign` instead (`app.config.js`: two apps claiming one scheme makes which one opens a link
+ * undefined), so the only custom scheme the resolver handled was one it could never receive, while
+ * the one it does receive fell through to `new URL()` unrewritten.
+ *
+ * That failure was silent and total. `new URL("ggredesign://game/abc")` reads the first segment as
+ * the HOST — host `game`, pathname `/abc` — so the segments came out as `["abc"]`, matched no
+ * entity and no static route, and resolved to null. **Every custom-scheme link routed to Home.**
+ * Nothing threw, and the suite stayed green because it only ever asserted `gameground://`.
+ *
+ * It reaches production through push: payloads carry `data.url` (§10.1) straight into `route()`,
+ * so whatever the server emits has to resolve here.
+ *
+ * The rewrite maps `<scheme>://<first>/<rest>` onto `https://gameground.net/<first>/<rest>`, which
+ * puts that first segment back in the path where the route tables expect it. Matching on "not
+ * http(s)" rather than on a scheme name is what keeps this from breaking again the next time the
+ * scheme changes — the app's scheme lives in `app.config.js` and this module stays pure.
+ */
 function segmentsOf(url: string): string[] | null {
   try {
-    const normalized = url.startsWith("gameground://")
-      ? url.replace("gameground://", "https://gameground.net/")
-      : url;
+    const isWeb = /^https?:\/\//i.test(url);
+    const normalized =
+      !isWeb && CUSTOM_SCHEME.test(url)
+        ? url.replace(CUSTOM_SCHEME, "https://gameground.net/")
+        : url;
     return new URL(normalized).pathname.split("/").filter(Boolean);
   } catch {
     return null;

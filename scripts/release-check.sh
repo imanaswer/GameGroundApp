@@ -40,10 +40,25 @@ fail=0
 # --- 1. Unambiguous secrets ---------------------------------------------------------------------
 # High-signal patterns only (a generic length-based base64 match false-positives across the
 # minified/Hermes bundle). -a scans the Hermes bytecode string table too. Covers live Stripe keys,
-# the server secret env names, a Razorpay key_id:key_secret pair, and JWT-shaped tokens.
+# a secret env name BOUND TO A VALUE, a Razorpay key_id:key_secret pair, and JWT-shaped tokens.
+#
+# The secret-name patterns require an actual binding — `NAME: "value"` / `NAME="value"` — not the
+# bare name. **A bare name matches prose, and that made this gate useless.** `KEY_SECRET` hit the
+# user-facing error string in src/lib/razorpay-errors.ts:34 ("…set RAZORPAY_KEY_ID and
+# RAZORPAY_KEY_SECRET."), which is deliberately in the bundle and contains no secret, so a clean
+# tree exited 1 on every production cut. That is precisely the failure this script's own header
+# warns about for `rzp_live_`: a gate that always fails teaches people to bypass it, which is worse
+# than no gate at all.
+#
+# Nothing real is lost by requiring the binding. Metro inlines `process.env.X` to its VALUE, so a
+# leaked secret never travels next to its variable name anyway — what these patterns actually catch
+# is an object literal like `{keySecret:"abc12345"}`, which still matches. The value-shaped
+# patterns (sk_live_, the id:secret pair, JWTs) are what catch a bare leaked credential, and they
+# are untouched.
 echo "▸ Scanning $DIST for secrets …"
+BIND='["'"'"'\`]?[[:space:]]*[:=][[:space:]]*["'"'"'\`][A-Za-z0-9_/+-]{8,}'
 PATTERN='sk_live_[A-Za-z0-9]+'
-PATTERN="$PATTERN"'|AUTH_SECRET|key_secret|KEY_SECRET|keySecret'
+PATTERN="$PATTERN"'|(AUTH_SECRET|KEY_SECRET|key_secret|keySecret)'"$BIND"
 PATTERN="$PATTERN"'|rzp_(live|test)_[A-Za-z0-9]+:[A-Za-z0-9]{8,}'
 PATTERN="$PATTERN"'|eyJ[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]+'
 
