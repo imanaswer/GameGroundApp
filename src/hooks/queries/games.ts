@@ -6,7 +6,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import * as gamesApi from "@/api/games";
 import * as venuesApi from "@/api/venues";
-import type { GameDetail, GameSummary, PlayerRef } from "@/api/types";
+import type { GameDetail, GameSummary, HostPaymentStatus, PlayerRef } from "@/api/types";
 import type { GameCardData, UpNextData } from "@/components/cards";
 import { useAuth } from "@/hooks/useAuth";
 import { formatPrice, formatWhen } from "@/lib/format";
@@ -82,6 +82,26 @@ export function useGameAction(id: string) {
       // Join/leave/waitlist changes the viewer's own Upcoming list + Recent Activity feed on the
       // profile (["users", "profile"|"activity", id]) — refresh those so the profile stays live.
       qc.invalidateQueries({ queryKey: ["users"] });
+    },
+  });
+}
+
+/**
+ * Mark a host-collected fee as paid or pending (§9A).
+ *
+ * **Deliberately not optimistic**, unlike the join/leave flags this screen otherwise flips
+ * eagerly. §6.1 reserves optimism for state the app can predict; this is a claim about money that
+ * moved outside the app entirely, and a row that flicks to "paid" before the server agrees invents
+ * a settlement record neither party made. It waits, then refetches the game.
+ */
+export function useMarkGamePayment(id: string, userId?: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (status: HostPaymentStatus) => gamesApi.markPayment(id, status, userId),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: keys.games.detail(id) });
+      // The composed home feed carries `myPaymentStatus` on the viewer's upcoming games.
+      qc.invalidateQueries({ queryKey: keys.home });
     },
   });
 }

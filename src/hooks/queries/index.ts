@@ -6,6 +6,7 @@ export {
   useVenues,
   useVenueSlots,
   useGameAction,
+  useMarkGamePayment,
   useCancelGame,
   useCompleteGame,
   useCreateGame,

@@ -26,7 +26,8 @@ import {
   SlotBar,
   TierBadge,
 } from "@/components/ds";
-import { useCancelGame, useCompleteGame, useGame, useGameAction } from "@/hooks/queries";
+import { HostPaymentPanel } from "@/components/checkout";
+import { useCancelGame, useCompleteGame, useGame, useGameAction, useMarkGamePayment } from "@/hooks/queries";
 import { useIsOnline } from "@/hooks/useIsOnline";
 import { usePush } from "@/hooks/usePush";
 import { formatPrice, formatSessionWhen } from "@/lib/format";
@@ -85,6 +86,7 @@ export default function GameDetail() {
    * server rejects any order built for a game.
    */
   const paid = !!game && game.pricePaise !== null && game.pricePaise > 0;
+  const markPaid = useMarkGamePayment(id);
   const online = useIsOnline();
   const { promptForPush } = usePush();
   const { show } = useToast();
@@ -478,6 +480,24 @@ export default function GameDetail() {
                 */}
                 {!!game.refundPolicy && (
                   <ExpandCard title="Refunds & cancellation" body={game.refundPolicy} />
+                )}
+
+                {/*
+                  How the fee is settled — host-to-player, outside Game Ground (§9A).
+
+                  Shown to everyone, joined or not: a player deciding whether to join needs to know
+                  the fee is cash/UPI to a stranger BEFORE committing, not after. The settle-up row
+                  inside the panel is what keys off having joined.
+                */}
+                {!!game.hostPayment && (
+                  <HostPaymentPanel
+                    payment={game.hostPayment}
+                    myStatus={game.myPaymentStatus}
+                    canMarkOthers={game.viewerIsOrganizer}
+                    busy={markPaid.isPending}
+                    onMarkPaid={(next) => markPaid.mutate(next)}
+                    onCopied={(what) => show({ title: `${what} copied` })}
+                  />
                 )}
               </View>
             </>

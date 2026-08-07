@@ -12,7 +12,8 @@ import {
   GameCard,
   type GameCardData,
 } from "@/components/cards";
-import { CheckoutSheet, type CheckoutState } from "@/components/checkout";
+import { CheckoutSheet, HostPaymentPanel, type CheckoutState } from "@/components/checkout";
+import type { HostPayment } from "@/api/types";
 import {
   EmptyState,
   ErrorState,
@@ -84,6 +85,53 @@ const TAB_DEMO = [
   { key: "leaders", label: "Leaders", Icon: LeadersIcon },
 ] as const;
 
+/**
+ * HostPaymentPanel fixtures (§9A). The disclaimer is server data in real life, so it is quoted
+ * here verbatim from `GG/src/lib/hostPayment.ts` rather than paraphrased — the catalog is where a
+ * reviewer checks the wording, and a paraphrase would make this screen lie about production.
+ */
+type HostPayFixture = "upi_cash" | "upi" | "cash" | "minimal" | "paid" | "host" | "busy";
+
+const HOST_DISCLAIMER = "Game Ground does not process payments for player-hosted games.";
+
+const BASE_HOST_PAYMENT: HostPayment = {
+  amount: 120,
+  currency: "INR",
+  method: "upi_cash",
+  methodLabel: "UPI + Cash",
+  upiId: "anaswer@okhdfcbank",
+  // A real QR would be a Cloudinary URL; the catalog needs the layout, not a scannable code.
+  qrUrl: "https://placehold.co/400x400/png",
+  instructions: "Please pay before the match starts so I can confirm the booking.",
+  venueNote: "I'm collecting on behalf of Calicut Turf Arena.",
+  disclaimer: HOST_DISCLAIMER,
+};
+
+const HOST_PAYMENT_FIXTURES: Record<HostPayFixture, HostPayment> = {
+  upi_cash: BASE_HOST_PAYMENT,
+  upi: { ...BASE_HOST_PAYMENT, method: "upi", methodLabel: "UPI", venueNote: null },
+  cash: {
+    ...BASE_HOST_PAYMENT,
+    method: "cash",
+    methodLabel: "Cash",
+    upiId: null,
+    qrUrl: null,
+    instructions: null,
+  },
+  // The degraded case that matters: a paid game whose host never filled in any details. The panel
+  // must still show the amount and the disclaimer rather than an empty credential row.
+  minimal: {
+    ...BASE_HOST_PAYMENT,
+    upiId: null,
+    qrUrl: null,
+    instructions: null,
+    venueNote: null,
+  },
+  paid: BASE_HOST_PAYMENT,
+  host: BASE_HOST_PAYMENT,
+  busy: BASE_HOST_PAYMENT,
+};
+
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   const styles = useThemedStyles(sheets);
   return (
@@ -100,6 +148,7 @@ export default function Catalog() {
   const [chip, setChip] = useState<"all" | "football" | "cricket">("all");
   const [seg, setSeg] = useState<"camps" | "workshops" | "events">("camps");
   const [checkout, setCheckout] = useState<CheckoutState>("methods");
+  const [hostPay, setHostPay] = useState<HostPayFixture>("upi_cash");
   const [sheetOpen, setSheetOpen] = useState(false);
   const [tab, setTab] = useState(0);
   const { mode, setMode } = useTheme();
@@ -324,6 +373,32 @@ export default function Catalog() {
               onClose={() => {}}
             />
           </View>
+        </Section>
+
+        {/* §9A. NOT a checkout — GG takes no money for a player-hosted game. Every state the
+            component can reach, per §10.3: the doc and this screen must never disagree. */}
+        <Section title="HostPaymentPanel — method × settle-up states">
+          <ChipRow
+            items={[
+              { key: "upi_cash", label: "UPI + Cash" },
+              { key: "upi", label: "UPI only" },
+              { key: "cash", label: "Cash only" },
+              { key: "minimal", label: "No UPI id / QR" },
+              { key: "paid", label: "Marked paid" },
+              { key: "host", label: "Viewer is host" },
+              { key: "busy", label: "Marking…" },
+            ]}
+            value={hostPay}
+            onChange={setHostPay}
+          />
+          <HostPaymentPanel
+            payment={HOST_PAYMENT_FIXTURES[hostPay]}
+            myStatus={hostPay === "paid" ? "paid" : hostPay === "host" ? null : "pending"}
+            canMarkOthers={hostPay === "host"}
+            busy={hostPay === "busy"}
+            onMarkPaid={() => {}}
+            onCopied={() => {}}
+          />
         </Section>
 
         <Section title="Sheet (chrome) + StickyCTA confirmed state">

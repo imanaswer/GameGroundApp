@@ -376,10 +376,10 @@ WeekStrip: 10 bars, red .7, staggered scaleY growth, opacity encodes intensity. 
 - Every screen ships loading (skeleton), empty (§6 catalog), error (server `error` verbatim + retry), and offline states — a happy-path-only screen is incomplete.
 - Copy: sentence case; verbs on buttons ("Join game", "Pay ₹120", never "Submit"); action names stay identical through their flow ("Pay" → toast "Payment confirmed"); errors say what happened and what to do next; empty states invite action.
 
-## 9A. PROPOSED — `HostPaymentPanel` (commerce tier) · awaiting §10.1 sign-off
+## 9A. `HostPaymentPanel` (commerce tier)
 
-> **Status: proposed, not built.** Specced here per §10.1 before any screen uses it. Not in the
-> catalog yet. Delete this section if rejected.
+> **Signed off 7 Aug 2026 (Sarang & Anaswer); built, catalogued, and in use on game detail.**
+> The fold conflict below was resolved as **option (a)**.
 
 **Why composition cannot cover it.** Every other paid surface in this app hands off to
 `CheckoutSheet` — one amount, one button, a gateway. This is the opposite: Game Ground takes no
@@ -417,11 +417,21 @@ optimistic (§6.1), so the row waits for the server.
 **Reuse.** `Press`, `Badge`, `Button`, `Skeleton`, `icons`, `expo-image` for the QR. The panel adds
 layout, the copy affordance, and the disclaimer invariant — nothing else.
 
-**Open question for sign-off:** the QR at ≥160pt forces the disclaimer below the fold on a 375pt
-screen in the `upi_cash` state. Options: (a) QR collapsed behind "Show QR", disclaimer always
-visible; (b) QR always visible, panel scrolls internally; (c) QR at 120pt, which is legible for most
-scanners but not all. **Recommendation: (a)** — the disclaimer is the part that must never be missed,
-and a player who wants the QR is already committed to the tap.
+**Resolved — QR behind a "Show QR" disclosure (option (a)).** A legible payment QR forces the
+disclaimer below the fold on a 375pt screen in the `upi_cash` state, and the disclaimer is the part
+that must never be missed. A player who wants the QR has already decided to pay and will spend the
+tap. Collapsed by default in every state; the code renders at **200pt** — above the 160pt legibility
+floor, since the tap already bought us the room — on a fixed light plate in both themes, because a
+QR inverted by dark mode does not scan and the quiet zone is part of the symbol, not padding.
+
+**Degraded payloads.** A paid game whose host filled in nothing still renders: amount, method label,
+and disclaimer. A missing `upiId` renders no credential row rather than an empty one — an empty row
+invites a player to copy nothing and call it a payment. `api/games.ts` drops malformed blocks before
+they reach here, so the panel never has to display a half-formed credential.
+
+**Not in this component.** No amount arithmetic, no currency conversion, no receipt. Game Ground
+holds no money for a game, so there is nothing to reconcile, refund, or prove — the settle-up row
+records a *claim*, and its own copy says so.
 
 ## 10. Governance
 
