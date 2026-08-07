@@ -4,7 +4,10 @@ Native iOS + Android app for [gameground.net](https://www.gameground.net) — a 
 marketplace in Kozhikode: coach booking, pickup games, camps, workshops, events, and a reputation
 leaderboard.
 
-**Owner:** Sarang & Anaswer · Game Ground Pvt Ltd
+**Owners:** [Sarang](https://github.com/sarangs1621) &
+[Anaswer](https://github.com/imanaswer) · Game Ground Pvt Ltd
+
+**Repository:** [github.com/sarangs1621/gameground-mobile](https://github.com/sarangs1621/gameground-mobile)
 
 ---
 
