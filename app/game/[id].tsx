@@ -125,6 +125,12 @@ export default function GameDetail() {
   };
 
   const presentCount = game ? game.players.filter((p) => attendance[p.id]).length : 0;
+
+  // Settle-up tallies for the host's roster. `collected` is the host's own asking price times the
+  // players they have marked — an arithmetic convenience for the host, NOT a ledger: Game Ground
+  // holds none of this money and has no way to verify a single rupee of it.
+  const paidCount = game ? game.players.filter((p) => p.paymentStatus === "paid").length : 0;
+  const collected = game?.hostPayment ? paidCount * game.hostPayment.amount : null;
   // Clock read on focus, not during render (react-hooks/purity) — same pattern as the Home greeting.
   const [now, setNow] = useState(() => Date.now());
   useFocusEffect(useCallback(() => setNow(Date.now()), []));
@@ -387,6 +393,48 @@ export default function GameDetail() {
                 </View>
               )}
 
+              {/*
+                Host's settle-up roster (§9A). Deliberately NOT modelled on the attendance block
+                below it, despite looking similar: attendance is staged locally and submitted once
+                in an irreversible call, while each payment mark is its own reversible PATCH that
+                lands immediately. Staging these would let a host close the screen believing they
+                had recorded a payment they never sent.
+
+                Shown only on a paid game — `hostPayment` is null when there is nothing to collect —
+                and it survives completion, because players often settle up after the final whistle.
+              */}
+              {isOrganizer && !!game.hostPayment && game.players.length > 0 && (
+                <View style={styles.attendance}>
+                  <Text style={styles.label}>Payments</Text>
+                  {game.players.map((p) => (
+                    <PaymentRow
+                      key={p.id}
+                      player={p}
+                      paid={p.paymentStatus === "paid"}
+                      busy={markPaid.isPending && markPaid.variables?.userId === p.id}
+                      onToggle={() => {
+                        haptics.selection();
+                        markPaid.mutate(
+                          {
+                            status: p.paymentStatus === "paid" ? "pending" : "paid",
+                            userId: p.id,
+                          },
+                          {
+                            onError: (e) =>
+                              show({ title: "Couldn’t update", body: (e as Error).message }),
+                          },
+                        );
+                      }}
+                    />
+                  ))}
+                  <Text style={styles.attHint}>
+                    {paidCount} of {game.players.length} marked paid
+                    {collected !== null ? ` · ₹${collected} collected` : ""}. Game Ground doesn’t
+                    verify these.
+                  </Text>
+                </View>
+              )}
+
               {/* Organizer attendance (§7). Staged locally, then submitted once with the
                   completion — the server takes the whole map in a single irreversible call. */}
               {isOrganizer && game.players.length > 0 && game.status !== "completed" && game.status !== "cancelled" && (
@@ -494,8 +542,8 @@ export default function GameDetail() {
                     payment={game.hostPayment}
                     myStatus={game.myPaymentStatus}
                     canMarkOthers={game.viewerIsOrganizer}
-                    busy={markPaid.isPending}
-                    onMarkPaid={(next) => markPaid.mutate(next)}
+                    busy={markPaid.isPending && !markPaid.variables?.userId}
+                    onMarkPaid={(next) => markPaid.mutate({ status: next })}
                     onCopied={(what) => show({ title: `${what} copied` })}
                   />
                 )}
@@ -528,6 +576,49 @@ export default function GameDetail() {
  * Controlled row — the parent owns the staged map, because the server takes attendance as one
  * batch alongside the completion. Local staging is correct here; there is nothing to save per tap.
  */
+/**
+ * One player in the host's settle-up roster (§9A).
+ *
+ * Local to this screen, like `AttendanceRow` below it, rather than a DS component: it is a
+ * screen-specific row built from DS primitives, which is the precedent AttendanceRow set and the
+ * case §10.1 says composition should cover.
+ *
+ * **Never optimistic.** The row shows the server's state and a spinner while a mark is in flight;
+ * it does not flip and then correct itself. A host reading "paid" for a payment that failed to
+ * record will stop chasing money they are still owed.
+ */
+function PaymentRow({
+  player,
+  paid,
+  busy,
+  onToggle,
+}: {
+  player: { id: string; name: string; avatarUrl: string | null };
+  paid: boolean;
+  busy: boolean;
+  onToggle: () => void;
+}) {
+  const styles = useThemedStyles(sheets);
+  return (
+    <View style={styles.attRow}>
+      <Avatar name={player.name} uri={player.avatarUrl} size={32} />
+      <Text style={styles.attName}>{player.name}</Text>
+      <Press
+        accessibilityRole="button"
+        accessibilityState={{ selected: paid, busy, disabled: busy }}
+        accessibilityLabel={`Mark ${player.name} as ${paid ? "not paid" : "paid"}`}
+        disabled={busy}
+        onPress={onToggle}
+        style={[styles.attToggle, paid && styles.attToggleOn, busy && styles.attToggleBusy]}
+      >
+        <Text style={[styles.attToggleText, paid && styles.attToggleTextOn]}>
+          {busy ? "…" : paid ? "Paid" : "Mark paid"}
+        </Text>
+      </Press>
+    </View>
+  );
+}
+
 function AttendanceRow({
   player,
   present,
@@ -596,6 +687,9 @@ const sheets = themed(() => ({
   attName: { ...type.body, color: color.text, flex: 1 },
   attToggle: { borderRadius: 999, borderWidth: 1, borderColor: color.border2, paddingVertical: space(1.5), paddingHorizontal: space(3) },
   attToggleOn: { backgroundColor: color.successSurface, borderColor: color.success },
+  // In-flight payment mark. Dimmed rather than hidden so the row keeps its width and the roster
+  // does not reflow under the host's thumb mid-tap.
+  attToggleBusy: { opacity: 0.5 },
   attToggleText: { ...type.caption, color: color.dim },
   attToggleTextOn: { color: color.successText },
   organizer: { marginTop: space(5), gap: space(2) },

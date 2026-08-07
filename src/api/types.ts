@@ -41,9 +41,15 @@ export type Tier = "bronze" | "silver" | "gold" | "elite" | "pro";
 export type GameStatus = "open" | "full" | "completed" | "cancelled";
 
 export interface PlayerRef {
+  /** The USER id, not the participation record — the mapper remaps it. See RawGame in api/games.ts. */
   id: string;
   name: string;
   avatarUrl: string | null;
+  /**
+   * Host-collected settle-up state. Present on games; meaningless on a free one, and only the
+   * host acts on it. Optional because `PlayerRef` is reused by surfaces that never fetch it.
+   */
+  paymentStatus?: HostPaymentStatus;
 }
 
 /** `GET /games` list item. */

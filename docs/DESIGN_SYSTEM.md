@@ -433,6 +433,24 @@ they reach here, so the panel never has to display a half-formed credential.
 holds no money for a game, so there is nothing to reconcile, refund, or prove — the settle-up row
 records a *claim*, and its own copy says so.
 
+### The host's side: `PaymentRow` (screen-local)
+
+The panel's `canMarkOthers` suppresses self-marking for a host, who settles up on a roster instead.
+That roster lives in `app/game/[id].tsx` as `PaymentRow`, **not** in the DS — it is a
+screen-specific row composed from `Avatar` + `Press`, which is the case §10.1 says composition
+covers, and it follows the precedent `AttendanceRow` set directly beneath it.
+
+**It is deliberately not modelled on `AttendanceRow`, despite sitting next to it and looking the
+same.** Attendance is staged locally and submitted once in an irreversible call at completion. Each
+payment mark is its own reversible `PATCH` that lands immediately. Staging payments would let a
+host close the screen believing they had recorded money they never sent — so the row shows the
+server's state and a dimmed in-flight state, and never flips optimistically.
+
+Shown only when `hostPayment` is non-null (a free game has nothing to collect) and it **survives
+completion**, because players routinely settle up after the final whistle. The tally beneath it
+(`N of M marked paid · ₹X collected`) is arithmetic for the host's convenience, not a ledger, and
+says so.
+
 ## 10. Governance
 
 1. **Adding a component:** justify why composition can't cover it → spec it in this doc (anatomy/props/states/motion refs) → build in `_dev/components.tsx` → Anain sign-off → then use in screens. One PR.

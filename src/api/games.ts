@@ -60,7 +60,14 @@ type RawGame = {
    * `id` here is the PARTICIPATION record id, not the user — `userId` is the player. Everything
    * downstream (attendance, profile links) wants the user, so toSummary maps `id` from `userId`.
    */
-  players?: { id: string; userId?: string; name: string; avatarUrl: string | null }[];
+  players?: {
+    id: string;
+    userId?: string;
+    name: string;
+    avatarUrl: string | null;
+    /** Advisory: what the host has confirmed receiving. Only meaningful on a paid game. */
+    paymentStatus?: string | null;
+  }[];
   // Viewer-relationship + org tier arrive only on authed detail responses; default when absent.
   organizerTier?: Tier | null;
   organizerRating?: number | null;
@@ -111,6 +118,9 @@ export function toSummary(r: RawGame): GameSummary {
       id: p.userId ?? p.id,
       name: p.name,
       avatarUrl: p.avatarUrl,
+      // Narrowed rather than passed through: this drives a host's "who still owes me" list, and an
+      // unrecognised value must read as unpaid rather than as some fourth state the UI can't show.
+      paymentStatus: p.paymentStatus === "paid" ? "paid" : "pending",
     })),
     organizerTier: r.organizerTier ?? r.organizer?.tier ?? hostTier(rel, games),
   };

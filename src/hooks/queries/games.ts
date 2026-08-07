@@ -94,10 +94,17 @@ export function useGameAction(id: string) {
  * moved outside the app entirely, and a row that flicks to "paid" before the server agrees invents
  * a settlement record neither party made. It waits, then refetches the game.
  */
-export function useMarkGamePayment(id: string, userId?: string) {
+export function useMarkGamePayment(id: string) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (status: HostPaymentStatus) => gamesApi.markPayment(id, status, userId),
+    /**
+     * `userId` is per-call, not per-hook: the host's roster marks a different player on every row
+     * and one mutation instance serves them all. Omitting it means "me", which is what the player's
+     * own panel sends — the server defaults the target to the session user and 403s a player who
+     * names anyone else.
+     */
+    mutationFn: (vars: { status: HostPaymentStatus; userId?: string }) =>
+      gamesApi.markPayment(id, vars.status, vars.userId),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: keys.games.detail(id) });
       // The composed home feed carries `myPaymentStatus` on the viewer's upcoming games.
