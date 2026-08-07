@@ -190,8 +190,16 @@ module.exports = {
   extra: {
     appEnv: profile,
     sentryDsn,
-    // No hardcoded projectId — that id belongs to the original app's EAS project. `eas init` will
-    // write a new one here; until then only EAS_PROJECT_ID from the env applies.
-    ...(process.env.EAS_PROJECT_ID ? { eas: { projectId: process.env.EAS_PROJECT_ID } } : {}),
+    /**
+     * THIS app's own EAS project (`@sarangs1621/redesigned-gameground`), created 7 Aug 2026.
+     *
+     * The id that used to be forbidden here was the ORIGINAL app's — inheriting it would have
+     * pointed this project's builds and any future OTA channel at another app entirely. That
+     * hazard is gone now that this app owns a project; the value below is its own.
+     *
+     * `EAS_PROJECT_ID` still wins when set, so a fork or a second environment can retarget builds
+     * without editing this file.
+     */
+    eas: { projectId: process.env.EAS_PROJECT_ID ?? "9a033e8c-b3e7-4c09-95d9-a0306947e718" },
   },
 };
