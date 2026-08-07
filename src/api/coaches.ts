@@ -58,7 +58,8 @@ function textList(v: string[] | null | undefined): string[] {
   return (v ?? []).map((s) => (s ?? "").trim()).filter((s) => s.length > 0);
 }
 
-function toSummary(c: RawCoach): CoachSummary {
+/** Exported for `api/home.ts` — the composed feed returns the same rows and must map identically. */
+export function toSummary(c: RawCoach): CoachSummary {
   // Card backdrop = the coach's own cover when set, else a sport-themed image; the coach's photo
   // stays as the avatar so backdrop and face are always distinct. priceMin/priceMax are rupees.
   return {

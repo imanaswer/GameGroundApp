@@ -376,6 +376,53 @@ WeekStrip: 10 bars, red .7, staggered scaleY growth, opacity encodes intensity. 
 - Every screen ships loading (skeleton), empty (§6 catalog), error (server `error` verbatim + retry), and offline states — a happy-path-only screen is incomplete.
 - Copy: sentence case; verbs on buttons ("Join game", "Pay ₹120", never "Submit"); action names stay identical through their flow ("Pay" → toast "Payment confirmed"); errors say what happened and what to do next; empty states invite action.
 
+## 9A. PROPOSED — `HostPaymentPanel` (commerce tier) · awaiting §10.1 sign-off
+
+> **Status: proposed, not built.** Specced here per §10.1 before any screen uses it. Not in the
+> catalog yet. Delete this section if rejected.
+
+**Why composition cannot cover it.** Every other paid surface in this app hands off to
+`CheckoutSheet` — one amount, one button, a gateway. This is the opposite: Game Ground takes no
+money for a player-hosted game, and the panel's job is to hand the player a UPI id and a QR and get
+out of the way. Three things have no home in the existing kit:
+
+1. **A copyable credential.** A UPI id is transcribed into another app. Nothing in `ds/` renders
+   text whose purpose is to be copied, and getting it wrong misdirects a payment — `Input` looks
+   editable, `Badge` untappable, and neither confirms the copy.
+2. **A scannable QR.** A payment QR has a minimum legible size and a mandatory quiet zone; it is
+   not an image in a card, and `expo-image` inside a `View` gives no rule that protects either.
+3. **A disclaimer that is load-bearing.** "Game Ground does not process payments for player-hosted
+   games" is the server's legal position, served as data. It must be impossible to render the
+   amount without it, which is a component invariant, not a screen's good intentions.
+
+Composition would put all three in `app/game/[id].tsx`, where the host roster and the post-join
+panel would each re-implement them.
+
+**Anatomy.** Card (`card` bg, radius 14, 18 padding) → amount row (`title2`, method label in `dim2`
+alongside) → method-specific body → optional instructions (`body`, `dim`) → optional venue note
+(`caption`, `dim2`) → disclaimer rule (hairline top border, `caption`, `dim2`, never truncated).
+
+**Props.** `payment: HostPayment` · `myStatus: HostPaymentStatus | null` · `canMarkOthers: boolean`
+(host) · `onMarkPaid(next)` · `busy: boolean`.
+
+**States✱.** `upi` (id + copy affordance + QR when `qrUrl`) / `cash` (no credential block; amount +
+instructions only) / `upi_cash` (both, UPI first) / `unpaid` vs `paid` (settle-up row: `Badge`
+success + timestamp when paid) / `busy` (mark in flight) / `viewer-is-host` (roster marking, not
+self-marking). Free game → the panel does not render at all; there is no empty state.
+
+**Motion.** Copy confirmation: `haptics.selection()` + the existing toast, MOTION.md §4 — no bespoke
+animation. Mark-paid uses `Press` and the standard optimistic-off pattern; a payment claim is never
+optimistic (§6.1), so the row waits for the server.
+
+**Reuse.** `Press`, `Badge`, `Button`, `Skeleton`, `icons`, `expo-image` for the QR. The panel adds
+layout, the copy affordance, and the disclaimer invariant — nothing else.
+
+**Open question for sign-off:** the QR at ≥160pt forces the disclaimer below the fold on a 375pt
+screen in the `upi_cash` state. Options: (a) QR collapsed behind "Show QR", disclaimer always
+visible; (b) QR always visible, panel scrolls internally; (c) QR at 120pt, which is legible for most
+scanners but not all. **Recommendation: (a)** — the disclaimer is the part that must never be missed,
+and a player who wants the QR is already committed to the tap.
+
 ## 10. Governance
 
 1. **Adding a component:** justify why composition can't cover it → spec it in this doc (anatomy/props/states/motion refs) → build in `_dev/components.tsx` → Anain sign-off → then use in screens. One PR.

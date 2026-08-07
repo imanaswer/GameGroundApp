@@ -5,7 +5,14 @@
 import { resolveImageUrl } from "@/lib/imageUrl";
 
 import { api } from "./client";
-import type { GameDetail, GameStatus, GameSummary, Tier } from "./types";
+import type {
+  GameDetail,
+  GameStatus,
+  GameSummary,
+  HostPayment,
+  HostPaymentStatus,
+  Tier,
+} from "./types";
 
 export type GameListParams = {
   q?: string;
@@ -39,6 +46,9 @@ type RawGame = {
   organizerId?: string;
   organizerName?: string | null;
   organizerAvatar?: string | null;
+  /** Composed server-side (`GG/src/lib/hostPayment.ts`); absent on free games and older deploys. */
+  hostPayment?: Partial<HostPayment> | null;
+  myPaymentStatus?: string | null;
   organizer?: {
     name?: string;
     avatarUrl?: string | null;
@@ -79,7 +89,8 @@ function hostTier(reliabilityScore: number, gamesOrganized: number): Tier {
   return "bronze";
 }
 
-function toSummary(r: RawGame): GameSummary {
+/** Exported for `api/home.ts` — the composed feed returns the same rows and must map identically. */
+export function toSummary(r: RawGame): GameSummary {
   const rel = r.organizer?.reliabilityScore ?? r.organizerRating ?? 0;
   const games = r.organizer?.gamesOrganized ?? r.organizerGames ?? 0;
   return {
@@ -153,7 +164,54 @@ function toDetail(r: RawGame, viewerId?: string | null): GameDetail {
     // Absent today, so the detail screen shows no policy card rather than asserting one it cannot
     // honour. See the field's note in types.ts.
     refundPolicy: r.refundPolicy ?? null,
+    hostPayment: toHostPayment(r.hostPayment),
+    myPaymentStatus:
+      r.myPaymentStatus === "paid" || r.myPaymentStatus === "pending" ? r.myPaymentStatus : null,
   };
+}
+
+/**
+ * Validated, not cast. The panel this feeds shows a UPI id and a QR a player is about to send
+ * money to, so a half-formed block must render as "no payment details" rather than as an
+ * authoritative-looking panel with blanks in it — the failure mode there is a misdirected payment.
+ *
+ * `amount` is the one field with no sensible default: without it there is nothing to display.
+ */
+function toHostPayment(raw: RawGame["hostPayment"]): HostPayment | null {
+  if (!raw || typeof raw !== "object") return null;
+  if (typeof raw.amount !== "number" || !Number.isFinite(raw.amount)) return null;
+  const method =
+    raw.method === "upi" || raw.method === "cash" || raw.method === "upi_cash" ? raw.method : null;
+  if (!method) return null;
+  const str = (v: unknown): string | null => (typeof v === "string" && v.trim() ? v : null);
+  return {
+    amount: raw.amount,
+    currency: str(raw.currency) ?? "INR",
+    method,
+    methodLabel: str(raw.methodLabel) ?? method,
+    upiId: str(raw.upiId),
+    qrUrl: str(raw.qrUrl),
+    instructions: str(raw.instructions),
+    venueNote: str(raw.venueNote),
+    // Never defaulted to "" — the disclaimer is the server's legal position, and a blank one is
+    // worse than no panel. A payload without it is treated as unusable above the fold instead.
+    disclaimer: str(raw.disclaimer) ?? "Game Ground does not process payments for player-hosted games.",
+  };
+}
+
+/**
+ * Record a settle-up claim against the host (`PATCH /games/:id/payment`).
+ *
+ * **A claim, not a transaction.** GG cannot verify that money moved; the host's mark is the
+ * meaningful one, and a player may mark their own row so the host knows to look. The server
+ * enforces who may speak for whom — a player passing another `userId` gets 403.
+ */
+export function markPayment(
+  id: string,
+  paymentStatus: HostPaymentStatus,
+  userId?: string,
+): Promise<unknown> {
+  return api.patch(`/games/${id}/payment`, { paymentStatus, ...(userId ? { userId } : {}) });
 }
 
 /** The web `/games` sport filter is case-sensitive ("Football", not "football"). Title-case each

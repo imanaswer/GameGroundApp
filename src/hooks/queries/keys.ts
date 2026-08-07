@@ -31,4 +31,8 @@ export const keys = {
     list: (kind: string, q: string) => ["registerables", kind, "list", q] as const,
     detail: (kind: string, id: string) => ["registerables", kind, "detail", id] as const,
   },
+  /** Published reference data (hand-off A2). Not user-specific, so no viewer in the key. */
+  taxonomy: ["taxonomy"] as const,
+  /** The server-composed launch feed (hand-off C3). Per-viewer, but logout clears the cache. */
+  home: ["home"] as const,
 } as const;

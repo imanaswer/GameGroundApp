@@ -4,15 +4,14 @@
  * cutoff surfaced; organizer attendance. Renders free AND paid games, every state.
  */
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import { Alert, Linking, Text, View } from "react-native";
 import Animated, { useAnimatedScrollHandler, useSharedValue } from "react-native-reanimated";
 
 // Constant only, not a data call — the leave cutoff the server enforces, so the prose on this
 // screen and the behaviour it describes cannot drift apart (they were two separate "90"s).
 import { LEAVE_CUTOFF_MS } from "@/api/games";
-import { DateBadge, ErrorState, HeroNav, ParallaxHero, Screen, Sheet, StickyCTA, useToast } from "@/components/chrome";
-import { CheckoutSheet } from "@/components/checkout";
+import { DateBadge, ErrorState, HeroNav, ParallaxHero, Screen, StickyCTA, useToast } from "@/components/chrome";
 import {
   Avatar,
   AvatarStack,
@@ -28,10 +27,9 @@ import {
   TierBadge,
 } from "@/components/ds";
 import { useCancelGame, useCompleteGame, useGame, useGameAction } from "@/hooks/queries";
-import { useCheckout } from "@/hooks/useCheckout";
 import { useIsOnline } from "@/hooks/useIsOnline";
 import { usePush } from "@/hooks/usePush";
-import { formatAmount, formatPrice, formatSessionWhen } from "@/lib/format";
+import { formatPrice, formatSessionWhen } from "@/lib/format";
 import * as haptics from "@/lib/haptics";
 import { shareEntity } from "@/lib/share";
 import { color, layout, radius, space, type } from "@/lib/tokens";
@@ -72,7 +70,6 @@ export default function GameDetail() {
   const action = useGameAction(id);
   const cancelGame = useCancelGame(id);
   const completeGame = useCompleteGame(id);
-  const [sheetOpen, setSheetOpen] = useState(false);
   // Staged attendance (userId → showed up). Unmarked means absent, and every player is sent
   // explicitly on submit so nobody is left sitting at whatever default the DB holds.
   const [attendance, setAttendance] = useState<Record<string, boolean>>({});
@@ -82,18 +79,15 @@ export default function GameDetail() {
     scrollY.value = e.contentOffset.y;
   });
 
+  /**
+   * A fee exists, but Game Ground does not collect it. There is no checkout on this screen any
+   * more: no `useCheckout`, no gateway sheet, no reconcile. The host is paid directly, and the
+   * server rejects any order built for a game.
+   */
   const paid = !!game && game.pricePaise !== null && game.pricePaise > 0;
-  const checkout = useCheckout("game", id, {});
   const online = useIsOnline();
   const { promptForPush } = usePush();
   const { show } = useToast();
-
-  // Payment verification must not be swiped away mid-flight (DS §7).
-  const sheetDismissible = checkout.state !== "processing" && checkout.state !== "reconciling";
-  const closeSheet = () => {
-    setSheetOpen(false);
-    checkout.reset();
-  };
 
   /**
    * Host-only cancel. The server permits it ONLY while nobody has joined; once players are
@@ -177,16 +171,9 @@ export default function GameDetail() {
     Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${q}`).catch(() => {});
   };
 
-  // The money-in-limbo state's escape hatch: reach a human with the reference prefilled.
-  const onSupport = () => {
-    const subject = encodeURIComponent(`Payment help — game ${id}`);
-    Linking.openURL(`mailto:support@gameground.net?subject=${subject}`).catch(() => {});
-  };
-
-  // A paid join confirming is a "first booking" moment — offer reminders (shown once).
-  useEffect(() => {
-    if (checkout.state === "success") promptForPush();
-  }, [checkout.state, promptForPush]);
+  // No payment-limbo support hatch here any more: GG holds no money for a game, so there is no
+  // reference to chase. `runJoin` already offers reminders on a successful join, which is the
+  // "first booking" moment the old checkout-success effect was watching for.
 
   if (isError) {
     return (
@@ -200,7 +187,9 @@ export default function GameDetail() {
   const price = game ? formatPrice(game.pricePaise) : null;
   const full = !!game && game.slotsFilled >= game.slotsTotal;
 
-  const runFreeJoin = () => {
+  // Named `runJoin`, not `runFreeJoin`: since games left the payment rails there is only one join
+  // path, and a paid game takes it too.
+  const runJoin = () => {
     action.mutate("join", {
       onSuccess: (result) => {
         // The last slot can go while the request is in flight — the server waitlists rather than
@@ -269,8 +258,10 @@ export default function GameDetail() {
         },
         onError: (e) => show({ title: "Couldn’t join the waitlist", body: (e as Error).message }),
       });
-    if (paid) return setSheetOpen(true);
-    return runFreeJoin();
+    // Paid games join exactly like free ones now. GG creates no Razorpay order for a player-hosted
+    // game and `/games/:id/join` no longer 402s — the fee is settled host-to-player, outside the
+    // app. Opening a gateway sheet here sent the player to a `create-order` that answers 400.
+    return runJoin();
   };
 
   const ctaLabel = !game
@@ -494,7 +485,7 @@ export default function GameDetail() {
         </View>
       </Animated.ScrollView>
 
-      {game && !sheetOpen && (
+      {game && (
         <StickyCTA
           testID="game-cta"
           price={confirmed ? undefined : price}
@@ -509,20 +500,6 @@ export default function GameDetail() {
         />
       )}
 
-      {paid && (
-        <Sheet visible={sheetOpen} dismissible={sheetDismissible} onDismiss={closeSheet}>
-          <CheckoutSheet
-            state={checkout.state}
-            phase={checkout.phase}
-            error={checkout.error}
-            amount={game ? formatAmount(game.pricePaise as number) : ""}
-            onPay={checkout.start}
-            onRetry={checkout.retry}
-            onSupport={onSupport}
-            onClose={closeSheet}
-          />
-        </Sheet>
-      )}
     </Screen>
   );
 }

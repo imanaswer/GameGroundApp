@@ -17,6 +17,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { formatWhen } from "@/lib/format";
 import * as haptics from "@/lib/haptics";
 import { hasWhatsAppNumber } from "@/lib/phone";
+import { useTaxonomy } from "@/hooks/queries/taxonomy";
 import { SPORTS } from "@/lib/sports";
 import { color, icon as iconSize, layout, radius, space, type } from "@/lib/tokens";
 import { themed, usePalette, useThemedStyles } from "@/theme/runtime";
@@ -58,10 +59,16 @@ export default function CreateGame() {
   const needsPhone = !!profile.data && !hasWhatsAppNumber(profile.data.phone);
   // Pre-select the sport when arriving from a filtered Games list (e.g. "Cricket" → Host a game).
   const { sport: sportParam } = useLocalSearchParams<{ sport?: string }>();
+  // Server-published list, falling back to the local mirror (hand-off A2). The picker below reads
+  // this; the deep-link check on the next line deliberately does not — see the comment there.
+  const { sports } = useTaxonomy();
   const [step, setStep] = useState(0);
   const [form, setForm] = useState({
     title: "",
-    // Widened: SPORTS is a readonly tuple of literals, and the deep-link param is a plain string.
+    // Validated against the LOCAL mirror on purpose: this runs once at mount, and `useTaxonomy`
+    // may not have resolved yet on a cold start. Widened because SPORTS is a readonly tuple of
+    // literals and the deep-link param is a plain string. A sport the server has added but the
+    // mirror lacks simply arrives unselected rather than pre-filled — the picker still offers it.
     sport: sportParam && (SPORTS as readonly string[]).includes(sportParam) ? sportParam : "",
     venueId: "",
     slotId: "",
@@ -189,7 +196,7 @@ export default function CreateGame() {
             <Input label="Game title" value={form.title} onChangeText={set("title")} error={errors.title} placeholder="Evening Football 7s" />
             <Text style={styles.label}>Sport</Text>
             <View style={styles.chipWrap}>
-              {SPORTS.map((s) => (
+              {sports.map((s) => (
                 <Chip key={s} label={s} active={form.sport === s} onPress={() => set("sport")(s)} />
               ))}
             </View>

@@ -13,11 +13,17 @@ import { formatPrice, formatWhen } from "@/lib/format";
 
 import { keys, type GameFilters } from "./keys";
 
-export function useGames(filters: GameFilters) {
+/**
+ * `enabled` exists for `useHome`'s fallback path (hand-off C3): the composed `/home` endpoint is
+ * the primary source, and this list is only fetched when that one fails. Defaults to on, so every
+ * other caller is unaffected.
+ */
+export function useGames(filters: GameFilters, opts?: { enabled?: boolean }) {
   return useQuery({
     queryKey: keys.games.list(filters),
     queryFn: () => gamesApi.list(filters),
     staleTime: 60_000,
+    enabled: opts?.enabled ?? true,
   });
 }
 

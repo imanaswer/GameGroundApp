@@ -8,11 +8,17 @@ import { formatSessionRange } from "@/lib/format";
 
 import { keys } from "./keys";
 
-export function useCoaches(filters: { sport?: string; q?: string }) {
+/**
+ * `enabled` exists for `useHome`'s fallback path (hand-off C3): the composed `/home` endpoint is
+ * the primary source, and this list is only fetched when that one fails. Defaults to on, so every
+ * other caller is unaffected.
+ */
+export function useCoaches(filters: { sport?: string; q?: string }, opts?: { enabled?: boolean }) {
   return useQuery({
     queryKey: keys.coaches.list(filters),
     queryFn: () => coachesApi.list(filters),
     staleTime: 60_000,
+    enabled: opts?.enabled ?? true,
   });
 }
 

@@ -403,7 +403,18 @@ export interface VenueSlot {
  * The client NEVER sends an amount. create-order derives paise server-side;
  * verify re-asserts the order↔user↔entity↔amount binding. */
 
-export type EntityType = "game" | "coach" | "camp" | "workshop" | "event";
+/**
+ * What Game Ground can take money for.
+ *
+ * **`"game"` is deliberately absent**, mirroring the server's `PayableEntity` union exactly.
+ * Player-hosted games left the payment rails: players pay the host directly by UPI or cash, GG
+ * never collects, holds, refunds or settles that money, and `POST /payments/create-order` now
+ * answers `400 "Unsupported entityType"` for a game. Keeping `"game"` here would let the app go on
+ * constructing an order the server will always reject — the compiler rejecting it is the point.
+ *
+ * A game's fee is still real; it is just not ours. See `HostPayment` on GameDetail.
+ */
+export type EntityType = "coach" | "camp" | "workshop" | "event";
 
 /** `POST /payments/create-order` response — amount is server-computed. */
 export interface CreatedOrder {
@@ -433,6 +444,36 @@ export interface PaymentRecord {
 }
 
 /** `GET /games/:id` — list fields plus the detail-only surface. */
+/**
+ * How a player-hosted game's fee is settled — composed server-side by `GG/src/lib/hostPayment.ts`
+ * and served on the game payload.
+ *
+ * **Money that never touches Game Ground.** The host collects by UPI or cash; GG creates no order,
+ * holds nothing, and can neither refund nor settle it. That is why `disclaimer` is part of the
+ * contract rather than app copy: the sentence is a legal position the server owns, and it must
+ * read identically on the website and here.
+ *
+ * `null` for a free game — nothing to pay, so no panel and no disclaimer.
+ */
+export interface HostPayment {
+  /** Rupees, not paise — this is the host's asking figure, not a gateway amount. */
+  amount: number;
+  currency: string;
+  method: "upi" | "cash" | "upi_cash";
+  /** Server-rendered label ("UPI + Cash") — not derived here, so the two can't word it differently. */
+  methodLabel: string;
+  upiId: string | null;
+  qrUrl: string | null;
+  /** Free-text host instructions ("pay before the match"). */
+  instructions: string | null;
+  /** Shown when the host is collecting on behalf of a venue. */
+  venueNote: string | null;
+  disclaimer: string;
+}
+
+/** Whether a player has settled up with the host. A claim, not a verified transaction. */
+export type HostPaymentStatus = "pending" | "paid";
+
 export interface GameDetail extends GameSummary {
   description: string;
   /** Session length in minutes — shown in the "When" row. */
@@ -448,6 +489,15 @@ export interface GameDetail extends GameSummary {
   viewerIsOrganizer: boolean;
   /** Leave cutoff has passed — the client surfaces this; the server enforces it (§7). */
   leaveDeadlinePassed: boolean;
+  /**
+   * Host-collected payment details, or null when the game is free.
+   *
+   * Replaces the checkout this screen used to open. Null is also what an older deployment sends,
+   * so the panel is omitted rather than half-rendered when the field is absent.
+   */
+  hostPayment: HostPayment | null;
+  /** The viewer's own settle-up state, when they have joined a paid game. */
+  myPaymentStatus: HostPaymentStatus | null;
   /**
    * The platform's refund/cancellation policy for THIS game, as prose the server owns.
    *

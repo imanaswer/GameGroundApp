@@ -13,6 +13,9 @@
  *
  * When the server starts sending a value, delete the guard with the fallback it protected.
  */
+import { readFileSync } from "fs";
+import { join } from "path";
+
 import { LEAVE_CUTOFF_MS } from "@/api/games";
 import { toProgress, type RawUserProfile } from "@/api/users";
 import { SETUP_SPORTS, SPORTS } from "@/lib/sports";
@@ -206,5 +209,53 @@ describe("leave cutoff mirrors the server's CANCEL_CUTOFF_MS", () => {
   test("the constant divides into whole minutes, since screens render it as prose", () => {
     // Two screens interpolate `LEAVE_CUTOFF_MS / 60_000` into user-visible copy.
     expect(LEAVE_CUTOFF_MS % 60_000).toBe(0);
+  });
+});
+
+/**
+ * Games left the payment rails (server commit aefd831, "feat: server-side work the mobile app is
+ * waiting on"). `PayableEntity` no longer includes "game", `gameChargePaise` is deleted, and
+ * `POST /api/payments/create-order` answers 400 "Unsupported entityType" for one.
+ *
+ * There is no runtime surface to assert here — `EntityType` is erased at compile time, which is
+ * exactly the guard we want, so the check is that the app never NAMES a game as payable. A
+ * reintroduced `useCheckout("game", …)` would fail `tsc`; this catches the looser regression of a
+ * string "game" finding its way back into the payments layer.
+ */
+describe("player-hosted games are not payable through Game Ground", () => {
+  test("the payments layer never mentions a game entity", () => {
+    const src = readFileSync(join(__dirname, "..", "src", "api", "payments.ts"), "utf8");
+    expect(src).not.toMatch(/["']game["']/);
+  });
+
+  test("useCheckout has no game branch", () => {
+    const src = readFileSync(join(__dirname, "..", "src", "hooks", "useCheckout.ts"), "utf8");
+    // The word appears in a comment explaining the absence; a CODE reference would be
+    // `entityType === "game"`, which is what this rejects.
+    expect(src).not.toMatch(/entityType\s*===\s*["']game["']/);
+  });
+
+  test("the game screen opens no checkout sheet", () => {
+    const src = readFileSync(join(__dirname, "..", "app", "game", "[id].tsx"), "utf8");
+    // Matches USE, not mention: the screen carries comments explaining why the checkout is gone,
+    // and a guard that failed on its own rationale would be deleted rather than fixed.
+    expect(src).not.toMatch(/<CheckoutSheet/);
+    expect(src).not.toMatch(/useCheckout\s*\(/);
+  });
+});
+
+/**
+ * The sport mirror is now a FALLBACK behind `GET /api/taxonomy` (hand-off A2) rather than the
+ * source. It must not be deleted — `useTaxonomy` degrades to it offline, against an older
+ * deployment, and before the first response lands — so this asserts it still exists and still
+ * matches, which is the condition that makes it a safe fallback rather than a stale one.
+ */
+describe("the sport mirror survives as useTaxonomy's fallback", () => {
+  test("SPORTS is non-empty, so a failed taxonomy request never yields an empty picker", () => {
+    expect(SPORTS.length).toBeGreaterThan(0);
+  });
+
+  test("every SETUP_SPORTS entry still exists in the full list", () => {
+    for (const s of SETUP_SPORTS) expect(SPORTS as readonly string[]).toContain(s);
   });
 });

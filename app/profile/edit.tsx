@@ -31,11 +31,9 @@ import {
   UserIcon,
 } from "@/components/ds";
 import { useDeleteAccount, useProfile, useUpdateProfile } from "@/hooks/queries";
+import { useTaxonomy } from "@/hooks/queries/taxonomy";
 import { useAuth } from "@/hooks/useAuth";
 import * as haptics from "@/lib/haptics";
-// Shared with account setup (Decision 23) — both write the same `sports` field, so both offer
-// the same list.
-import { SPORTS } from "@/lib/sports";
 import { color, layout, radius, space, type } from "@/lib/tokens";
 import { themed, usePalette, useThemedStyles } from "@/theme/runtime";
 
@@ -98,6 +96,9 @@ function EditForm({ profile }: { profile: UserProfile }) {
   const [bio, setBio] = useState(profile.bio ?? "");
   const [city, setCity] = useState(profile.city ?? "");
   const [phone, setPhone] = useState(profile.phone ?? "");
+  // `sports` is what this user plays; `sportOptions` is the taxonomy they pick from (hand-off A2,
+  // server-published with the local mirror as the floor). Two different things, hence two names.
+  const { sports: sportOptions } = useTaxonomy();
   const [sports, setSports] = useState<string[]>(profile.sports);
   const [avatar, setAvatar] = useState<string | null>(profile.avatarUrl);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
@@ -232,7 +233,7 @@ function EditForm({ profile }: { profile: UserProfile }) {
 
           <SectionCard icon={<TrophyIcon size={16} color={color.primary} />} title="Sports I play" hint="Pick everything you’d join a game for.">
             <View style={styles.chips}>
-              {SPORTS.map((s) => (
+              {sportOptions.map((s) => (
                 <Chip key={s} label={s} active={sports.includes(s)} onPress={() => toggleSport(s)} />
               ))}
             </View>

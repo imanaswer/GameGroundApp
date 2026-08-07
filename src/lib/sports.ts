@@ -11,7 +11,12 @@
  * Sports still arrive on games and coaches as free text ("BOXING/KICK"), so this is the set we
  * ASK about, not a closed enumeration of what exists; `sportImage()` maps anything, listed or not.
  *
- * Retiring this file is a server change — see the hand-off note's taxonomy endpoint.
+ * **`GET /api/taxonomy` shipped (hand-off A2), so this is now a FALLBACK rather than the source.**
+ * `useTaxonomy` prefers the published list and degrades to this one. It is not dead code and
+ * should not be deleted: the request can fail offline, against an older deployment, or simply not
+ * have resolved on first paint, and a sport picker with nothing in it reads as a broken screen.
+ * `__tests__/server-rules.test.ts` still pins the values, so a drift between this mirror and the
+ * server fails CI rather than silently degrading the fallback.
  */
 
 /** Mirrors GG/src/lib/taxonomy.ts SPORTS, in the server's order. */

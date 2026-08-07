@@ -56,12 +56,11 @@ export function useCheckout(
     // Keyed off entityType. This used to invalidate keys.games.* whatever was bought, so a coach
     // booking left the coach detail stale — and its `userBooking` is what unlocks the WhatsApp CTA,
     // so the thing you just paid for stayed locked until the query aged out.
+    // No `game` branch: player-hosted games never reach checkout — GG creates no order for one.
+    // See EntityType in api/types.ts.
     if (entityType === "coach") {
       queryClient.invalidateQueries({ queryKey: keys.coaches.detail(entityId) });
       queryClient.invalidateQueries({ queryKey: keys.coaches.all });
-    } else if (entityType === "game") {
-      queryClient.invalidateQueries({ queryKey: keys.games.detail(entityId) });
-      queryClient.invalidateQueries({ queryKey: keys.games.all });
     } else {
       queryClient.invalidateQueries({ queryKey: keys.registerables.detail(entityType, entityId) });
       queryClient.invalidateQueries({ queryKey: ["registerables", entityType] });
