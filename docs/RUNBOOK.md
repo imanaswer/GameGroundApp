@@ -153,20 +153,36 @@ tracks how often you ask.
 
 ---
 
-## 6. Sentry — currently disabled
+## 6. Sentry — restored, but inert until a DSN is set
 
-`src/lib/sentry.ts` is a no-op shim and the config plugin is commented out of `app.config.js`.
-Commit `4e8c579` removed `@sentry/react-native` 7.11 after its native Expo AppDelegate auto-init
-threw `NSInvalidArgumentException` at launch — **with no DSN set**, which is the likely trigger.
+Decisions 28 and 30. `src/lib/sentry.ts` is a real implementation again: `initSentry` validates the
+DSN, `require`s `@sentry/react-native` **lazily and only after** that check, and runs errors-only
+(`tracesSampleRate: 0` — tracing and session replay are exactly where the launch-time native
+surprises live). `scrubEvent` is wired into both `beforeSend` and `beforeBreadcrumb`. A failed
+`init` is swallowed: crash reporting must never be the thing that crashes the app.
 
-**Consequence for this runbook: §5 step 1 has no data source, and the Play promotion gate
-(crash-free ≥ 99.5%) has nothing to measure.** Until Sentry is restored, production crashes are
-invisible and staged rollout is advancing on faith.
+**Pinned to `~7.2.0`, which is what `expo/bundledNativeModules.json` pins for SDK 54.** The crash
+that got it removed was on **7.11** — nine minors ahead of anything Expo tests against this runtime,
+and a version `npx expo install` would never have chosen. **8.x is not the safer answer** despite
+being current: it is further from what SDK 54 ships and Sentry issue #5679 reports the same failure
+class there. Do not bump this without reading Decision 28.
 
-Restoring it (see `.scratch/PATH-TO-PRODUCTION.md` A3): create a Sentry project, put a real
-`SENTRY_DSN` in the EAS production profile, install the package, restore the plugin entry, wire the
-already-tested `scrubEvent` into `beforeSend`, then prove launch on a dev client. Note that
-`npx expo install` resolves `~7.11.0` for SDK 57 — reaching 8.x means pinning it explicitly.
+**The gate is the DSN's shape, not its presence.** `.env` ships a placeholder for every unconfigured
+secret, and a placeholder is a truthy string — so the old `if (!sentryDsn)` armed both the SDK and
+the native config plugin on every machine that had never configured Sentry, which is precisely the
+configuration 7.11 crashed on. `app.config.js` and `src/lib/sentry.ts` now both test
+`https://<key>@<host>/<numeric project id>`, and `__tests__/sentry-init.test.ts` asserts the two
+regex literals stay character-identical, because two copies of a rule drift.
+
+**Still true for this runbook: with no real DSN configured, §5 step 1 has no data source and the
+Play promotion gate (crash-free ≥ 99.5%) has nothing to measure.** The code is ready; the Sentry
+project is the missing half.
+
+To turn it on: create the Sentry project, set `SENTRY_DSN` in the EAS production profile (plus
+`SENTRY_ORG` / `SENTRY_PROJECT` for source-map upload and `SENTRY_AUTH_TOKEN` at build time — without
+the token the plugin warns and skips the upload rather than failing the build), then **prove launch
+on a physical dev client with the DSN both set and unset**. That last step is not optional: the
+original fault was native and cannot appear in jest.
 
 ---
 
@@ -176,7 +192,8 @@ Written honestly so nobody discovers these mid-incident:
 
 - **Kill switch is implemented but never fired in anger.** Unit-tested and exercised against a dev
   server (§2); never rehearsed on a deployed environment against a real build. Do that on preview.
-- **No crash telemetry.** Sentry disabled (§6).
+- **No crash telemetry yet.** Sentry is restored in code but inert until a real `SENTRY_DSN` is
+  configured, and the restored path has not been proven on a physical device (§6).
 - **Never rehearsed.** No OTA rollback has been performed on this project. Until the rehearsal
   below is done, treat §3 as untested.
 - **Push notifications are dead.** `/api/push/register` and `/api/push/prefs` do not exist in the

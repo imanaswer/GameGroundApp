@@ -397,6 +397,10 @@ build and a store submission, and none of them are mobile work.
 - **6.4 Sentry is disabled.** Removed after `@sentry/react-native` 7.11's native auto-init threw
   `NSInvalidArgumentException` at launch; `src/lib/sentry.ts` is stubbed. The crash-free ≥ 99.5%
   gate has no source of truth until it is re-added on a compatible version.
+  > **Resolved in code since this audit** (Decisions 28/30): restored on `~7.2.0`, the version SDK
+  > 54 bundles, with the SDK `require`d lazily behind a DSN **shape** check. The finding above
+  > stands as written on 6 Aug 2026. What remains is not code — no real `SENTRY_DSN` is configured,
+  > so the crash-free gate still has no source of truth. See RUNBOOK §6.
 
 ---
 

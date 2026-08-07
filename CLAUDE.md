@@ -1,6 +1,6 @@
 # Game Ground Mobile — working rules
 
-Expo (SDK 57) / React Native app for gameground.net. **There is no new backend** — every read and
+Expo (SDK 54) / React Native app for gameground.net. **There is no new backend** — every read and
 write goes to the production Next.js API at `https://www.gameground.net/api/*`. The server is
 authoritative for prices, slots, eligibility, and reputation. The app never computes money.
 
