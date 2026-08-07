@@ -16,7 +16,27 @@ const variant = {
   production: { name: "GameGround", id: "net.gameground.redesigned" },
 }[profile];
 
-const sentryDsn = process.env.SENTRY_DSN ?? null;
+/**
+ * A Sentry DSN is `https://<key>@<host>/<numeric project id>`. MUST stay in step with `usableDsn`
+ * in src/lib/tokens' sibling `src/lib/sentry.ts` — this file is CommonJS and cannot import it, so
+ * `__tests__/sentry-init.test.ts` asserts the two agree rather than trusting they do.
+ */
+const DSN_SHAPE = /^https?:\/\/[^\s:@/]+(?::[^\s@/]+)?@[^\s/]+\/\d+$/;
+
+/**
+ * Placeholder DSNs count as unset. `.env` ships `SENTRY_DSN=https://...@sentry.io/...` (the repo
+ * convention for an unconfigured secret, cf. `rzp_test_replace_me`), and a truthiness check let
+ * that through — arming the config plugin, i.e. the native auto-init this gate exists to prevent,
+ * on every developer machine that had never configured Sentry at all.
+ */
+const rawSentryDsn = (process.env.SENTRY_DSN ?? "").trim();
+const sentryDsn = DSN_SHAPE.test(rawSentryDsn) ? rawSentryDsn : null;
+if (rawSentryDsn && !sentryDsn && !globalThis.__ggWarnedSentryDsn) {
+  // Expo evaluates this config many times per start (manifest, prebuild, each platform request),
+  // so an unguarded warn prints ten-plus times and buries the rest of the startup log.
+  globalThis.__ggWarnedSentryDsn = true;
+  console.warn("[app.config] SENTRY_DSN is set but is not a valid DSN — treating Sentry as disabled.");
+}
 
 const canResolve = (id) => {
   try {
@@ -32,8 +52,9 @@ const canResolve = (id) => {
  *
  * Commit 4e8c579: `@sentry/react-native` 7.11's native Expo auto-init threw
  * NSInvalidArgumentException at launch *while `extra.sentryDsn` was null* — the signature of an
- * empty DSN reaching `SentrySDKWrapper setupWithDictionary`. Gating the plugin on SENTRY_DSN makes
- * that configuration unreachable by construction: no DSN, no plugin, no native init, no crash.
+ * empty DSN reaching `SentrySDKWrapper setupWithDictionary`. Gating the plugin on a VALID
+ * SENTRY_DSN makes that configuration unreachable by construction: no usable DSN, no plugin, no
+ * native init, no crash. "Valid" is load-bearing — see the note on DSN_SHAPE above.
  *
  * To turn it on: create the Sentry project, `npx expo install @sentry/react-native`, then set
  * SENTRY_DSN (+ SENTRY_ORG / SENTRY_PROJECT for source-map upload, and SENTRY_AUTH_TOKEN at build
@@ -126,6 +147,11 @@ module.exports = {
   plugins: [
     "expo-router",
     "expo-secure-store",
+    // Sign in with Apple (Decision 29). The plugin adds the iOS entitlement; without it
+    // `signInAsync` throws at runtime. Unconditional on purpose — guideline 4.8 makes this a
+    // submission requirement while Google is offered, not an optional extra. The runtime gate
+    // is EXPO_PUBLIC_APPLE_AUTH_ENABLED (see src/lib/env.ts), and it is Android-inert.
+    "expo-apple-authentication",
     // Monochrome launch: white mark on the near-black field, no brand red (decision 18).
     // backgroundColor stays `color.bg` (#050505) rather than pure #000 so the handoff from the
     // native splash to the first React screen is seamless — a #000 splash against a #050505 app

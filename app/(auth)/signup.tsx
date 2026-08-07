@@ -1,5 +1,5 @@
 import { useRouter } from "expo-router";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Linking, Text, TextInput, View } from "react-native";
 import Animated, {
   useAnimatedStyle,
@@ -9,11 +9,12 @@ import Animated, {
 } from "react-native-reanimated";
 
 import { RegisterSchema } from "@/api/schemas";
-import { AuthShell, Divider, GoogleButton, SwitchLink } from "@/components/auth/AuthShell";
+import { AppleButton, AuthShell, Divider, GoogleButton, SwitchLink } from "@/components/auth/AuthShell";
 import { useHandoff } from "@/components/chrome";
 import { FormError, PasswordRules, fieldErrorsFrom } from "@/components/auth/fields";
 import { Button, Input } from "@/components/ds";
-import { useAuth, useGoogleLogin } from "@/hooks/useAuth";
+import { useAppleAvailable, useAuth, useGoogleLogin } from "@/hooks/useAuth";
+import { postAuthDestination } from "@/lib/postAuthRoute";
 import { color, space, type } from "@/lib/tokens";
 import { dur, ease } from "@/theme/animations";
 import { themed, useThemedStyles } from "@/theme/runtime";
@@ -24,7 +25,7 @@ const PRIVACY_URL = "https://www.gameground.net/privacy";
 export default function Signup() {
   const styles = useThemedStyles(sheets);
   const router = useRouter();
-  const { register, status: authStatus } = useAuth();
+  const { register, loginWithApple, status: authStatus, isNewAccount } = useAuth();
   const { begin: beginHandoff } = useHandoff();
   /**
    * Two-step signup, ported from the source's Sign up 04→06 flow: email alone, then the rest.
@@ -39,9 +40,29 @@ export default function Signup() {
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [formError, setFormError] = useState<unknown>(null);
   const [busy, setBusy] = useState(false);
+  const [appleBusy, setAppleBusy] = useState(false);
 
   const google = useGoogleLogin(setFormError);
-  const hasSocial = google.available;
+  const appleAvailable = useAppleAvailable();
+  const hasSocial = google.available || appleAvailable;
+
+  /**
+   * Sign up with Apple (Decision 29). Like Google it does not navigate: the effect below flips to
+   * the acknowledgement off `authStatus`, which is what keeps every social path inside the
+   * new-member flow instead of dropping straight into the tabs.
+   *
+   * ERR_REQUEST_CANCELED is the user dismissing the native sheet — an intentional exit, not an error.
+   */
+  const onApple = () => {
+    if (appleBusy) return;
+    setAppleBusy(true);
+    loginWithApple()
+      .catch((e) => {
+        if ((e as { code?: string })?.code !== "ERR_REQUEST_CANCELED") setFormError(e);
+      })
+      .finally(() => setAppleBusy(false));
+  };
+
 
   const usernameRef = useRef<TextInput>(null);
   const emailRef = useRef<TextInput>(null);
@@ -104,6 +125,22 @@ export default function Signup() {
 
 
   /**
+   * Straight into the app, skipping account setup. The loader is raised first and lives above the
+   * navigator, so replacing the route in the same handler is fine — the tabs mount behind it
+   * (five mount at launch, Decision 17) instead of after it. Doing this inside the screen is what
+   * failed before: the loader was a child of the very screen the navigation unmounted.
+   *
+   * Declared ABOVE the effect that depends on it, and memoised. Both matter: a `const` referenced
+   * in a dependency array evaluated earlier in the render is a temporal-dead-zone ReferenceError,
+   * and an unmemoised closure in that array makes the effect re-run — and re-navigate — every
+   * single render.
+   */
+  const enterApp = useCallback(() => {
+    beginHandoff();
+    router.replace("/home");
+  }, [beginHandoff, router]);
+
+  /**
    * ANY successful auth on this screen enters the acknowledgement, whatever produced it.
    *
    * Email/password reaches it through `submit`, but Google never navigated at all — it relied on
@@ -112,19 +149,16 @@ export default function Signup() {
    * instead of the individual handlers means a future sign-in path cannot silently opt out.
    */
   useEffect(() => {
-    if (authStatus === "signedIn" && (step === "email" || step === "details")) setStep("done");
-  }, [authStatus, step]);
-
-  /**
-   * Straight into the app, skipping account setup. The loader is raised first and lives above the
-   * navigator, so replacing the route in the same handler is fine — the tabs mount behind it
-   * (five mount at launch, Decision 17) instead of after it. Doing this inside the screen is what
-   * failed before: the loader was a child of the very screen the navigation unmounted.
-   */
-  const enterApp = () => {
-    beginHandoff();
-    router.replace("/home");
-  };
+    if (authStatus !== "signedIn" || (step !== "email" && step !== "details")) return;
+    // "Sign up with Google" is just as likely to be a RETURNING player — the route create-or-finds.
+    // When the server says the account already existed, skip the new-member flow entirely rather
+    // than march them back through five screens they finished months ago (Decision 32).
+    if (postAuthDestination({ screen: "signup", isNewAccount }) === "home") {
+      enterApp();
+      return;
+    }
+    setStep("done");
+  }, [authStatus, step, isNewAccount, enterApp]);
 
   /**
    * The signup path is the ONLY way into account setup (Decision 23) — it is a new-member flow,
@@ -268,8 +302,13 @@ export default function Signup() {
       </Animated.View>
 
       {onEmailStep && hasSocial && <Divider />}
+      {/* Apple leads on iOS — 4.8 asks for an "equivalent option", which is about prominence as
+          well as presence. Renders only on iOS, so Google leads on Android. */}
+      {onEmailStep && appleAvailable && (
+        <AppleButton label="Sign up with Apple" onPress={onApple} disabled={busy || appleBusy} />
+      )}
       {onEmailStep && google.available && (
-        <GoogleButton label="Sign up with Google" onPress={google.prompt} disabled={busy} />
+        <GoogleButton label="Sign up with Google" onPress={google.prompt} disabled={busy || appleBusy} />
       )}
 
       <View style={styles.spacer} />

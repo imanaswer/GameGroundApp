@@ -3,28 +3,31 @@ import { useEffect, useRef, useState } from "react";
 import { Text, TextInput, View } from "react-native";
 
 import { LoginSchema } from "@/api/schemas";
-import { AuthShell, Divider, GoogleButton, SwitchLink } from "@/components/auth/AuthShell";
+import { AppleButton, AuthShell, Divider, GoogleButton, SwitchLink } from "@/components/auth/AuthShell";
 import { FormError, fieldErrorsFrom } from "@/components/auth/fields";
 import { useHandoff } from "@/components/chrome";
 import { Button, Input } from "@/components/ds";
 import { Press } from "@/components/ds/Press";
-import { useAuth, useGoogleLogin } from "@/hooks/useAuth";
+import { useAppleAvailable, useAuth, useGoogleLogin } from "@/hooks/useAuth";
+import { postAuthDestination } from "@/lib/postAuthRoute";
 import { color, space, type } from "@/lib/tokens";
 import { themed, useThemedStyles } from "@/theme/runtime";
 
 export default function Login() {
   const styles = useThemedStyles(sheets);
   const router = useRouter();
-  const { login, status: authStatus } = useAuth();
+  const { login, loginWithApple, status: authStatus, isNewAccount } = useAuth();
   const { begin: beginHandoff } = useHandoff();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [formError, setFormError] = useState<unknown>(null);
   const [busy, setBusy] = useState(false);
+  const [appleBusy, setAppleBusy] = useState(false);
 
   const google = useGoogleLogin(setFormError);
-  const hasSocial = google.available;
+  const appleAvailable = useAppleAvailable();
+  const hasSocial = google.available || appleAvailable;
 
   const passwordRef = useRef<TextInput>(null);
   // Clear a field's error the moment the user starts fixing it, so the red line never
@@ -43,9 +46,33 @@ export default function Login() {
    */
   useEffect(() => {
     if (authStatus !== "signedIn") return;
+    // A social sign-in on THIS screen can still have created the account — the routes
+    // create-or-find. When the server says so, send them to setup like any other new member
+    // (Decision 32). It says nothing today, so this stays the straight-to-home path it was.
+    if (postAuthDestination({ screen: "login", isNewAccount }) === "setup") {
+      router.replace("/setup"); // setup raises the loader on its own way out
+      return;
+    }
     beginHandoff();
     router.replace("/home");
-  }, [authStatus, beginHandoff, router]);
+  }, [authStatus, isNewAccount, beginHandoff, router]);
+
+  /**
+   * Sign in with Apple (Decision 29). No navigation here either — the effect above drives every
+   * successful sign-in through the loader, and Apple is not allowed to be the one path that skips it.
+   *
+   * ERR_REQUEST_CANCELED is the user dismissing the native sheet. That is an intentional exit, so
+   * it must not surface as an error; every other code is a real failure and does.
+   */
+  const onApple = () => {
+    if (appleBusy) return;
+    setAppleBusy(true);
+    loginWithApple()
+      .catch((e) => {
+        if ((e as { code?: string })?.code !== "ERR_REQUEST_CANCELED") setFormError(e);
+      })
+      .finally(() => setAppleBusy(false));
+  };
 
   const back = () => (router.canGoBack() ? router.back() : router.replace("/onboarding"));
 
@@ -128,8 +155,13 @@ export default function Login() {
       <Button testID="auth-submit" title="Log in" onPress={submit} loading={busy} />
 
       {hasSocial && <Divider />}
+      {/* Apple first on iOS: 4.8 wants an "equivalent option", and equivalence is read as
+          prominence too, not just presence. It renders only on iOS, so Google leads on Android. */}
+      {appleAvailable && (
+        <AppleButton label="Continue with Apple" onPress={onApple} disabled={busy || appleBusy} />
+      )}
       {google.available && (
-        <GoogleButton label="Continue with Google" onPress={google.prompt} disabled={busy} />
+        <GoogleButton label="Continue with Google" onPress={google.prompt} disabled={busy || appleBusy} />
       )}
 
       <View style={styles.spacer} />

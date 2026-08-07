@@ -109,6 +109,25 @@ export function GoogleGlyph({ size = 18 }: { size?: number }) {
   );
 }
 
+/**
+ * Apple's mark, for the Sign in with Apple button (Decision 29).
+ *
+ * Solid single path, and it takes a `color` rather than baking one in: Apple's HIG allows the
+ * mark in black or white and requires it to contrast with the button fill, so defaulting to
+ * `onPrimary` lets the button invert with the theme and stay compliant in both.
+ */
+export function AppleGlyph({ size = 18, color: tint }: { size?: number; color?: ColorValue }) {
+  const palette = usePalette();
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24">
+      <Path
+        fill={tint ?? palette.onPrimary}
+        d="M17.05 12.54c-.02-2.2 1.8-3.26 1.88-3.31-1.02-1.5-2.61-1.7-3.18-1.73-1.35-.14-2.64.79-3.33.79-.69 0-1.75-.77-2.87-.75-1.48.02-2.84.86-3.6 2.18-1.53 2.66-.39 6.6 1.1 8.76.73 1.06 1.6 2.25 2.75 2.2 1.1-.04 1.52-.71 2.85-.71 1.33 0 1.71.71 2.87.69 1.19-.02 1.94-1.08 2.66-2.14.84-1.23 1.19-2.42 1.21-2.48-.03-.01-2.32-.89-2.34-3.5zM14.88 5.9c.61-.74 1.02-1.77.91-2.8-.88.04-1.94.59-2.57 1.32-.56.65-1.05 1.7-.92 2.7.98.08 1.98-.5 2.58-1.22z"
+      />
+    </Svg>
+  );
+}
+
 /** Trophy — the tier-up celebration glyph (Feather has no cup). Stroked, inherits `color`. */
 export function TrophyIcon({ size = 24, color: tint }: { size?: number; color?: ColorValue }) {
   const palette = usePalette();

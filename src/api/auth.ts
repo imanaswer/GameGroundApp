@@ -33,6 +33,24 @@ export async function exchangeGoogleCode(code: string, verifier: string): Promis
 }
 
 /**
+ * Sign in with Apple, native only (§5.2, Decision 29). Unlike Google there is no browser hop: the
+ * OS returns a signed identity token, which the server verifies against `APPLE_BUNDLE_IDS`.
+ *
+ * `fullName` is forwarded because Apple releases the user's name on the **first** authorization
+ * only, and only to the client — it is never inside the token, and every later sign-in omits it.
+ * Pass it on or it is lost for good; the server records it on first sight. `null` afterwards is
+ * expected, not a failure.
+ */
+export async function loginWithApple(
+  identityToken: string,
+  fullName?: string | null,
+): Promise<AuthPayload> {
+  return persist(
+    await api.post<AuthPayload>("/auth/apple/mobile", { identityToken, fullName }, CREDENTIAL),
+  );
+}
+
+/**
  * Session-validity probe on cold start (§5.1). Client handles 401→refresh→replay itself.
  * `/auth/me` returns the session nested as `{ user }` (matching the login payload); older/other
  * deployments returned it flat. Accept both so a missing top-level id/name can't blank the

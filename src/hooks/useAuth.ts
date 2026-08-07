@@ -3,6 +3,7 @@
  * besides api/auth.ts persist. Screens read `useAuth()`; they never touch storage.
  */
 import { useQueryClient } from "@tanstack/react-query";
+import * as AppleAuthentication from "expo-apple-authentication";
 import Constants from "expo-constants";
 import * as Crypto from "expo-crypto";
 import * as WebBrowser from "expo-web-browser";
@@ -16,6 +17,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import { Platform } from "react-native";
 
 import * as authApi from "@/api/auth";
 import { isNoResponse } from "@/api/client";
@@ -40,6 +42,16 @@ type AuthContextValue = {
     email: string;
     password: string;
   }) => Promise<void>;
+  /**
+   * Sign in with Apple (Decision 29). Throws `ERR_REQUEST_CANCELED` when the user dismisses the
+   * native sheet — callers treat that as an intentional exit, not an error.
+   */
+  loginWithApple: () => Promise<void>;
+  /**
+   * Whether the sign-in that established this session created the account (Decision 32).
+   * `null` when the server didn't say, which is every route today — see lib/postAuthRoute.
+   */
+  isNewAccount: boolean | null;
   /** Social flows land their payload here after the browser handshake. */
   adopt: (payload: AuthPayload) => void;
   logout: () => Promise<void>;
@@ -52,6 +64,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<SessionUser | null>(null);
   const [status, setStatus] = useState<Status>("restoring");
   const [offline, setOffline] = useState(false);
+  const [isNewAccount, setIsNewAccount] = useState<boolean | null>(null);
 
   // Cold-start probe (§5.1): tokens → /auth/me (client refreshes on 401 itself).
   useEffect(() => {
@@ -81,6 +94,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const adopt = useCallback((payload: AuthPayload) => {
+    // `?? null` and not `?? false`: "the server didn't say" and "the server said no" route
+    // differently, and collapsing them would silently pick one.
+    setIsNewAccount(payload.isNew ?? null);
     setUser(payload.user);
     setOffline(false);
     setStatus("signedIn");
@@ -99,6 +115,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [adopt],
   );
 
+  /**
+   * Native Sign in with Apple. No browser hop and no PKCE — the OS hands back a signed identity
+   * token directly, and the server verifies it against `APPLE_BUNDLE_IDS`.
+   *
+   * `fullName` is assembled and forwarded because Apple releases it on the FIRST authorization
+   * only, and only to the client. It is never in the token, so if it isn't sent now it is lost:
+   * the account would be stuck with a placeholder name forever. Empty → null so the server can
+   * tell "not offered this time" from an empty string.
+   */
+  const loginWithApple = useCallback(async () => {
+    const credential = await AppleAuthentication.signInAsync({
+      requestedScopes: [
+        AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
+        AppleAuthentication.AppleAuthenticationScope.EMAIL,
+      ],
+    });
+    if (!credential.identityToken) throw new Error("Apple sign-in returned no token");
+    const fullName = [credential.fullName?.givenName, credential.fullName?.familyName]
+      .filter(Boolean)
+      .join(" ");
+    adopt(await authApi.loginWithApple(credential.identityToken, fullName || null));
+  }, [adopt]);
+
   // Logout (§5.1): unregister push → revoke → clear SecureStore → clear cache → reset identity.
   const logout = useCallback(async () => {
     await unregisterForPush().catch(() => {});
@@ -108,12 +147,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     analytics.resetAnalytics();
     setSentryUser(null);
     setUser(null);
+    setIsNewAccount(null);
     setStatus("signedOut");
   }, [queryClient]);
 
   const value = useMemo(
-    () => ({ user, status, offline, login, register, adopt, logout }),
-    [user, status, offline, login, register, adopt, logout],
+    () => ({ user, status, offline, isNewAccount, login, register, loginWithApple, adopt, logout }),
+    [user, status, offline, isNewAccount, login, register, loginWithApple, adopt, logout],
   );
 
   return createElement(AuthContext.Provider, { value }, children);
@@ -123,6 +163,48 @@ export function useAuth(): AuthContextValue {
   const ctx = useContext(AuthContext);
   if (!ctx) throw new Error("useAuth must be used inside <AuthProvider>");
   return ctx;
+}
+
+/**
+ * Whether to offer the Apple button (Decision 29). Three conditions, all required:
+ * iOS, the build flag, and the device actually supporting it.
+ *
+ * `isAvailableAsync` is the one that cannot be assumed: it is false on iOS below 13 and on any
+ * build without the entitlement provisioned, and calling `signInAsync` in either case throws
+ * rather than degrading. Checking it is what keeps a dead button off the screen.
+ *
+ * Deliberately NOT a reason to ship without it — see `env.appleAuthEnabled`. On Android this is
+ * always false and that is correct: guideline 4.8 is Apple's, and Google stays the only social
+ * option there.
+ */
+export function useAppleAvailable(): boolean {
+  const [deviceSupports, setDeviceSupports] = useState(false);
+  useEffect(() => {
+    if (Platform.OS !== "ios" || !env.appleAuthEnabled) {
+      // Three separate gates and a silently missing button is the same symptom for all of them —
+      // which cost a round of "it's still not there". Say which one closed, in dev only, once.
+      if (__DEV__) {
+        console.log(
+          `[apple-auth] button hidden — platform=${Platform.OS} (needs ios), ` +
+            `EXPO_PUBLIC_APPLE_AUTH_ENABLED=${env.appleAuthEnabled} (needs true)`,
+        );
+      }
+      return;
+    }
+    AppleAuthentication.isAvailableAsync().then(
+      (supported) => {
+        setDeviceSupports(supported);
+        // The gate that cannot be reasoned about from config: false on iOS < 13, and on any build
+        // whose binary lacks the entitlement — which includes Expo Go, where config plugins never
+        // run. A dev-client build is the only place this can legitimately be true.
+        if (__DEV__ && !supported) {
+          console.log("[apple-auth] button hidden — isAvailableAsync() false (entitlement missing?)");
+        }
+      },
+      () => setDeviceSupports(false),
+    );
+  }, []);
+  return env.appleAuthEnabled && deviceSupports;
 }
 
 /**

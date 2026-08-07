@@ -10,17 +10,27 @@ The client-side push infra is complete and degrades gracefully, but end-to-end d
 - An EAS project id / credentials so `getExpoPushTokenAsync` yields a real token (dev/simulator returns none — the client no-ops gracefully until then).
 Until these land, registration/prefs calls fail silently (logged to Sentry), the app never crashes, and it retries on each app open.
 
-## Sentry native launch-crash — disabled, needs a runtime-compatible re-add
+## Sentry native launch-crash — RE-ADDED on ~7.2.0 (Decision 28); device pass still owed
 
 Running a debug simulator build (iOS 26 sim / RN 0.86 / New Arch) surfaced a **launch crash**:
 `@sentry/react-native` 7.11's native Expo AppDelegate auto-init runs
 `SentrySDKWrapper setupWithDictionary` and throws `NSInvalidArgumentException`
 (`-[__NSDictionaryM length]`) at startup — even though JS never calls `Sentry.init` (no DSN).
-The package was removed and `src/lib/sentry.ts` stubbed (all no-ops; the tested S1.3 `scrubEvent`
-stays) to unblock the app. **Before ship:** re-add Sentry with a version that supports this stack
-(or the `@sentry/react-native/expo` plugin with valid options), and re-verify no launch crash on
-a physical device. Whether the crash is universal or specific to this iOS-26-sim/toolchain combo
-is unconfirmed — verify on a clean build.
+The package was removed and `src/lib/sentry.ts` stubbed to unblock the app.
+
+**Resolved in code, 6 Aug 2026 (Decision 28).** The cause was the version, not the stack: Expo
+SDK 54 pins `@sentry/react-native: ~7.2.0` in `bundledNativeModules.json`, so 7.11 was nine minors
+past anything Expo tests here. Re-added on `~7.2.0`; `src/lib/sentry.ts` is a real implementation
+again (errors only, `beforeSend`/`beforeBreadcrumb` both scrubbed) and now loads the SDK **lazily,
+after** the DSN check, so no-DSN builds never touch the native module. Guarded by
+`__tests__/sentry-init.test.ts`, whose SDK mock throws on require. Note the crash was reported on
+RN 0.86 / iOS 26, which this repo left at the SDK 54 downgrade — it was never reproduced on the
+runtime the app actually ships.
+
+**Still owed, and the reason this entry stays open:** the fault was native, so jest cannot see it.
+Build on a physical device with `SENTRY_DSN` set AND unset, confirm no launch crash either way,
+and confirm an event arrives in the Sentry project. Only then is the crash-free ≥ 99.5% gate
+(M16) measurable at all.
 
 ## M9A Home — client-half shipped; server-half + hero flourish remain
 

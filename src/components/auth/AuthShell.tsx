@@ -22,7 +22,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Screen } from "@/components/chrome/Screen";
-import { BackIcon, GoogleGlyph } from "@/components/ds";
+import { AppleGlyph, BackIcon, GoogleGlyph } from "@/components/ds";
 import { Press } from "@/components/ds/Press";
 import { color, google, radius, space, type } from "@/lib/tokens";
 import { themed, usePalette, useThemedStyles } from "@/theme/runtime";
@@ -90,6 +90,25 @@ export function GoogleButton({ label, onPress, disabled }: { label: string; onPr
     <Press accessibilityRole="button" accessibilityState={{ disabled }} disabled={disabled} onPress={onPress} style={[styles.social, styles.google, disabled && styles.socialDisabled]}>
       <GoogleGlyph size={18} />
       <Text style={[styles.socialLabel, styles.googleLabel]}>{label}</Text>
+    </Press>
+  );
+}
+
+/**
+ * Sign in with Apple (Decision 29) — required alongside Google on iOS by guideline 4.8.
+ *
+ * Filled with `primary`, so it is the black pill in light and the white one in dark. Apple's HIG
+ * permits both and only requires the mark to contrast with the fill, which `onPrimary` gives for
+ * free. No border, unlike the Google button: that border exists because a white button on a white
+ * page has no edge of its own, and a filled button already has one.
+ */
+export function AppleButton({ label, onPress, disabled }: { label: string; onPress: () => void; disabled?: boolean }) {
+  const styles = useThemedStyles(sheets);
+  const color = usePalette();
+  return (
+    <Press accessibilityRole="button" accessibilityState={{ disabled }} disabled={disabled} onPress={onPress} style={[styles.social, styles.apple, disabled && styles.socialDisabled]}>
+      <AppleGlyph size={18} color={color.onPrimary} />
+      <Text style={[styles.socialLabel, styles.appleLabel]}>{label}</Text>
     </Press>
   );
 }
@@ -176,9 +195,12 @@ const sheets = themed(() => ({
   // A white button on a white page needs a border to exist at all; on the old dark ground the
   // surface alone was the separation.
   google: { backgroundColor: google.surface, borderWidth: 1, borderColor: color.border },
+  // Filled, so it needs no border of its own — and it inverts with the theme, which the HIG allows.
+  apple: { backgroundColor: color.primary },
   socialDisabled: { opacity: 0.5 },
   socialLabel: { ...type.bodyStrong, color: color.text },
   googleLabel: { color: google.onSurface },
+  appleLabel: { color: color.onPrimary },
 
   divider: { flexDirection: "row", alignItems: "center", gap: space(3.5), marginVertical: space(5) },
   rule: { flex: 1, height: 1, backgroundColor: color.border2 },

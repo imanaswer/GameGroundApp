@@ -140,14 +140,31 @@ async function rawRequest<T>(method: string, path: string, opts: Options): Promi
 
   const retryAfterRaw = res.headers.get("Retry-After");
   const retryAfterSec = retryAfterRaw ? Number(retryAfterRaw) || undefined : undefined;
-  const message =
-    json?.ok === false ? json.error : `Something went wrong (HTTP ${res.status})`;
-  throw new ApiClientError(
-    res.status,
-    message,
-    json?.ok === false ? json.details : undefined,
-    retryAfterSec,
-  );
+  if (json?.ok === false) {
+    throw new ApiClientError(res.status, json.error, json.details, retryAfterSec);
+  }
+
+  // No envelope. Every route answers `{ ok:false, error }` on failure — including genuine
+  // not-founds like a deleted game — so reaching here means the response did not come from a route
+  // at all: an HTML 404 from a path that isn't deployed, a proxy error, a gateway timeout. The
+  // status is diagnostic, not something to read to a player, and it stays on the error object for
+  // Sentry and for the dev log below.
+  if (__DEV__) {
+    console.warn(`[api] ${method} ${path} → HTTP ${res.status} with no error envelope`);
+  }
+  throw new ApiClientError(res.status, unroutedMessage(res.status), undefined, retryAfterSec);
+}
+
+/**
+ * User-facing text for a response that carried no envelope. Deliberately says what the player can
+ * do rather than what the server did — "HTTP 404" told them nothing and looked broken, which is
+ * exactly what a beta tester hitting an undeployed endpoint would report as a bug in the app.
+ */
+function unroutedMessage(status: number): string {
+  if (status === 404) return "This isn’t available right now. Please try again shortly.";
+  if (status === 408 || status === 504) return "That took too long. Please try again.";
+  if (status >= 500) return "Something went wrong on our end. Please try again.";
+  return "Something went wrong. Please try again.";
 }
 
 /**

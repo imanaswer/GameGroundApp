@@ -52,6 +52,14 @@ beforeEach(() => {
   fetchMock.mockReset();
   mem.clear();
   setClientHandlers({});
+  // Several cases here deliberately drive the no-envelope path, which warns under __DEV__ to give
+  // a developer the status and route. That warning is the expected behaviour, not a failure —
+  // keep it out of the suite output so a passing run doesn't read like a broken one.
+  jest.spyOn(console, "warn").mockImplementation(() => {});
+});
+
+afterEach(() => {
+  jest.restoreAllMocks();
 });
 
 describe("envelope parsing", () => {
@@ -83,11 +91,44 @@ describe("envelope parsing", () => {
     expect(err.details).toEqual({ email: ["Enter a valid email"] });
   });
 
-  test("non-envelope body degrades to a generic message", async () => {
+  /**
+   * A body with no envelope did not come from a route — every route answers `{ ok:false, error }`
+   * on failure, including real not-founds. So this is infrastructure: an HTML 404 from an
+   * undeployed path, a proxy error, a gateway timeout. The message used to interpolate the status
+   * ("Something went wrong (HTTP 404)"), which is what a player saw when an endpoint was missing —
+   * it reads as a broken app and tells them nothing they can act on. The status is still on the
+   * error for Sentry and for the branches that key off it.
+   */
+  test("non-envelope body keeps the status on the error, not in the message", async () => {
     fetchMock.mockResolvedValue(res(502, "<html>bad gateway</html>"));
     const err = await trap(api.get("/games"));
     expect(err.status).toBe(502);
-    expect(err.message).toMatch(/502/);
+    expect(err.message).not.toMatch(/502|HTTP/);
+    expect(err.message).toBe("Something went wrong on our end. Please try again.");
+  });
+
+  test("an undeployed endpoint reads as unavailable, not as a crash", async () => {
+    // The live case: /api/auth/google/exchange before feat/mobile-social-auth ships. Next.js
+    // answers with its HTML 404 page, so there is no server message to surface.
+    fetchMock.mockResolvedValue(res(404, "<html>Page not found</html>"));
+    const err = await trap(api.post("/auth/google/exchange", { code: "c", verifier: "v" }));
+    expect(err.status).toBe(404);
+    expect(err.message).toBe("This isn’t available right now. Please try again shortly.");
+  });
+
+  test("a REAL not-found still shows the server's own wording", async () => {
+    // The distinction that matters: a deleted game is a routed 404 WITH an envelope, and its
+    // message is written for the player. Collapsing both into one string would have lost it.
+    fetchMock.mockResolvedValue(res(404, { ok: false, error: "Game not found" }));
+    const err = await trap(api.get("/games/gone"));
+    expect(err.status).toBe(404);
+    expect(err.message).toBe("Game not found");
+  });
+
+  test("a timeout status reads as a timeout", async () => {
+    fetchMock.mockResolvedValue(res(504, "<html>gateway timeout</html>"));
+    const err = await trap(api.get("/games"));
+    expect(err.message).toBe("That took too long. Please try again.");
   });
 });
 

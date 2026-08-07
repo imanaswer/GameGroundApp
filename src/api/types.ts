@@ -18,6 +18,13 @@ export interface AuthPayload {
   user: SessionUser;
   token: string;
   refreshToken?: string;
+  /**
+   * Whether this sign-in CREATED the account (Decision 32). Absent today — no auth route reports
+   * it — and `postAuthRoute` falls back to the old screen-based rule while it is. Needed because
+   * the social routes create-or-find silently, so "Sign up with Google" cannot be assumed new and
+   * "Log in with Google" cannot be assumed returning.
+   */
+  isNew?: boolean;
 }
 
 /** `POST /auth/refresh` (Developer PRD §5.3). */
