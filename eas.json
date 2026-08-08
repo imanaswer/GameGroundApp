@@ -42,6 +42,12 @@
         "EXPO_PUBLIC_APPLE_AUTH_ENABLED": "true",
         "EXPO_PUBLIC_POSTHOG_KEY": "phc_BixwEjS5F5VUpneQ5DWgqiatiNWDxFXg2NtYw8Cbcozr"
       }
+    },
+    "production-apk": {
+      "extends": "production",
+      "android": {
+        "buildType": "apk"
+      }
     }
   },
   "submit": {
