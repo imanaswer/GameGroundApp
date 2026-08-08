@@ -14,6 +14,7 @@ export {
   toGameCard,
   toUpNext,
 } from "./games";
+export { useUploadImage } from "./upload";
 export { useCoaches, useCoach, useSubmitReview, toCoachCard } from "./coaches";
 export { useHome, type HomeFeed } from "./home";
 export { useLeaderboard, useSearch } from "./social";
