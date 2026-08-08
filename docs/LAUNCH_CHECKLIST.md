@@ -36,13 +36,26 @@ account, a device or a person, and is the actual distance left to the store.
 ### 2.1 Blocking the store submission
 
 - [x] ~~**Create the Sentry project and configure the DSN in EAS.**~~ **Done 7 Aug 2026.** Org `gameground-oo`, project `gameground-mobile`, four variables on `production` + `preview`. Note the org is in the **EU (`de`) region** — crash data is stored in Germany, which belongs in your privacy labels, and the region cannot be changed after org creation.
-- [ ] **START APPLE DEVELOPER ENROLMENT TODAY — longest lead item on the project.** Confirmed 7 Aug 2026: the EAS account has no Apple Teams, certificates or App Store Connect keys, and you are not enrolled. Individual enrolment clears in a day or two; an **organisation** account needs a D-U-N-S number and can take one to two weeks. Until it clears, *nothing* iOS can start — no build, no TestFlight, no Sign in with Apple verification, no submission — so every idle day is a day on the iOS launch date. M0 listed this as a day-one task. Android is unaffected and proceeds in parallel.
+- [ ] **VERIFY THE PLAY CONSOLE TESTING GATE — this is now your longest-lead item.** Decided 8 Aug 2026: **Android-only launch; iOS is parked.** That removes Apple enrolment from the critical path and puts Google Play on it instead. Google requires **new personal developer accounts** to run a closed test with a minimum number of testers for a continuous period (it has been ~12 testers over 14 days) before they can apply for production access. **Organisation accounts are exempt.** I can't verify the current rule or your account type from here, and the policy has moved before — **open Play Console and check today**, because if it applies it adds two weeks *after* your app is otherwise ready, and it is invisible until you try to promote to production. If it applies, start the closed test the day you have a working build, and recruit testers in parallel with everything else.
+- [ ] **Play Console account exists and is paid** (one-off registration fee). Confirm which type — personal or organisation — since that determines the gate above.
 - [ ] **Create an EAS build — nothing else in this section can happen without one.** The project had never been built: the previous projectId pointed at nothing, the account shows *"Create your first build"*, and there are no Apple certs, push keys, App Store Connect keys, Apple Teams or Google service-account keys. This means M0's exit criterion was never met, and every device-dependent item below has been blocked on it all along.
-- [ ] **Prove Sentry on a physical device, DSN set *and* unset.** The original crash was native; jest cannot see it. BACKLOG has kept this open for a reason.
+- [ ] **Prove Sentry on a physical device, DSN set *and* unset.** The original crash was native; jest cannot see it. **The two build profiles give you both halves for free:** `development` carries no `SENTRY_DSN` (deliberately scoped to `production`+`preview`), so it *is* the DSN-unset case — cold-start it several times and watch for the launch crash that got Sentry stubbed originally. A `preview` build is the DSN-set case; confirm a real event lands in `gameground-mobile`.
 - [ ] **Rotate the credentials that were sitting in `.env`.** Supabase DB password, Google client secret, Razorpay test secret, Resend key, Cloudinary secret, admin password. They lived in a mobile repo and were pasted into chat.
 - [ ] **Razorpay device pass:** test-mode payment, Android UPI intent hop, then one live ₹1 and a refund, per platform. Phase-gate record.
-- [ ] **Publish AASA + `assetlinks.json`** on both `www` and apex, using `net.gameground.redesigned` and the release SHA-256 from `eas credentials`. Then verify per `DEEP_LINKS_WEB.md`. Blocked on the first build: no credentials exist yet, so there is no Team ID and no SHA-256 to publish.
+- [ ] **Publish `assetlinks.json`** on both `www` and apex, using `net.gameground.redesigned` and the release SHA-256 from `eas credentials --platform android`. Verify with `adb shell pm get-app-links net.gameground.redesigned`. **AASA is parked with iOS** — it needs an Apple Team ID that won't exist until enrolment, and Android App Links do not depend on it.
 - [ ] **Cut a build carrying these changes** and confirm on-device: no mic permission prompt, apex links open the app on Android, `eas update:list --branch production` responds.
+
+**The first build must come from a terminal — the dashboard cannot do it.** Verified 7 Aug 2026:
+"Build from GitHub" refuses with *"You don't have any build credentials stored in EAS for this app.
+Without sufficient credentials, this build will fail,"* and the dashboard credentials wizard only
+**uploads** a keystore you already have ("you'll need… Android upload keystore"). It will not
+generate one. `eas build` in a terminal generates and stores the keystore automatically, and once
+it exists every later build — including GitHub-triggered ones — works. So the CLI is a one-time
+unlock, not an ongoing requirement.
+
+**That keystore is the single most important secret in the project.** Every future Play release must
+be signed with it; lose it and you cannot update the app under the same listing. Let EAS hold it
+(`Generate new keystore`) rather than keeping it only on your laptop.
 
 **Build sequencing decided 7 Aug 2026:** GitHub-triggered builds from `sarangs1621/gameground-mobile`, Android first (EAS generates the keystore; no Apple gate), `development` profile before `preview`. A GitHub build compiles whatever is on the remote — so the audit fixes must be **pushed** before the first build, or it will compile the old code: dead project id, no `updates` block, `RECORD_AUDIO` still requested, deep links still broken.
 
@@ -63,7 +76,7 @@ Neither web fix document requires a mobile change, so nothing here adds to the a
 - [ ] Rehearse the OTA rollback on `preview` and record the wall-clock time in RUNBOOK §8. That number is your real rollback SLA.
 - [ ] Rehearse the kill switch on preview: set `MIN_MOBILE_VERSION` above the installed build, redeploy, confirm the wall, clear it.
 - [ ] 15-person internal beta → fix cycle → ~50-user closed beta.
-- [ ] Store assets, descriptions, **privacy nutrition labels + Play Data Safety** (declare PostHog and Sentry accurately — and note the mic permission is now gone, so do not declare it), reviewer demo account, account deletion visible, Sign in with Apple present.
+- [ ] Store assets, descriptions, **Play Data Safety form** — declare PostHog and Sentry accurately, and note the microphone permission is **gone** as of 7 Aug, so do not declare it. Reviewer demo account. Account deletion must be reachable in-app (Play requires it, not just Apple). **Sign in with Apple and iOS privacy nutrition labels are parked with iOS** — Guideline 4.8 is an Apple rule and does not apply to a Play-only release, though the code stays in and is Android-inert.
 - [ ] Bump `version` in `app.config.js` before the release build.
 
 ---

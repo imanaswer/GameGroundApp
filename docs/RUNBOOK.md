@@ -67,8 +67,23 @@ even when the bug is in the shipped bundle.
 branch). Every request sends `X-App-Version` from `Constants.expoConfig.version` (the headers block
 of the same function). Line numbers are deliberately not cited — they were wrong within a month.
 
-**Server side shipped 2026-08-02** — `../GG/src/lib/mobileVersion.ts`, wired into `src/proxy.ts`
-ahead of rate limiting. Gate is off while `MIN_MOBILE_VERSION` is unset.
+**Server side shipped 8 Aug 2026 — and this section previously lied about it.** It claimed the gate
+shipped on 2026-08-02 in `../GG/src/lib/mobileVersion.ts`, with a table of behaviour "verified
+against a running server". None of that was true: a read of the web repo on 8 Aug found
+`MIN_MOBILE_VERSION`, `X-App-Version` and `426` appeared **nowhere in `src/`**. Setting the variable
+would have done nothing at all. The one lever that still works when the bug is in the shipped bundle
+was disconnected at the server end, while this document said it was tested.
+
+It exists now, built 8 Aug: a version gate in `../GG(web)/src/proxy.ts` (this Next version renamed
+`middleware` → `proxy`) backed by `src/lib/appVersion.ts`. Confirmed live and correctly inert — an
+app reporting `0.0.1` gets a normal 200 because `MIN_MOBILE_VERSION` is unset.
+
+Two behaviours worth knowing: `/api/health` and `/api/ready` are exempt, so a 426 can never make the
+probes read as an outage and mask the incident; and versions compare segment-by-segment as integers,
+so `1.10.0` correctly beats `1.9.0` rather than losing a string comparison.
+
+**Do not treat any "verified" claim in this runbook as evidence unless it names the date and what was
+run.** That is the lesson of the paragraph above.
 
 ```bash
 # In the web repo's host (Vercel): set the minimum acceptable app version…
@@ -81,7 +96,7 @@ Effect: every install below `1.0.2` gets `426` on its next API call and hits the
 Irreversible for users until they update from the store — use it for data-corruption or money
 bugs, not cosmetics. To lift it, clear the variable and redeploy.
 
-Behaviour, verified against a running server on 2026-08-02:
+Intended behaviour of the gate (re-verify against the deployed server before relying on it):
 
 | Request | Result |
 |---|---|
