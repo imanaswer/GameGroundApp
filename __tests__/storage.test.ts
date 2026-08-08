@@ -1,6 +1,6 @@
 import * as SecureStore from "expo-secure-store";
 
-import { clearAuth, deviceId, get, remove, set } from "@/lib/storage";
+import { clearAccountData, clearAuth, deviceId, get, remove, set } from "@/lib/storage";
 
 jest.mock("expo-crypto", () => ({ randomUUID: () => "uuid-1" }));
 
@@ -78,4 +78,54 @@ test("remove deletes a single key", async () => {
   await set("gg.access", "a");
   await remove("gg.access");
   expect(await get("gg.access")).toBeNull();
+});
+
+/**
+ * Account deletion and logout must not leave the previous person's data on the handset.
+ * `clearAuth` only ever removed tokens, so everything else survived — including into a *deletion*,
+ * which is the one action where a user has explicitly asked for their traces to be gone.
+ */
+describe("clearAccountData — the previous account's traces", () => {
+  const seed = async () => {
+    await set("gg.access", "tok");
+    await set("gg.recentSearches", ["badminton", "kozhikode"]);
+    await set("gg.lastSeenTier", "gold");
+    await set("gg.pushPrefs", { gameReminders: true });
+    await set("gg.setupComplete", true);
+    await set("gg.setupSportsDismissed", true);
+    await set("gg.pendingDeepLink", "/game/abc");
+    await set("gg.pendingOrder", { orderId: "order_1", entityType: "camp", entityId: "c1" });
+    await set("gg.themeMode", "dark");
+    await set("gg.onboarded", true);
+  };
+
+  it("logout wipes account-scoped keys but KEEPS gg.pendingOrder", async () => {
+    await seed();
+    await clearAccountData({ keepPendingOrder: true });
+
+    for (const k of ["gg.recentSearches", "gg.lastSeenTier", "gg.pushPrefs",
+                     "gg.setupComplete", "gg.setupSportsDismissed", "gg.pendingDeepLink"] as const) {
+      expect(await get(k)).toBeNull();
+    }
+    // The only handle on money debited while verify was interrupted (§9.4). Signing out
+    // mid-checkout must not forfeit the recovery path.
+    expect(await get("gg.pendingOrder")).not.toBeNull();
+  });
+
+  it("deletion also drops gg.pendingOrder — nothing can reconcile for a deleted account", async () => {
+    await seed();
+    await clearAccountData({ keepPendingOrder: false });
+    expect(await get("gg.pendingOrder")).toBeNull();
+  });
+
+  it("device-scoped keys survive both — they describe the phone, not the person", async () => {
+    await seed();
+    const before = await deviceId();
+    await clearAccountData({ keepPendingOrder: false });
+
+    expect(await get("gg.themeMode")).toBe("dark");
+    expect(await get("gg.onboarded")).toBe(true);
+    // Refresh-token families are keyed on the device id (§5.3) — regenerating it would break them.
+    expect(await deviceId()).toBe(before);
+  });
 });

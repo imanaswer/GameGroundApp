@@ -138,11 +138,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     adopt(await authApi.loginWithApple(credential.identityToken, fullName || null));
   }, [adopt]);
 
-  // Logout (§5.1): unregister push → revoke → clear SecureStore → clear cache → reset identity.
+  /**
+   * Logout (§5.1): unregister push → revoke → clear SecureStore → clear cache → reset identity.
+   *
+   * `clearAccountData` is what stops the outgoing account's device-local traces — recent searches,
+   * tier state, push prefs — being inherited by whoever signs in next on this handset.
+   * `gg.pendingOrder` deliberately survives a logout; see that function.
+   */
   const logout = useCallback(async () => {
     await unregisterForPush().catch(() => {});
     await authApi.revoke().catch(() => {});
     await storage.clearAuth();
+    await storage.clearAccountData({ keepPendingOrder: true });
     queryClient.clear();
     analytics.resetAnalytics();
     setSentryUser(null);

@@ -105,6 +105,52 @@ export async function clearAuth(): Promise<void> {
   await Promise.all([remove("gg.access"), remove("gg.refresh"), remove("gg.user")]);
 }
 
+/**
+ * Keys that belong to the PERSON, not the phone. `clearAuth` never touched these, so every one of
+ * them used to survive a logout — and, worse, an account deletion — and was then inherited by
+ * whoever signed in next on the same device.
+ *
+ * Concretely, before this existed: you tapped "Delete my account", the server erased you, and your
+ * recent searches, tier state and push preferences stayed on the handset for the next user to
+ * inherit. For a screen labelled *Danger zone* that is the wrong answer.
+ *
+ * Deliberately NOT in this list, because they describe the device rather than the account:
+ *  - `gg.device`      — the install id; refresh-token families are keyed on it (§5.3)
+ *  - `gg.themeMode`   — an appearance preference, read before first paint
+ *  - `gg.onboarded`   — the first-run product tour; a second user on this phone has still seen it
+ */
+const ACCOUNT_SCOPED_KEYS = [
+  "gg.setupComplete",
+  "gg.setupSportsDismissed",
+  "gg.recentSearches",
+  "gg.lastSeenTier",
+  "gg.pushPrefs",
+  "gg.pushToken",
+  "gg.pendingDeepLink",
+] as const satisfies readonly Key[];
+
+/**
+ * Wipe the previous account's traces from this device.
+ *
+ * **`gg.pendingOrder` is the one judgement call, and it splits by caller.**
+ *
+ * On LOGOUT it is kept (`keepPendingOrder: true`). That record is the only handle on money that was
+ * debited while `/payments/verify` was interrupted — §9.4's cold-start reconciliation is what
+ * recovers it. Someone who signs out mid-checkout and back in has not forfeited their payment, and
+ * deleting the record here would silently destroy the recovery path for a real charge.
+ *
+ * On DELETE it goes. The account it belonged to no longer exists, so nothing can reconcile against
+ * it: the poll would query `/payments/history` as the *next* user and match nothing forever. A
+ * refund there is a support conversation, not a client retry.
+ */
+export async function clearAccountData(
+  { keepPendingOrder }: { keepPendingOrder: boolean },
+): Promise<void> {
+  const keys: Key[] = [...ACCOUNT_SCOPED_KEYS];
+  if (!keepPendingOrder) keys.push("gg.pendingOrder");
+  await Promise.all(keys.map(remove));
+}
+
 /** Creates the device id on first call and reuses it forever after. */
 export async function deviceId(): Promise<string> {
   const existing = await get("gg.device");
