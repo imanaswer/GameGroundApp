@@ -9,6 +9,7 @@ import { fireEvent, render, screen } from "@testing-library/react-native";
 
 import type { HostPayment } from "@/api/types";
 import { HostPaymentPanel } from "@/components/checkout";
+import { VENUE_PAYMENT_DISCLAIMER } from "@/lib/hostPayment";
 
 jest.mock("@/lib/env", () => ({
   env: { appEnv: "development", apiUrl: "https://api.test", razorpayKeyId: "", posthogKey: "", sentryDsn: null },
@@ -70,6 +71,32 @@ describe("the disclaimer is inseparable from the amount", () => {
   });
 });
 
+/**
+ * The host→venue leg is a SECOND legal position, covering a different transaction from the
+ * player→host one above. The web renders it under every venue note; the app shipped the note
+ * without it, which reads as Game Ground standing behind the venue booking.
+ */
+describe("a venue note never appears without its own disclaimer", () => {
+  const withVenue = { ...base, venueNote: "Host collects the fee and pays the turf." };
+
+  test("both the note and the venue disclaimer render", () => {
+    render(<HostPaymentPanel payment={withVenue} myStatus="pending" />);
+    expect(screen.getByText("Host collects the fee and pays the turf.")).toBeTruthy();
+    expect(screen.getByText(VENUE_PAYMENT_DISCLAIMER)).toBeTruthy();
+  });
+
+  test("the player→host disclaimer is still there too — one does not replace the other", () => {
+    render(<HostPaymentPanel payment={withVenue} myStatus="pending" />);
+    expect(screen.getByText(DISCLAIMER)).toBeTruthy();
+    expect(screen.getByText(VENUE_PAYMENT_DISCLAIMER)).toBeTruthy();
+  });
+
+  test("no venue note means no venue disclaimer — it is not boilerplate", () => {
+    render(<HostPaymentPanel payment={base} myStatus="pending" />);
+    expect(screen.queryByText(VENUE_PAYMENT_DISCLAIMER)).toBeNull();
+  });
+});
+
 describe("the QR stays behind a disclosure (§9A option (a))", () => {
   test("is not rendered until asked for, so the disclaimer keeps the fold", () => {
     render(<HostPaymentPanel payment={base} myStatus="pending" />);
@@ -126,6 +153,17 @@ describe("settle-up is a claim, and only the right person makes it", () => {
     expect(screen.queryByText("I’ve paid the host")).toBeNull();
     expect(screen.getByText("Marked as paid")).toBeTruthy();
     expect(screen.getByText(/doesn’t verify payments/)).toBeTruthy();
+  });
+});
+
+/**
+ * The server's `feeLabel` rule: "reads per player, never as a total". A bare figure above a
+ * 10-slot game invites the opposite reading — the pot to split rather than each person's share.
+ */
+describe("the fee is qualified as per-player", () => {
+  test.each(["upi", "cash", "upi_cash"] as const)("in the %s state", (method) => {
+    render(<HostPaymentPanel payment={{ ...base, method }} myStatus="pending" />);
+    expect(screen.getByText("per player")).toBeTruthy();
   });
 });
 

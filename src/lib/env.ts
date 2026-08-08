@@ -26,7 +26,18 @@ function extraString(key: string): string | null {
 export const env = {
   appEnv: (extraString("appEnv") ?? "development") as "development" | "preview" | "production",
   apiUrl: required("EXPO_PUBLIC_API_URL", process.env.EXPO_PUBLIC_API_URL),
-  razorpayKeyId: process.env.EXPO_PUBLIC_RAZORPAY_KEY_ID ?? "",
+  /**
+   * **The app holds no gateway credential, by design.** Razorpay's publishable key arrives inside
+   * each server-issued order (`CreatedOrder.keyId`) and is handed straight to checkout.js, so the
+   * key in use is always the one the server actually created the order with. A second copy in the
+   * app could only ever disagree with it — and would need a rebuild to rotate.
+   *
+   * This field is kept, always `""`, purely so the shape stays stable for the test mocks that
+   * spread `env`. Nothing reads it. The credentials that matter are `RAZORPAY_KEY_ID` and
+   * `RAZORPAY_KEY_SECRET` in the SERVER's environment; `EXPO_PUBLIC_RAZORPAY_KEY_ID` was never
+   * wired to anything and setting it changes nothing.
+   */
+  razorpayKeyId: "",
   // No Google client ids here by design (§5.2 scope change): the app reuses the website's OAuth
   // client through a browser handoff, so there is nothing app-side left to configure.
   /**

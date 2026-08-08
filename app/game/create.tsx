@@ -3,19 +3,29 @@
  * (§7). Venue + slot come from /venues + /venues/:id/slots. The server re-checks the slot
  * at create time — the client just gathers input.
  */
+import { Image } from "expo-image";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useState } from "react";
 import { KeyboardAvoidingView, Platform, ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { CreateGameStep } from "@/api/schemas";
+import { uploadErrorMessage } from "@/api/upload";
 import { fieldErrorsFrom } from "@/components/auth/fields";
 import { EmptyState, Screen, useToast } from "@/components/chrome";
-import { BackIcon, Button, Chip, Input, Press, Skeleton, UserIcon } from "@/components/ds";
-import { useCreateGame, useProfile, useVenueSlots, useVenues } from "@/hooks/queries";
+import { BackIcon, Button, CameraIcon, Chip, Input, Press, Skeleton, UserIcon } from "@/components/ds";
+import { useCreateGame, useProfile, useUploadImage, useVenueSlots, useVenues } from "@/hooks/queries";
 import { useAuth } from "@/hooks/useAuth";
 import { formatWhen } from "@/lib/format";
 import * as haptics from "@/lib/haptics";
+import {
+  HOST_PAYMENT_DISCLAIMER,
+  HOST_PAYMENT_METHODS,
+  HOST_PAYMENT_METHOD_LABELS,
+  acceptsUpi,
+  type HostPaymentMethod,
+} from "@/lib/hostPayment";
+import { pickImage } from "@/lib/imagePicker";
 import { hasWhatsAppNumber } from "@/lib/phone";
 import { useTaxonomy } from "@/hooks/queries/taxonomy";
 import { SPORTS } from "@/lib/sports";
@@ -32,7 +42,14 @@ import { themed, usePalette, useThemedStyles } from "@/theme/runtime";
 const SKILLS = ["Beginner", "Intermediate", "Advanced", "All Levels"] as const;
 const STEPS = ["Basics", "Venue", "Size", "Details"] as const;
 
-/** Which step owns each field, so a server 422 can jump back to the offending step. */
+/**
+ * Which step owns each field, so a server 422 can jump back to the offending step.
+ *
+ * **Every field the server can name must appear here.** A key missing from this map falls through
+ * to the generic toast at the bottom of `onError`, which is how a paid game used to fail: the
+ * server rejected it with `paymentMethod: ["Choose how players pay you"]`, no key matched, and the
+ * host got "Couldn't create game / Validation error" with nothing to act on and no field marked.
+ */
 const FIELD_STEP: Record<string, number> = {
   title: 0,
   sport: 0,
@@ -42,8 +59,16 @@ const FIELD_STEP: Record<string, number> = {
   skillLevel: 2,
   cost: 3,
   costAmount: 3,
+  paymentMethod: 3,
+  hostUpiId: 3,
+  hostQrUrl: 3,
+  paymentNote: 3,
+  venueNote: 3,
   description: 3,
 };
+
+/** Cloudinary folder, matching the web form so host QRs land in one place. */
+const QR_FOLDER = "gameground/upi-qr";
 
 export default function CreateGame() {
   const styles = useThemedStyles(sheets);
@@ -76,13 +101,64 @@ export default function CreateGame() {
     skillLevel: "All Levels",
     paid: false,
     costAmount: "",
+    /**
+     * The payment terms a paid game must carry. Defaulted to "upi" like the web form rather than
+     * left empty: the server requires *a* method, and every host who charges accepts at least one
+     * of these — an unset picker would only add a step to the common path.
+     */
+    paymentMethod: "upi" as HostPaymentMethod,
+    hostUpiId: "",
+    hostQrUrl: "",
+    paymentNote: "",
+    venueNote: "",
     description: "",
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const upload = useUploadImage();
+  // Kept out of `errors`, which is owned by zod and cleared on every step validation — an upload
+  // failure has nothing to do with whether the step is valid and must not be wiped by it.
+  const [qrError, setQrError] = useState<string | null>(null);
 
-  // Every editable field except `paid` (a boolean toggle, set inline below) is a string.
-  const set = (k: Exclude<keyof typeof form, "paid">) => (v: string) =>
+  // Every editable field except `paid` and `paymentMethod` (a boolean and a union, both set
+  // inline below) is a string.
+  const set = (k: Exclude<keyof typeof form, "paid" | "paymentMethod">) => (v: string) =>
     setForm((f) => ({ ...f, [k]: v }));
+
+  /**
+   * Pick a QR from the library and upload it, storing the returned URL.
+   *
+   * The upload happens HERE rather than at submit because the server takes `hostQrUrl` as a
+   * `z.url()` — a local `file://` uri would 422. Uploading on pick also means the host sees the
+   * image they chose before committing to the game, which matters when the thing being uploaded
+   * is how strangers will send them money.
+   */
+  const pickQr = async () => {
+    setQrError(null);
+    const picked = await pickImage();
+    if (picked.kind === "cancelled") return;
+    if (picked.kind === "denied") {
+      setQrError(
+        picked.canAskAgain
+          ? "Photo access is needed to attach a QR."
+          : "Photo access is off — turn it on in Settings to attach a QR.",
+      );
+      return;
+    }
+    if (picked.kind === "too-large") {
+      setQrError("That image is too large — pick one under 5 MB.");
+      return;
+    }
+    try {
+      const { url } = await upload.mutateAsync({ image: picked.image, folder: QR_FOLDER });
+      setForm((f) => ({ ...f, hostQrUrl: url }));
+      // Clears the "add a UPI ID or a QR" error the moment the QR satisfies it.
+      setErrors(({ hostUpiId: _drop, ...rest }) => rest);
+      haptics.success();
+    } catch (e) {
+      haptics.warning();
+      setQrError(uploadErrorMessage(e));
+    }
+  };
 
   const validateStep = (): boolean => {
     const slices = [
@@ -116,6 +192,26 @@ export default function CreateGame() {
         skillLevel: form.skillLevel as "Beginner" | "Intermediate" | "Advanced" | "All Levels",
         cost: form.paid && Number(form.costAmount) > 0 ? `₹${Number(form.costAmount)}` : "Free",
         costAmount: form.paid ? Number(form.costAmount) || 0 : 0,
+        /**
+         * Sent only for a paid game, matching the web form exactly. The server nulls the whole
+         * block when `costAmount` is 0, so sending it on a free game is discarded — but omitting
+         * it keeps the request honest about what the host actually agreed to.
+         *
+         * UPI details are gated a second time on the method: a host who typed an id, then chose
+         * Cash, keeps that text in the form (so switching back doesn't lose it) but must not have
+         * it published as the way to pay a cash-only game.
+         */
+        ...(form.paid
+          ? {
+              paymentMethod: form.paymentMethod,
+              hostUpiId: acceptsUpi(form.paymentMethod)
+                ? form.hostUpiId.trim() || undefined
+                : undefined,
+              hostQrUrl: acceptsUpi(form.paymentMethod) ? form.hostQrUrl || undefined : undefined,
+              paymentNote: form.paymentNote.trim() || undefined,
+              venueNote: form.venueNote.trim() || undefined,
+            }
+          : {}),
         description: form.description.trim() || undefined,
       },
       {
@@ -237,16 +333,112 @@ export default function CreateGame() {
               <Chip label="Paid" active={form.paid} onPress={() => setForm((f) => ({ ...f, paid: true }))} />
             </View>
             {form.paid && (
-              <View style={styles.blockGap}>
-                <Input
-                  label="Amount per player (₹)"
-                  value={form.costAmount}
-                  onChangeText={set("costAmount")}
-                  error={errors.costAmount}
-                  keyboardType="number-pad"
-                  placeholder="100"
-                />
-              </View>
+              <>
+                <View style={styles.blockGap}>
+                  <Input
+                    label="Amount per player (₹)"
+                    value={form.costAmount}
+                    onChangeText={set("costAmount")}
+                    error={errors.costAmount}
+                    keyboardType="number-pad"
+                    placeholder="100"
+                  />
+                </View>
+
+                {/* Game Ground is not the merchant here (§9A) — this section collects the host's
+                    own terms, and the disclaimer states that before they enter anything. There is
+                    no edit-game endpoint, so what is entered here is final for this game. */}
+                <Text style={[styles.label, styles.labelGap]}>How players pay you</Text>
+                <Text style={styles.hint}>{HOST_PAYMENT_DISCLAIMER}</Text>
+                <View style={styles.chipWrap}>
+                  {HOST_PAYMENT_METHODS.map((m) => (
+                    <Chip
+                      key={m}
+                      label={HOST_PAYMENT_METHOD_LABELS[m]}
+                      active={form.paymentMethod === m}
+                      onPress={() => setForm((f) => ({ ...f, paymentMethod: m }))}
+                    />
+                  ))}
+                </View>
+                {!!errors.paymentMethod && <Text style={styles.err}>{errors.paymentMethod}</Text>}
+
+                {acceptsUpi(form.paymentMethod) && (
+                  <>
+                    <View style={styles.blockGap}>
+                      <Input
+                        label="Your UPI ID"
+                        value={form.hostUpiId}
+                        onChangeText={set("hostUpiId")}
+                        error={errors.hostUpiId}
+                        hint="Players can copy this to pay you. Add a QR instead if you prefer."
+                        placeholder="yourname@bank"
+                        autoCapitalize="none"
+                        autoCorrect={false}
+                        keyboardType="email-address"
+                      />
+                    </View>
+
+                    <Text style={styles.label}>Your UPI QR code (optional)</Text>
+                    {form.hostQrUrl ? (
+                      <View style={styles.qrRow}>
+                        {/* White plate under the code: a QR only scans as dark-on-light, and on
+                            the dark palette a transparent PNG would invert to unscannable. */}
+                        <View style={styles.qrPlate}>
+                          <Image
+                            source={{ uri: form.hostQrUrl }}
+                            style={styles.qrThumb}
+                            contentFit="contain"
+                            accessibilityLabel="Your UPI QR code"
+                          />
+                        </View>
+                        <Button
+                          title="Remove"
+                          variant="ghost"
+                          onPress={() => setForm((f) => ({ ...f, hostQrUrl: "" }))}
+                        />
+                      </View>
+                    ) : (
+                      /* No `color` on the icon — Button clones it with the tint matching its own
+                         fill, and a call site that "knows better" is the bug its own comment
+                         warns about. `loading` swaps icon AND label for the spinner, so there is
+                         no "Uploading…" title to set here. */
+                      <Button
+                        title="Upload QR image"
+                        variant="secondary"
+                        icon={<CameraIcon size={16} />}
+                        loading={upload.isPending}
+                        onPress={pickQr}
+                        style={styles.qrBtn}
+                      />
+                    )}
+                    {!!qrError && <Text style={styles.err}>{qrError}</Text>}
+                  </>
+                )}
+
+                <View style={styles.blockGap}>
+                  <Input
+                    label="Payment instructions (optional)"
+                    value={form.paymentNote}
+                    onChangeText={set("paymentNote")}
+                    error={errors.paymentNote}
+                    placeholder="e.g. Pay via UPI after joining and send the screenshot on WhatsApp."
+                    maxLength={300}
+                    multiline
+                  />
+                </View>
+                <View style={styles.blockGap}>
+                  <Input
+                    label="Venue payment note (optional)"
+                    value={form.venueNote}
+                    onChangeText={set("venueNote")}
+                    error={errors.venueNote}
+                    hint="If you're collecting on behalf of a venue. Game Ground is not involved in that transaction."
+                    placeholder="e.g. Host collects the fee and pays the venue."
+                    maxLength={300}
+                    multiline
+                  />
+                </View>
+              </>
             )}
             <View style={styles.blockGap}>
               <Input
@@ -403,6 +595,16 @@ const sheets = themed(() => ({
   err: { ...type.caption, color: color.primarySoft, marginTop: space(2) },
   note: { ...type.body, color: color.dim, marginTop: space(1), flexShrink: 1 },
   stateRow: { flexDirection: "row", alignItems: "center", gap: space(2), marginTop: space(1) },
+  // Composed from Button + Image rather than a new DS component (DESIGN_SYSTEM §10.1): the
+  // control is a labelled action plus a thumbnail, which the existing primitives already cover.
+  qrRow: { flexDirection: "row", alignItems: "center", gap: space(3), marginBottom: space(4) },
+  // `shineWhite` is the fixed light plate HostPaymentPanel uses for the same reason: a QR is only
+  // machine-readable as dark-on-light, so this surface must not follow the theme.
+  qrPlate: { backgroundColor: color.shineWhite, borderRadius: radius.input, padding: space(1.5) },
+  qrThumb: { width: 72, height: 72 },
+  // Hugs its label instead of filling the row: this is a secondary action inside a form, and a
+  // full-width pill here reads as the step's submit button.
+  qrBtn: { alignSelf: "flex-start", marginBottom: space(4) },
   slotList: { gap: space(2) },
   slot: { backgroundColor: color.card, borderRadius: radius.input, borderWidth: 1, borderColor: color.border, padding: space(3.5) },
   slotOn: { borderColor: color.primary, backgroundColor: color.errorWash },

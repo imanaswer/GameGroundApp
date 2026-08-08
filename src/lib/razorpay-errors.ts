@@ -17,3 +17,21 @@ export class RazorpayCancelledError extends Error {
     this.name = "RazorpayCancelledError";
   }
 }
+
+/**
+ * The server minted a MOCK order because it has no `RAZORPAY_KEY_ID`/`RAZORPAY_KEY_SECRET`.
+ *
+ * Non-production only — `create-order` fails closed with a 503 in production rather than inventing
+ * an order against real money. Recognising it here is what turns "I added the app's env var and
+ * checkout still breaks" into a message that names the actual missing configuration, which is on
+ * the SERVER: the app itself needs no gateway credential (the key ships inside each order).
+ *
+ * Thrown before the WebView opens. Handing `rzp_test_placeholder` to checkout.js gets an opaque
+ * gateway error that looks like a bug in the app.
+ */
+export class RazorpayNotConfiguredError extends Error {
+  constructor() {
+    super("Payments aren’t configured on the server yet — set RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET.");
+    this.name = "RazorpayNotConfiguredError";
+  }
+}
