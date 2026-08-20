@@ -11,12 +11,13 @@
  * subscribed ancestor. The launch case needs no effect at all: the runtime seeds itself from the
  * OS at import.
  */
+import * as SystemUI from "expo-system-ui";
 import { createContext, useContext, useEffect, useLayoutEffect, useMemo, useState, type ReactNode } from "react";
 import { useColorScheme } from "react-native";
 
 import * as storage from "@/lib/storage";
 
-import type { Scheme } from "./palette";
+import { THEMES, type Scheme } from "./palette";
 import { setActiveScheme } from "./runtime";
 
 export type ThemeMode = "light" | "dark" | "system";
@@ -59,6 +60,29 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
    */
   useLayoutEffect(() => {
     setActiveScheme(scheme);
+  }, [scheme]);
+
+  /**
+   * The white flash between screens.
+   *
+   * Under every React view there is a surface no style in this app reaches: the Android window's
+   * decorView and the iOS UIWindow / root view controller. `app.config.js`'s `backgroundColor`
+   * pins both to the LIGHT page (#FFFFFF) at build time, and it is a static value — it cannot
+   * follow a runtime theme. That surface is normally hidden, but a transition uncovers it: the
+   * frame between two pushed screens, a modal's exposed backdrop, an overscroll, a rotation. On
+   * the dark palette that is a white flash, on every navigation.
+   *
+   * `contentStyle` on the navigator does not fix it — that paints the screen, and the gap is
+   * *behind* the screen. This is the only API that reaches it, and it is why expo-system-ui's own
+   * iOS module notes "without setting the window backgroundColor, native-stack modals will show
+   * the wrong color".
+   *
+   * Both platforms persist the value natively and re-apply it on the next launch, so this pays the
+   * native call once per scheme change rather than once per navigation. Fire-and-forget: a failure
+   * here restores the old flash, it does not break a screen.
+   */
+  useEffect(() => {
+    SystemUI.setBackgroundColorAsync(THEMES[scheme].color.bg).catch(() => {});
   }, [scheme]);
 
   const setMode = useMemo(

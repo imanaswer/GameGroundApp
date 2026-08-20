@@ -34,6 +34,7 @@ import { useDeleteAccount, useProfile, useUpdateProfile } from "@/hooks/queries"
 import { useTaxonomy } from "@/hooks/queries/taxonomy";
 import { useAuth } from "@/hooks/useAuth";
 import * as haptics from "@/lib/haptics";
+import * as storage from "@/lib/storage";
 import { color, layout, radius, space, type } from "@/lib/tokens";
 import { themed, usePalette, useThemedStyles } from "@/theme/runtime";
 
@@ -142,6 +143,15 @@ function EditForm({ profile }: { profile: UserProfile }) {
       onSuccess: async () => {
         haptics.destructive();
         await logout(); // hard logout after the server rotates identifiers
+        /**
+         * Deletion clears MORE than a logout does: `gg.pendingOrder` goes too.
+         *
+         * A logout keeps it, because §9.4's cold-start poll is the only recovery path for money
+         * debited while `/payments/verify` was interrupted, and signing out mid-checkout must not
+         * forfeit that. After a deletion the account is gone, so the poll would run as the *next*
+         * user and match nothing forever — a refund there belongs to support, not to a client retry.
+         */
+        await storage.clearAccountData({ keepPendingOrder: false });
         router.replace("/login");
       },
       onError: (e) => setError((e as Error).message),

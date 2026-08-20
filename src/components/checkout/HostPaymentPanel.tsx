@@ -29,6 +29,7 @@ import { Text, View } from "react-native";
 import { Badge, Button, ChevronDownIcon, InfoIcon, Press } from "@/components/ds";
 import type { HostPayment, HostPaymentStatus } from "@/api/types";
 import * as haptics from "@/lib/haptics";
+import { VENUE_PAYMENT_DISCLAIMER } from "@/lib/hostPayment";
 import { color, radius, space, type } from "@/lib/tokens";
 import { themed, usePalette, useThemedStyles } from "@/theme/runtime";
 
@@ -81,8 +82,12 @@ export function HostPaymentPanel({
 
   return (
     <View style={s.card} testID={testID}>
+      {/* "per player" is not decoration — it is the server's `feeLabel` rule ("reads per player,
+          never as a total") carried onto this surface. A bare "₹120" above a 10-slot game invites
+          exactly the wrong reading: the pot to split rather than each person's share. */}
       <View style={s.amountRow}>
         <Text style={s.amount}>{formatRupees(payment.amount, payment.currency)}</Text>
+        <Text style={s.perPlayer}>per player</Text>
         <Text style={s.method}>{payment.methodLabel}</Text>
       </View>
 
@@ -130,11 +135,21 @@ export function HostPaymentPanel({
 
       {!!payment.instructions && <Text style={s.instructions}>{payment.instructions}</Text>}
 
+      {/* The venue note and ITS disclaimer are one unit, exactly as on the web. The note says
+          money is passing through the host to somebody else; without the second disclaimer that
+          reads as Game Ground standing behind the venue booking, which is the arrangement rule 1
+          above exists to prevent. Unlike `payment.disclaimer` this one is not server-sent — it is
+          a client constant on both platforms — so dropping it here is a silent divergence. */}
       {!!payment.venueNote && (
-        <View style={s.venueNote}>
-          <InfoIcon size={13} color={palette.dim2} />
-          <Text style={s.venueNoteText}>{payment.venueNote}</Text>
-        </View>
+        <>
+          <View style={s.venueNote}>
+            <InfoIcon size={13} color={palette.dim2} />
+            <Text style={s.venueNoteText}>{payment.venueNote}</Text>
+          </View>
+          <View style={s.disclaimer}>
+            <Text style={s.disclaimerText}>{VENUE_PAYMENT_DISCLAIMER}</Text>
+          </View>
+        </>
       )}
 
       {/* Settle-up. Hidden from the host, who marks players on the roster instead — self-marking
@@ -178,6 +193,9 @@ const sheets = themed(() => ({
   },
   amountRow: { flexDirection: "row", alignItems: "baseline", gap: space(2) },
   amount: { ...type.title2, color: color.text },
+  // Sits with the figure it qualifies (baseline-aligned, `dim` not `dim2`) so it reads as part of
+  // the price rather than as another piece of metadata beside the method label.
+  perPlayer: { ...type.caption, color: color.dim, marginRight: "auto" },
   method: { ...type.caption, color: color.dim2 },
   payTo: { ...type.caption, color: color.dim, marginTop: space(0.5) },
 

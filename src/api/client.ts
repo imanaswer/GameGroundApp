@@ -84,17 +84,38 @@ async function rawRequest<T>(method: string, path: string, opts: Options): Promi
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), opts.timeoutMs ?? DEFAULT_TIMEOUT);
 
+  /**
+   * A `FormData` body is sent as-is and WITHOUT a Content-Type header.
+   *
+   * Both halves matter. `JSON.stringify(formData)` yields `"{}"`, so a stringified upload would
+   * reach the server as an empty object and 400 as "No file provided". And multipart needs a
+   * `boundary=` parameter that only the fetch implementation can generate — setting
+   * `multipart/form-data` by hand omits it and the server's `req.formData()` throws on a body it
+   * cannot split. Leaving the header off entirely is what makes fetch fill in both.
+   *
+   * Everything else on this path is shared deliberately: an upload gets the same bearer token,
+   * the same 401→refresh→replay, the same 426 route and the same envelope unwrap as any other
+   * call. Replay is safe with a FormData body — React Native re-serializes it per request rather
+   * than consuming a one-shot stream.
+   */
+  const isMultipart = typeof FormData !== "undefined" && opts.body instanceof FormData;
+
   let res: Response;
   try {
     res = await fetch(`${env.apiUrl}/api${path}`, {
       method,
       headers: {
-        "Content-Type": "application/json",
+        ...(isMultipart ? {} : { "Content-Type": "application/json" }),
         "X-Client": "mobile",
         "X-App-Version": Constants.expoConfig?.version ?? "0.0.0",
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
       },
-      body: opts.body === undefined ? undefined : JSON.stringify(opts.body),
+      body:
+        opts.body === undefined
+          ? undefined
+          : isMultipart
+            ? (opts.body as FormData)
+            : JSON.stringify(opts.body),
       signal: controller.signal,
     });
   } catch (e) {

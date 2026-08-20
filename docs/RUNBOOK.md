@@ -11,19 +11,36 @@ Apple do not expose rollout control over the CLI.
 
 ## 0. Know these before you need them
 
+> **Every value in this table is read straight off `app.config.js` / `eas.json`, and the project id
+> was opened in a browser to confirm it resolves. It was wrong until 7 Aug 2026** — it carried the ORIGINAL app's project id, owner, slug and bundle id, which is the
+> worst possible error in the one table you open mid-incident. If you change any of these, change
+> them here in the same commit.
+
 | Thing | Value |
 |---|---|
-| EAS project id | `c51e7b53-2f3f-4556-b1c7-4e539836f90a` (`app.config.js` → `extra.eas`) |
-| EAS owner / slug | `imanaswer` / `gameground-mobile` |
-| Bundle id (prod) | `net.gameground.app` (`.dev` and `.preview` for the other profiles) |
+| EAS project id | `e2ce390f-49f8-4665-89f5-180f9b240546` (`app.config.js` → `extra.eas.projectId`) |
+| EAS owner / slug | `sarangs1621` / `redesigned-gameground` (`app.config.js` → `slug`) |
+| Bundle id (prod) | `net.gameground.redesigned` (`.dev` / `.preview` suffixes on the other profiles) |
+| App scheme | `ggredesign://` — **not** `gameground://`, which is the original app's |
 | Update channels | `development`, `preview`, `production` (`eas.json`) |
+| Update URL | `https://u.expo.dev/e2ce390f-49f8-4665-89f5-180f9b240546` (`app.config.js` → `updates`) |
 | Runtime version policy | `appVersion` — an OTA can only reach builds of the **same** `version` |
-| API | `https://www.gameground.net/api/*` (web repo `../GG`) |
-| Crash reporting | Sentry — **currently disabled**, see §6 |
+| Marketing version | `1.0.0`, hardcoded in `app.config.js`. **Bump by hand every release** — see below |
+| API | `https://www.gameground.net/api/*` (web repo `../GG(web)`) |
+| Crash reporting | Sentry — **configured 7 Aug 2026**. Org `gameground-oo`, project `gameground-mobile`, EU (`de`) region. See §6 |
+| Analytics | PostHog — key wired into the `preview` + `production` profiles in `eas.json` |
 
 **The runtime-version rule matters.** `runtimeVersion: { policy: "appVersion" }` means an update
 published while `version` is `1.0.1` reaches only installs running `1.0.1`. Bumping `version` in
 `app.config.js` orphans every prior install from new OTAs. Never bump it to ship an OTA fix.
+
+**The marketing version is not automatic.** `eas.json` sets `appVersionSource: "remote"` with
+`autoIncrement: true`, and that governs the iOS **build number** and the Android **versionCode** —
+not `version`. `version` is the literal `"1.0.0"` in `app.config.js`, it is what every request sends
+as `X-App-Version` (`src/api/client.ts`), and it is what the §2 kill switch compares against. If you
+ship 1.0.1 without editing that literal, `MIN_MOBILE_VERSION` cannot tell the two releases apart and
+your only options are "gate nobody" or "gate everyone". **Bump `version` in `app.config.js` as the
+first step of every store release**, and remember it starts a fresh OTA runtime (see above).
 
 ---
 
@@ -45,12 +62,28 @@ When unsure, ship a store build. A wrong OTA is harder to reason about than a sl
 The hard stop. Blocks the app at the API layer regardless of what JS is on the device, so it works
 even when the bug is in the shipped bundle.
 
-**Client side is already wired:** `src/api/client.ts:92` turns any HTTP 426 into a route to
-`app/upgrade-required.tsx`, a no-dismiss, no-back wall. Every request sends `X-App-Version`
-(`src/api/client.ts:73`).
+**Client side is already wired:** `src/api/client.ts` turns any HTTP 426 into a route to
+`app/upgrade-required.tsx`, a no-dismiss, no-back wall (`rawRequest`, the `res.status === 426`
+branch). Every request sends `X-App-Version` from `Constants.expoConfig.version` (the headers block
+of the same function). Line numbers are deliberately not cited — they were wrong within a month.
 
-**Server side shipped 2026-08-02** — `../GG/src/lib/mobileVersion.ts`, wired into `src/proxy.ts`
-ahead of rate limiting. Gate is off while `MIN_MOBILE_VERSION` is unset.
+**Server side shipped 8 Aug 2026 — and this section previously lied about it.** It claimed the gate
+shipped on 2026-08-02 in `../GG/src/lib/mobileVersion.ts`, with a table of behaviour "verified
+against a running server". None of that was true: a read of the web repo on 8 Aug found
+`MIN_MOBILE_VERSION`, `X-App-Version` and `426` appeared **nowhere in `src/`**. Setting the variable
+would have done nothing at all. The one lever that still works when the bug is in the shipped bundle
+was disconnected at the server end, while this document said it was tested.
+
+It exists now, built 8 Aug: a version gate in `../GG(web)/src/proxy.ts` (this Next version renamed
+`middleware` → `proxy`) backed by `src/lib/appVersion.ts`. Confirmed live and correctly inert — an
+app reporting `0.0.1` gets a normal 200 because `MIN_MOBILE_VERSION` is unset.
+
+Two behaviours worth knowing: `/api/health` and `/api/ready` are exempt, so a 426 can never make the
+probes read as an outage and mask the incident; and versions compare segment-by-segment as integers,
+so `1.10.0` correctly beats `1.9.0` rather than losing a string comparison.
+
+**Do not treat any "verified" claim in this runbook as evidence unless it names the date and what was
+run.** That is the lesson of the paragraph above.
 
 ```bash
 # In the web repo's host (Vercel): set the minimum acceptable app version…
@@ -63,7 +96,7 @@ Effect: every install below `1.0.2` gets `426` on its next API call and hits the
 Irreversible for users until they update from the store — use it for data-corruption or money
 bugs, not cosmetics. To lift it, clear the variable and redeploy.
 
-Behaviour, verified against a running server on 2026-08-02:
+Intended behaviour of the gate (re-verify against the deployed server before relying on it):
 
 | Request | Result |
 |---|---|
@@ -84,6 +117,14 @@ environment above the installed build's version, redeploy, confirm the wall appe
 ## 3. OTA rollback
 
 Fastest lever: minutes, no store review. Only reaches installs on the same runtime version.
+
+> **Prerequisite, and it has a hard cutoff.** This whole section needs `updates.url` in
+> `app.config.js`. It was absent until 7 Aug 2026 — `expo-updates` shipped inside every binary but
+> had no URL to check, so none of the commands below could do anything. **Any build produced before
+> that config landed is permanently unreachable by OTA**: the URL is compiled into the binary, so an
+> already-installed app cannot be taught to start checking. For those installs your only levers are
+> §2 (kill switch) and §4 (store rollback). Confirm with `eas update:list --branch production` —
+> if the branch has no updates and the installed build predates the config, do not wait on an OTA.
 
 ```bash
 # 1. See what is live and pick the last-good update group.
@@ -174,15 +215,49 @@ configuration 7.11 crashed on. `app.config.js` and `src/lib/sentry.ts` now both 
 `https://<key>@<host>/<numeric project id>`, and `__tests__/sentry-init.test.ts` asserts the two
 regex literals stay character-identical, because two copies of a rule drift.
 
-**Still true for this runbook: with no real DSN configured, §5 step 1 has no data source and the
-Play promotion gate (crash-free ≥ 99.5%) has nothing to measure.** The code is ready; the Sentry
-project is the missing half.
+**Configured 7 Aug 2026.** The Sentry project exists and the variables are set on EAS, so §5 step 1
+and the Play promotion gate finally have a data source — *once a build carrying them is installed*.
+Nothing retroactively instruments a binary built before this.
 
-To turn it on: create the Sentry project, set `SENTRY_DSN` in the EAS production profile (plus
-`SENTRY_ORG` / `SENTRY_PROJECT` for source-map upload and `SENTRY_AUTH_TOKEN` at build time — without
-the token the plugin warns and skips the upload rather than failing the build), then **prove launch
-on a physical dev client with the DSN both set and unset**. That last step is not optional: the
-original fault was native and cannot appear in jest.
+| | |
+|---|---|
+| Org | `gameground-oo` (EU / `de` region — crash data is stored in Germany; declare it in your privacy labels) |
+| Project | `gameground-mobile` |
+| EAS vars | `SENTRY_DSN`, `SENTRY_ORG`, `SENTRY_PROJECT` (plain text) + `SENTRY_AUTH_TOKEN` (secret), all on `production` + `preview` |
+| Not on `development` | deliberate — local runs should not send crashes or burn quota |
+
+The DSN was checked against `DSN_SHAPE` before being stored. Do that for any replacement: a DSN that
+fails the regex is treated as *unset* by both `app.config.js` and `src/lib/sentry.ts`, so a typo
+presents as "Sentry is silently off", never as an error.
+
+### Turning it on
+
+`.env` is gitignored, so it never reaches an EAS build — a DSN that exists only there configures
+nothing. The values have to live in EAS. Create the Sentry project first, then:
+
+```bash
+# Non-secret, but environment-scoped. EAS injects these into the build automatically;
+# they do NOT need to be listed in eas.json.
+eas env:create --name SENTRY_DSN     --value "https://<key>@<host>/<numeric-project-id>" \
+  --environment production --environment preview --visibility plaintext
+eas env:create --name SENTRY_ORG     --value "<org-slug>"     --environment production --environment preview --visibility plaintext
+eas env:create --name SENTRY_PROJECT --value "<project-slug>" --environment production --environment preview --visibility plaintext
+
+# Secret — source-map upload only. Without it the plugin warns and skips the upload
+# rather than failing the build, so a missing token degrades, it does not block.
+eas env:create --name SENTRY_AUTH_TOKEN --value "<token>" \
+  --environment production --environment preview --visibility secret
+
+eas env:list --environment production   # verify before building
+```
+
+The DSN must match `https://<key>@<host>/<numeric project id>`. A placeholder like
+`https://...@sentry.io/...` is treated as unset by both `app.config.js` and `src/lib/sentry.ts` —
+deliberately, see above — so a typo shows up as "Sentry silently off", not as an error. Check
+`eas env:list` rather than assuming.
+
+Then **prove launch on a physical dev client with the DSN both set and unset**. That step is not
+optional: the original fault was native and cannot appear in jest.
 
 ---
 
@@ -192,12 +267,21 @@ Written honestly so nobody discovers these mid-incident:
 
 - **Kill switch is implemented but never fired in anger.** Unit-tested and exercised against a dev
   server (§2); never rehearsed on a deployed environment against a real build. Do that on preview.
-- **No crash telemetry yet.** Sentry is restored in code but inert until a real `SENTRY_DSN` is
-  configured, and the restored path has not been proven on a physical device (§6).
-- **Never rehearsed.** No OTA rollback has been performed on this project. Until the rehearsal
-  below is done, treat §3 as untested.
+- **Sentry is configured but has never received an event.** The project, DSN and EAS variables all
+  exist (§6), and the DSN validates. What has *not* happened is the physical-device proof the
+  original native crash demands — build with the DSN set AND unset, confirm no launch crash either
+  way, confirm an event actually lands in the project. Until then "crash reporting works" is an
+  inference, not an observation.
+- **OTA is configured but never rehearsed, and cannot reach old builds.** `updates.url` landed
+  7 Aug 2026; no update has been published or rolled back on this project, and every binary built
+  before that date is unreachable by OTA forever (§3). Treat §3 as untested until the rehearsal
+  below is done on a build that carries the config.
 - **Push notifications are dead.** `/api/push/register` and `/api/push/prefs` do not exist in the
   web repo, so there is no "notify affected users" option in an incident.
+- **Analytics only just wired.** The PostHog key reaches `preview` and `production` builds via
+  `eas.json`; `development` is deliberately left without one so local runs do not pollute the
+  dataset (`src/lib/analytics.ts` no-ops without a key). Nothing has been verified against a live
+  project yet, so §5 step 1's "PostHog active users" is unproven.
 
 ---
 

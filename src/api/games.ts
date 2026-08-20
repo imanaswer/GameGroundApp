@@ -2,6 +2,7 @@
  * Games endpoints (Developer PRD §3.3). Response types in api/types.ts — the single
  * place to reconcile when the web route select changes.
  */
+import type { HostPaymentMethod } from "@/lib/hostPayment";
 import { resolveImageUrl } from "@/lib/imageUrl";
 
 import { api } from "./client";
@@ -297,6 +298,12 @@ export async function act(id: string, action: GameAction): Promise<GameActionRes
  * The server derives venue/location/time from `slotId`; it never reads a venueId.
  * `slots` is player capacity (2–100); `cost` is a label ("Free" / "₹120") and
  * `costAmount` is whole rupees. `skillLevel` is required.
+ *
+ * **The payment block is required for a paid game and forbidden on a free one.** The server
+ * refines `costAmount === 0 || !!paymentMethod` and 422s otherwise, then nulls every payment
+ * field whenever `costAmount` is 0 — so sending them on a free game is silently discarded work.
+ * These fields are write-once: there is no PATCH on `/games/:id` (it answers 405), so whatever is
+ * sent here is what players see for the life of the game.
  */
 export type CreateGamePayload = {
   title: string;
@@ -306,6 +313,14 @@ export type CreateGamePayload = {
   skillLevel: "Beginner" | "Intermediate" | "Advanced" | "All Levels";
   cost?: string;
   costAmount?: number;
+  /** Required when `costAmount > 0`. Composed back into `hostPayment` on the detail route. */
+  paymentMethod?: HostPaymentMethod;
+  /** Dropped server-side unless the method accepts UPI. */
+  hostUpiId?: string;
+  /** An absolute URL from `POST /upload`, not a local file uri — the server requires `z.url()`. */
+  hostQrUrl?: string;
+  paymentNote?: string;
+  venueNote?: string;
   description?: string;
   rules?: string[];
 };
