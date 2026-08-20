@@ -104,6 +104,10 @@ const APP_LINK_DATA = LINK_HOSTS.flatMap((host) =>
 
 module.exports = {
   name: variant.name,
+  // Pins the EAS account. Without it `eas build` uses whoever is logged in, and any account that
+  // isn't the projectId's owner fails with EAS_BUILD_PROJECT_ID_MISMATCH — which is what happened
+  // on 8 Aug, and what `eas project:info` still reproduced on 20 Aug against the old id.
+  owner: "imanaswer",
   slug: "redesigned-gameground",
   version: "1.0.0",
   orientation: "portrait",
@@ -153,8 +157,8 @@ module.exports = {
    * two app opens rather than one.
    */
   updates: {
-    // Same id as `extra.eas.projectId` below — keep them in step. Verified to resolve 7 Aug 2026.
-    url: "https://u.expo.dev/e2ce390f-49f8-4665-89f5-180f9b240546",
+    // Same id as `extra.eas.projectId` below — keep them in step. Verified 20 Aug 2026.
+    url: "https://u.expo.dev/4cf1eebb-1290-452e-a748-697b64ca0d61",
     fallbackToCacheTimeout: 0,
   },
   /**
@@ -271,23 +275,28 @@ module.exports = {
     appEnv: profile,
     sentryDsn,
     /**
-     * THIS app's own EAS project — `@sarangs1621/redesigned-gameground`.
+     * THIS app's own EAS project — `@imanaswer/redesigned-gameground`, matching `owner` above.
      *
      * The id that used to be forbidden here was the ORIGINAL app's; inheriting it would have
      * pointed this project's builds and any future OTA channel at another app entirely. The value
      * below is this app's own.
      *
-     * **Verified against expo.dev on 7 Aug 2026, and that verification is the point.** The id this
-     * line carried before — `9a033e8c-…` — did not resolve to any project: `expo.dev/projects/<id>`
-     * returned Page not found, and the account owned no project by this slug. A projectId is a
-     * value nothing in the repo can check for you. `tsc`, `eslint`, `jest` and even
-     * `expo export` all pass with a fictitious one, because it is never dereferenced until
-     * `eas build` / `eas update` reaches the network. If you change it, open the URL.
+     * **Verified against the API on 20 Aug 2026, and that verification is the point.** Two earlier
+     * ids failed here for two different reasons: `9a033e8c-…` resolved to no project at all, and
+     * `e2ce390f-…` (`@sarangs1621/…`) resolved to a project this account cannot read —
+     * `eas project:info` returned *Entity not authorized*, and a build would have died with
+     * EAS_BUILD_PROJECT_ID_MISMATCH. A projectId is a value nothing in the repo can check for you:
+     * `tsc`, `eslint`, `jest` and even `expo export` all pass with a wrong one, because it is never
+     * dereferenced until `eas build` / `eas update` reaches the network. If you change it, run
+     * `eas project:info`.
+     *
+     * **The Play upload keystore follows this project.** Whichever account owns it signs every
+     * release of the listing, forever — which is why this is `imanaswer` and not the fork source.
      *
      * `EAS_PROJECT_ID` still wins when set, so a fork or a second environment can retarget builds
      * without editing this file. It must stay in step with `updates.url` above, which embeds the
      * same id — they are two copies of one fact.
      */
-    eas: { projectId: process.env.EAS_PROJECT_ID ?? "e2ce390f-49f8-4665-89f5-180f9b240546" },
+    eas: { projectId: process.env.EAS_PROJECT_ID ?? "4cf1eebb-1290-452e-a748-697b64ca0d61" },
   },
 };

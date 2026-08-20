@@ -18,12 +18,12 @@ Apple do not expose rollout control over the CLI.
 
 | Thing | Value |
 |---|---|
-| EAS project id | `e2ce390f-49f8-4665-89f5-180f9b240546` (`app.config.js` → `extra.eas.projectId`) |
-| EAS owner / slug | `sarangs1621` / `redesigned-gameground` (`app.config.js` → `slug`) |
+| EAS project id | `4cf1eebb-1290-452e-a748-697b64ca0d61` (`app.config.js` → `extra.eas.projectId`) |
+| EAS owner / slug | `imanaswer` / `redesigned-gameground` (`app.config.js` → `owner` / `slug`) |
 | Bundle id (prod) | `net.gameground.redesigned` (`.dev` / `.preview` suffixes on the other profiles) |
 | App scheme | `ggredesign://` — **not** `gameground://`, which is the original app's |
 | Update channels | `development`, `preview`, `production` (`eas.json`) |
-| Update URL | `https://u.expo.dev/e2ce390f-49f8-4665-89f5-180f9b240546` (`app.config.js` → `updates`) |
+| Update URL | `https://u.expo.dev/4cf1eebb-1290-452e-a748-697b64ca0d61` (`app.config.js` → `updates`) |
 | Runtime version policy | `appVersion` — an OTA can only reach builds of the **same** `version` |
 | Marketing version | `1.0.0`, hardcoded in `app.config.js`. **Bump by hand every release** — see below |
 | API | `https://www.gameground.net/api/*` (web repo `../GG(web)`) |
