@@ -58,7 +58,18 @@ const canResolve = (id) => {
  *
  * To turn it on: create the Sentry project, `npx expo install @sentry/react-native`, then set
  * SENTRY_DSN (+ SENTRY_ORG / SENTRY_PROJECT for source-map upload, and SENTRY_AUTH_TOKEN at build
- * time — without the token the plugin warns and skips the upload rather than failing the build).
+ * time).
+ *
+ * **SENTRY_AUTH_TOKEN is not optional once SENTRY_DSN is set.** This comment used to claim the
+ * plugin "warns and skips the upload rather than failing the build". It does not, and that cost a
+ * 9-minute build on 20 Aug 2026: `sentry.gradle:149` runs `sentry-cli`, which exits 1 with
+ * *"Auth token is required for this request"*, and Gradle fails the whole assemble on
+ * `:app:createBundleReleaseJsAndAssets_SentryUpload_…`. Arming the DSN without the token turns a
+ * missing-nice-to-have into a hard build break.
+ *
+ * The escape hatch, for builds that genuinely don't need source maps, is
+ * `SENTRY_DISABLE_AUTO_UPLOAD=true` — set on the `production-apk` profile in eas.json, and
+ * deliberately NOT on `production`, so a store AAB can never ship with unreadable stack traces.
  */
 const sentryPlugin = (() => {
   if (!sentryDsn) return [];
