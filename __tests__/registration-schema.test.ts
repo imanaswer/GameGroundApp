@@ -56,6 +56,17 @@ describe("entity registry", () => {
     expect(r.success).toBe(true);
   });
 
+  // RegistrationForm seeds `phone` from the profile so the user isn't asked twice, and validates
+  // `{...seed, ...values}` — an untouched seeded field is never in `values`, so a schema that only
+  // saw what was typed would reject a form the user has fully filled in.
+  test("a profile-seeded phone satisfies camp without the user typing it", () => {
+    const s = schemaFromFields(ENTITIES.camp.fields as Field[]);
+    const seed = { phone: "+91 98765 43210" };
+    const typed = { childName: "Kid", childAge: "9" };
+    expect(s.safeParse(typed).success).toBe(false);
+    expect(s.safeParse({ ...seed, ...typed }).success).toBe(true);
+  });
+
   test("adding a 4th entity is one config entry — same engine validates it", () => {
     const fourth: Field[] = [
       { key: "squadName", label: "Squad", type: "text", required: true },

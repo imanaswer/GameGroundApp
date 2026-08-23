@@ -17,7 +17,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import * as paymentsApi from "@/api/payments";
 import type { EntityType } from "@/api/types";
 import { useAuth } from "@/hooks/useAuth";
-import { keys } from "@/hooks/queries";
+import { keys, useProfile } from "@/hooks/queries";
+import { toWhatsAppNumber } from "@/lib/phone";
 import { captureException } from "@/lib/sentry";
 import * as storage from "@/lib/storage";
 import { openCheckout } from "@/lib/razorpay";
@@ -39,6 +40,14 @@ export function useCheckout(
 ) {
   const queryClient = useQueryClient();
   const { user } = useAuth();
+  // Razorpay asks for a contact number on every open unless one is prefilled — which is the only
+  // place a coach booking touched a phone number at all (that flow has no form of its own).
+  // The session user deliberately doesn't carry `phone` (profile data goes stale in a bearer
+  // token), so it comes from the profile query. `toWhatsAppNumber` because User.phone is free
+  // text: "+91 98765 43210" can't be handed to the gateway as-is.
+  const profile = useProfile(user?.id ?? "");
+  const digits = toWhatsAppNumber(profile.data?.phone);
+  const contact = digits ? `+${digits}` : undefined;
   const [state, setState] = useState<CheckoutSheetState>("methods");
   const [phase, setPhase] = useState<CheckoutPhase | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -98,7 +107,7 @@ export function useCheckout(
       {
         createOrder: () => paymentsApi.createOrder(entityType, entityId),
         openGateway: (order) =>
-          openCheckout(order, { email: user?.email, contact: undefined }),
+          openCheckout(order, { email: user?.email, contact }),
         verify: (result, order) =>
           paymentsApi
             .verify({ result, entityType, entityId, registration })
@@ -121,7 +130,7 @@ export function useCheckout(
         captureException(new Error(`checkout failed: ${outcome.message}`), { entityType, entityId });
         return setState("failure");
     }
-  }, [entityType, entityId, registration, user, settleSuccess, beginReconcile]);
+  }, [entityType, entityId, registration, user, contact, settleSuccess, beginReconcile]);
 
   const reset = useCallback(() => {
     setError(null);

@@ -10,6 +10,8 @@ import type { EntityType } from "@/api/types";
 import { CheckoutSheet } from "@/components/checkout";
 import { useToast } from "@/components/chrome";
 import { Button, Chip, CloseIcon, Input, Press } from "@/components/ds";
+import { useProfile } from "@/hooks/queries";
+import { useAuth } from "@/hooks/useAuth";
 import { useCheckout } from "@/hooks/useCheckout";
 import { usePush } from "@/hooks/usePush";
 import { formatAmount } from "@/lib/format";
@@ -40,6 +42,11 @@ export function RegistrationForm({
   // `registration` is set the moment the form is submitted, which is exactly when this flow enters
   // the payment path.
   const checkout = useCheckout(config.entityType as EntityType, entityId, registration ?? {});
+  // Don't re-ask for a number the profile already holds (camp + event both spec a `phone` field).
+  // Seeded, not forced: a camp is registered for a child, whose contact may not be the account's.
+  const { user } = useAuth();
+  const profile = useProfile(user?.id ?? "");
+  const seed: Record<string, string> = profile.data?.phone ? { phone: profile.data.phone } : {};
   const { promptForPush } = usePush();
   const { show } = useToast();
   const isFree = amountPaise <= 0;
@@ -58,7 +65,9 @@ export function RegistrationForm({
   };
 
   const submit = () => {
-    const parsed = schemaFromFields(config.fields).safeParse(values);
+    // Merge, don't just render: `values` only gains a key when the user *types*, so an untouched
+    // seeded field would validate as missing.
+    const parsed = schemaFromFields(config.fields).safeParse({ ...seed, ...values });
     if (!parsed.success) {
       const flat: Record<string, string> = {};
       for (const issue of parsed.error.issues) flat[String(issue.path[0])] = issue.message;
@@ -128,7 +137,7 @@ export function RegistrationForm({
             key={f.key}
             testID={`registration-${f.key}`}
             label={f.label}
-            value={values[f.key] ?? ""}
+            value={values[f.key] ?? seed[f.key] ?? ""}
             onChangeText={set(f.key)}
             error={errors[f.key]}
             keyboardType={f.type === "number" ? "number-pad" : "default"}
