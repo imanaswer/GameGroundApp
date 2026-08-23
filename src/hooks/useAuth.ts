@@ -228,10 +228,26 @@ export function useAppleAvailable(): boolean {
  *
  * Unlike the native flow this replaced, there is nothing to configure in the app: no client ids, no
  * per-variant OAuth clients, and no extra URL scheme (so no native rebuild).
+ *
+ * **Warm-up (fix for the first-tap-fails-second-tap-works symptom):** `openAuthSessionAsync`'s
+ * underlying browser session (Custom Tabs on Android, `ASWebAuthenticationSession` on iOS) is cold
+ * on the very first invocation — there's a real race between the app-scheme redirect landing and
+ * the native listener being armed to catch it, which can resolve as `dismiss` even though the
+ * server-side OAuth completed. `warmUpAsync()` pre-connects that browser process the moment this
+ * hook mounts (i.e. as soon as the login/signup screen is on screen), removing the cold-start
+ * window before the user ever taps the button. `coolDownAsync()` releases it on unmount so it
+ * doesn't linger for the lifetime of the app.
  */
 export function useGoogleLogin(onError: (e: unknown) => void) {
   const { adopt } = useAuth();
   const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    WebBrowser.warmUpAsync().catch(() => {});
+    return () => {
+      WebBrowser.coolDownAsync().catch(() => {});
+    };
+  }, []);
 
   const prompt = useCallback(async () => {
     if (busy) return;
@@ -253,8 +269,16 @@ export function useGoogleLogin(onError: (e: unknown) => void) {
       const returnUrl = `${appScheme()}://auth-callback`;
 
       const result = await WebBrowser.openAuthSessionAsync(url, returnUrl);
-      // "cancel"/"dismiss" is the user closing the tab — an intentional exit, not an error.
-      if (result.type !== "success") return;
+      // "cancel"/"dismiss" is normally the user closing the tab — an intentional exit, not an
+      // error. But it's also what a cold-start redirect race reports even when the server-side
+      // OAuth succeeded (see warm-up note above). Logged in dev only so a real regression here is
+      // visible without surfacing noise to users who genuinely just backed out.
+      if (result.type !== "success") {
+        if (__DEV__) {
+          console.log(`[google-auth] non-success result: ${result.type}`);
+        }
+        return;
+      }
 
       const params = new URL(result.url).searchParams;
       const error = params.get("error");
