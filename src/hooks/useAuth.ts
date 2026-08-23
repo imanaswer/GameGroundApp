@@ -261,6 +261,11 @@ export function useGoogleLogin(onError: (e: unknown) => void) {
         { encoding: Crypto.CryptoEncoding.BASE64 },
       ).then(toBase64Url);
 
+      // Stashed BEFORE the browser opens — see the storage.ts comment on this key. If Android
+      // kills this process while backgrounded for the OAuth pages, this is the only surviving
+      // copy of the verifier, and DeepLinkProvider's cold-start handler is what redeems it.
+      await storage.set("gg.pendingGoogleAuth", { verifier, startedAt: Date.now() });
+
       const handoff = `/api/auth/google/handoff?c=${encodeURIComponent(challenge)}`;
       const url = `${env.apiUrl}/api/auth/google?redirect=${encodeURIComponent(handoff)}`;
       // Built from the manifest scheme rather than Linking.createURL: in a dev client that helper
@@ -290,6 +295,8 @@ export function useGoogleLogin(onError: (e: unknown) => void) {
     } catch (e) {
       onError(e);
     } finally {
+      // Consumed one way or another — nothing left for a cold-start recovery to redeem.
+      await storage.remove("gg.pendingGoogleAuth").catch(() => {});
       setBusy(false);
     }
   }, [busy, adopt, onError]);

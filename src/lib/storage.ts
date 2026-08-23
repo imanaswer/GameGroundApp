@@ -76,6 +76,17 @@ type Schema = {
   "gg.pendingDeepLink": string;
   /** Delight (M14): last tier the user has been congratulated for — tier-up fires once. */
   "gg.lastSeenTier": string;
+  /**
+   * Google sign-in PKCE verifier, stashed the moment the browser hop opens (§5.2 addendum).
+   * Android can kill a freshly-installed app's process while it's backgrounded for the OAuth
+   * pages — no prior importance history makes it a prime low-memory-killer target. When that
+   * happens, the redirect back to `ggredesign://auth-callback?code=...` cold-starts a brand new
+   * process instead of resuming the one that opened the browser, and the `verifier` living in that
+   * dead process's closure is gone. Persisting it here is what lets the fresh process finish the
+   * exchange from its own launch URL. Cleared the instant it's consumed — success, failure, or
+   * abandoned — so it never outlives the attempt that created it.
+   */
+  "gg.pendingGoogleAuth": { verifier: string; startedAt: number };
 };
 
 type Key = keyof Schema;
