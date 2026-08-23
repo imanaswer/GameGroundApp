@@ -16,6 +16,7 @@ import {
   type ReactNode,
 } from "react";
 
+import * as authApi from "@/api/auth";
 import { useAuth } from "@/hooks/useAuth";
 import { planNavigation, resolveDeepLink } from "@/lib/deeplinks";
 import { breadcrumb } from "@/lib/sentry";
@@ -24,9 +25,25 @@ import * as storage from "@/lib/storage";
 type DeepLinkContextValue = { route: (url: string | null) => void };
 const DeepLinkContext = createContext<DeepLinkContextValue | null>(null);
 
+/**
+ * `ggredesign://auth-callback?code=...` isn't a navigable route — it's the Google OAuth redirect
+ * (see `useGoogleLogin`). `new URL()` reads a custom scheme's first segment as the HOST, so this
+ * checks `host`, not `pathname`.
+ */
+function parseGoogleAuthCallback(url: string): { code: string } | null {
+  try {
+    const parsed = new URL(url);
+    if (parsed.host !== "auth-callback") return null;
+    const code = parsed.searchParams.get("code");
+    return code ? { code } : null;
+  } catch {
+    return null;
+  }
+}
+
 export function DeepLinkProvider({ children }: { children: ReactNode }) {
   const router = useRouter();
-  const { status } = useAuth();
+  const { status, adopt } = useAuth();
   const isSignedIn = status === "signedIn";
 
   const route = useCallback(
@@ -44,6 +61,43 @@ export function DeepLinkProvider({ children }: { children: ReactNode }) {
       }
     },
     [isSignedIn, router],
+  );
+
+  /**
+   * Redeem a Google auth redirect that survived as a launch URL rather than a live promise.
+   *
+   * This only happens when Android killed the process that opened the browser — a freshly
+   * installed app has no importance history and is a prime low-memory-killer target while
+   * backgrounded for Google's account/consent pages. When that happens, `useGoogleLogin`'s own
+   * `await WebBrowser.openAuthSessionAsync(...)` closure died with the old process, so its
+   * `verifier` is gone; this reads the one copy that was persisted before the browser opened
+   * (`gg.pendingGoogleAuth`) and finishes the exchange here instead.
+   *
+   * Not reachable from the warm listener below by design — see its comment.
+   */
+  const completeGoogleAuthFromColdStart = useCallback(
+    async (code: string) => {
+      const pending = await storage.get("gg.pendingGoogleAuth");
+      await storage.remove("gg.pendingGoogleAuth");
+      if (!pending) {
+        // No stashed verifier — either this callback already reached the live promise before the
+        // process died, or the link is stale/replayed. Nothing recoverable; land signed-out users
+        // on login same as any other unresolved launch URL, rather than silently doing nothing.
+        breadcrumb("deeplink.google-auth-cold-start-no-verifier", {});
+        return;
+      }
+      try {
+        adopt(await authApi.exchangeGoogleCode(code, pending.verifier));
+      } catch (e) {
+        breadcrumb("deeplink.google-auth-cold-start-failed", {
+          message: e instanceof Error ? e.message : String(e),
+        });
+        // Deliberately silent to the user: this is a background recovery attempt on app launch,
+        // not a response to a button they just pressed. If it fails, they're simply back at the
+        // login screen and can tap Google sign-in again — the ordinary retry path.
+      }
+    },
+    [adopt],
   );
 
   /**
@@ -68,6 +122,8 @@ export function DeepLinkProvider({ children }: { children: ReactNode }) {
     Linking.getInitialURL()
       .then((url) => {
         if (!url) return;
+        const googleCallback = parseGoogleAuthCallback(url);
+        if (googleCallback) return completeGoogleAuthFromColdStart(googleCallback.code);
         /**
          * A launch URL we cannot map is NOT routed home, unlike one that arrives while the app is
          * running. At launch the entry route (app/index.tsx) already owns the destination —
@@ -79,11 +135,19 @@ export function DeepLinkProvider({ children }: { children: ReactNode }) {
         route(url);
       })
       .catch(() => {});
-  }, [status, route]);
+  }, [status, route, completeGoogleAuthFromColdStart]);
 
   // Warm / background: links delivered while the app is already running.
   useEffect(() => {
-    const sub = Linking.addEventListener("url", ({ url }) => route(url));
+    const sub = Linking.addEventListener("url", ({ url }) => {
+      // Ignored here on purpose: when the process survives the browser hop (the ordinary case),
+      // `useGoogleLogin`'s own `await WebBrowser.openAuthSessionAsync(...)` already owns this
+      // redirect and is mid-exchange with the one-time code. Also completing it here would race
+      // that exchange — and losing the race means redeeming an already-used code, which the
+      // server rejects, surfacing a spurious error to a user who actually just signed in fine.
+      if (parseGoogleAuthCallback(url)) return;
+      route(url);
+    });
     return () => sub.remove();
   }, [route]);
 
